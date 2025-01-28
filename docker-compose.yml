@@ -1,4 +1,22 @@
 services:
+  api: 
+    build:
+      context: .
+      dockerfile: ./apps/api/Dockerfile
+      target: development
+    command: npm run start:dev api
+    container_name: studio_hub_cloud-api
+    ports:
+      - ${API_PORT}:${API_PORT}
+    volumes:
+      - .:/usr/src/app
+    environment:
+      DB_HOST: ${DB_HOST}
+      DB_PORT: ${DB_PORT}
+      DB_NAME: ${DB_NAME}
+      DB_USER: ${DB_USER}
+      DB_PASS: ${DB_PASS}
+      API_PORT: ${API_PORT}
   database:
     image: postgres:latest
     container_name: studio_hub_cloud-db
