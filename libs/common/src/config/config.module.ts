@@ -1,24 +1,35 @@
-import { Module } from '@nestjs/common'
+import { Module, DynamicModule } from '@nestjs/common'
 import { ConfigModule as NestConfigModule, ConfigService } from '@nestjs/config'
-import { z } from 'zod'
+import { z, ZodSchema } from 'zod'
 
-@Module({
-  imports: [
-    NestConfigModule.forRoot({
-      validate: (config) =>
-        z
-          .object({
-            PORT: z.coerce.number().optional().default(3000),
-            DB_PORT: z.coerce.number(),
-            DB_USER: z.string(),
-            DB_PASS: z.string(),
-            DB_NAME: z.string(),
-          })
-          .parse(config),
-      isGlobal: true,
-    }),
-  ],
-  providers: [ConfigService],
-  exports: [ConfigService],
-})
-export class ConfigModule {}
+@Module({})
+export class ConfigModule {
+  static forRoot<T extends Record<string, any>>({
+    validationSchema,
+  }: {
+    validationSchema: ZodSchema<T>
+  }): DynamicModule {
+    return {
+      module: ConfigModule,
+      global: true,
+      imports: [
+        NestConfigModule.forRoot({
+          validate: (config) => {
+            const parsed = validationSchema.safeParse(config)
+            if (!parsed.success) {
+              throw new Error(`Config validation error: ${parsed.error.message}`)
+            }
+            return parsed.data
+          },
+        }),
+      ],
+      providers: [
+        {
+          provide: ConfigService,
+          useClass: ConfigService<T>,
+        },
+      ],
+      exports: [ConfigService],
+    }
+  }
+}
