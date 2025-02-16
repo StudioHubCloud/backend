@@ -1,6 +1,5 @@
 import { Module } from '@nestjs/common'
-import { DatabaseModule, LoggerModule } from '@app/common'
-import { ConfigModule } from '@nestjs/config'
+import { DatabaseModule, LoggerModule, ConfigModule } from '@app/common'
 import { envValidationSchema, TApiEnv } from './validation-schema'
 import { BusinessModule, CustomerModule, StudioModule } from './modules'
 
@@ -9,11 +8,11 @@ import { BusinessModule, CustomerModule, StudioModule } from './modules'
     BusinessModule,
     CustomerModule,
     StudioModule,
-    DatabaseModule,
     LoggerModule,
-    ConfigModule.forRoot<TApiEnv>({
-      validate: (env) => envValidationSchema.parse(env),
+    ConfigModule.forRoot({
+      validationSchema: envValidationSchema,
     }),
+    DatabaseModule,
   ],
   providers: [],
 })

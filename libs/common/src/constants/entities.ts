@@ -39,20 +39,23 @@ export const STAFF_MEMBERS = {
   },
 } as const
 
-export const SESSION_DAYS = {
-  0: ['Неділя', 'Нд'],
-  1: ['Понеділок', 'Пн'],
-  2: ['Вівторок', 'Вт'],
-  3: ['Середа', 'Ср'],
-  4: ['Четверг', 'Чт'],
-  5: ["П'ятниця", 'Пт'],
-  6: ['Субота', 'Сб'],
-} as const
-
 export const PASS = {
   STATUS: {
     ACTIVE: 'active',
     PAUSED: 'paused',
     EXPIRED: 'expired',
+  },
+} as const
+
+export const TRAINING_SCHEDULE = {
+  STATUS: {
+    ACTIVE: 'active',
+    CANCELED: 'canceled',
+    COMPLETED: 'completed',
+  },
+  TYPE: {
+    MAIN: 'main',
+    RESERVE: 'reserve',
+    PERSONAL: 'personal',
   },
 } as const

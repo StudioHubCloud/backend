@@ -1,5 +1,5 @@
 export * from './api'
 export * from './bot'
-export * from './entities'
 export * from './error'
 export * from './global'
+export * from './entities'

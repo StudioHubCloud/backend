@@ -4,11 +4,7 @@ import { z, ZodSchema } from 'zod'
 
 @Module({})
 export class ConfigModule {
-  static forRoot<T extends Record<string, any>>({
-    validationSchema,
-  }: {
-    validationSchema: ZodSchema<T>
-  }): DynamicModule {
+  static forRoot<T extends Record<string, any>>({ validationSchema }: { validationSchema: ZodSchema<T> }): DynamicModule {
     return {
       module: ConfigModule,
       global: true,
