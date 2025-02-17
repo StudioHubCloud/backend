@@ -1,19 +1,9 @@
 import { Module } from '@nestjs/common'
-import { DatabaseModule, LoggerModule, ConfigModule } from '@app/common'
-import { envValidationSchema, TApiEnv } from './validation-schema'
-import { BusinessModule, CustomerModule, StudioModule } from './modules'
+import { BusinessModule, CustomerModule, StudioModule } from '@app/modules/domain'
+import { LoggerModule, ConfigModule, DatabaseModule } from '@app/modules/infrastructure'
 
 @Module({
-  imports: [
-    BusinessModule,
-    CustomerModule,
-    StudioModule,
-    LoggerModule,
-    ConfigModule.forRoot({
-      validationSchema: envValidationSchema,
-    }),
-    DatabaseModule,
-  ],
+  imports: [BusinessModule, CustomerModule, StudioModule, LoggerModule, ConfigModule, DatabaseModule],
   providers: [],
 })
 export class ApiModule {}

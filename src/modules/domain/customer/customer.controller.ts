@@ -6,10 +6,7 @@ import { ConfigService } from '@nestjs/config'
 
 @Controller('customer')
 export class CustomerController {
-  constructor(
-    private readonly customerService: CustomerService,
-    private readonly configService: ConfigService,
-  ) {}
+  constructor(private readonly customerService: CustomerService) {}
 
   @Post()
   create(@Body() createCustomerDto: CreateCustomerDto) {

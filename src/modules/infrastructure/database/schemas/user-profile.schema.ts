@@ -3,9 +3,7 @@ import { relations } from 'drizzle-orm'
 import { Business } from './business.schema'
 import { StaffMember } from './staff-member.schema'
 import { Client } from './client.schema'
-
-export const UserProfileRoleEnum = pgEnum('role', ['admin', 'staff_member', 'guest', 'client'])
-export const UserProfileStatusEnum = pgEnum('status', ['active', 'inactive', 'not_verified', 'blocked'])
+import { UserProfileRolePgEnum, UserProfileStatusPgEnum } from '../database.enums'
 
 export const UserProfile = table(
   'user_profile',
@@ -14,8 +12,8 @@ export const UserProfile = table(
     fullName: varchar('full_name').notNull(),
     phoneNumber: varchar('phone_number').notNull(),
     telegramId: varchar('telegram_id').notNull(),
-    role: UserProfileRoleEnum().notNull().notNull(),
-    status: UserProfileStatusEnum().notNull(),
+    role: UserProfileRolePgEnum().notNull().notNull(),
+    status: UserProfileStatusPgEnum().notNull(),
     businessId: uuid('business_id')
       .references(() => Business.id, { onDelete: 'cascade' })
       .notNull(),

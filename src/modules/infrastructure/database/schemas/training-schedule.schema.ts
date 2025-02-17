@@ -1,18 +1,16 @@
-import { pgEnum, pgTable as table, uuid, index, uniqueIndex } from 'drizzle-orm/pg-core'
+import { pgTable as table, uuid, index, uniqueIndex } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
+import { TrainingStatusPgEnum, TrainingTypePgEnum } from '../database.enums'
 import { UserProfile } from './user-profile.schema'
 import { Training } from './training.schema'
 import { Pass } from './pass.schema'
-
-export const TrainingStatusEnum = pgEnum('status', ['active', 'canceled', 'completed'])
-export const TrainingTypeEnum = pgEnum('type', ['main', 'reserve', 'personal'])
 
 export const TrainingSchedule = table(
   'training_schedule',
   {
     id: uuid('id').primaryKey(),
-    status: TrainingStatusEnum().notNull(),
-    type: TrainingTypeEnum().notNull(),
+    status: TrainingStatusPgEnum().notNull(),
+    type: TrainingTypePgEnum().notNull(),
     userProfileId: uuid('user_profile_id').references(() => UserProfile.id, { onDelete: 'set null' }),
     passId: uuid('pass_id').references(() => Pass.id, { onDelete: 'set null' }),
     trainingId: uuid('training_id')

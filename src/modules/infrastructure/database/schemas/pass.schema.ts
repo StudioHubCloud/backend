@@ -1,12 +1,9 @@
-import { smallint, pgEnum, pgTable as table, timestamp, uuid, index } from 'drizzle-orm/pg-core'
+import { smallint, pgTable as table, timestamp, uuid, index } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { Group } from './group.schema'
 import { Client } from './client.schema'
 import { TrainingSchedule } from './training-schedule.schema'
-
-export const StatusEnum = pgEnum('status', ['active', 'paused', 'expired'])
-
-type Status = (typeof StatusEnum.enumValues)[number]
+import { PassStatusPgEnum } from '../database.enums'
 
 export const Pass = table(
   'pass',
@@ -19,7 +16,7 @@ export const Pass = table(
     pausedFromDate: timestamp('paused_from_date', { mode: 'string' }),
     pausedToDate: timestamp('paused_to_date', { mode: 'string' }),
     expiredFromDate: timestamp('expired_from_date', { mode: 'string' }),
-    status: StatusEnum().notNull(),
+    status: PassStatusPgEnum().notNull(),
     groupId: uuid('group_id').references(() => Group.id, { onDelete: 'set null' }),
     clientId: uuid('client_id')
       .references(() => Client.id, { onDelete: 'cascade' })
