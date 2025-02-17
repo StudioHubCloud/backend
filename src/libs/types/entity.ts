@@ -1,4 +1,4 @@
-import { PASS, TRAINING_SCHEDULE, SUBSCRIBTION } from '../constants'
+import { PASS, SUBSCRIBTION, TRAINING_SCHEDULE } from 'src/libs/constants'
 
 export type PassStatus = (typeof PASS.STATUS)[keyof typeof PASS.STATUS]
 export type SubscribtionTier = (typeof SUBSCRIBTION.TIER)[keyof typeof SUBSCRIBTION.TIER]

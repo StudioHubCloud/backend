@@ -1,4 +1,4 @@
-import { DATE_FORMAT } from '../constants'
+import { DATE_FORMAT } from 'src/libs/constants'
 
 export type AutocompletableString = string & {}
 

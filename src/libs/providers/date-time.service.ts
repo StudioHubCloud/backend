@@ -1,7 +1,7 @@
 import { Inject, Injectable } from '@nestjs/common'
 import { ConfigService } from '@nestjs/config'
 import { add, format, startOfToday, subDays } from 'date-fns'
-import { APP, DATE_FORMAT } from '../constants'
+import { APP, DATE_FORMAT } from 'src/libs/constants'
 import { TDateFormats } from '../types'
 
 export const DateTimeServiceInjector = () => Inject(APP.PROVIDERS.DATE_TIME_SERVICE)
