@@ -1,20 +1,24 @@
 import { NestFactory } from '@nestjs/core'
-import { ApiModule } from './api.module'
-import { API, EnvVariables } from './libs'
-import { ConfigService } from '@nestjs/config'
+import { AppModule } from './app.module'
+import { NestExpressApplication } from '@nestjs/platform-express'
+import { API } from './libs'
+import { TypedConfigService } from '@app/infrastructure/config'
 import { Logger } from 'nestjs-pino'
+import { BotService } from 'src/bot/bot.service'
 
 async function bootstrap() {
-  const app = await NestFactory.create(ApiModule, {
+  const app = await NestFactory.create<NestExpressApplication>(AppModule, {
     bufferLogs: true,
   })
   const logger = app.get(Logger)
   app.useLogger(logger)
-  app.setGlobalPrefix(API.GLOBAL_API_PREFIX)
+  app.setGlobalPrefix(API.GLOBAL_API_PREFIX_V1)
 
-  const configService = app.get(ConfigService<EnvVariables>)
+  const configService = app.get(TypedConfigService)
+  const telegramService = app.get(BotService)
 
-  await app.listen(configService.getOrThrow('PORT'))
+  await app.listen(configService.get('PORT'))
+  await telegramService.init()
   logger.log(`Application is running on: ${await app.getUrl()}`)
 }
 bootstrap()

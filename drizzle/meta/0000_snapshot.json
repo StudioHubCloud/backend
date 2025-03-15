@@ -1,5 +1,5 @@
 {
-  "id": "49f3e518-d8a0-42b1-8bd8-08806cf513d3",
+  "id": "bb779128-d5cd-47c3-a67e-a2b65f500ef7",
   "prevId": "00000000-0000-0000-0000-000000000000",
   "version": "7",
   "dialect": "postgresql",
@@ -12,7 +12,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "display_name": {
           "name": "display_name",
@@ -139,7 +140,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "user_profile_id": {
           "name": "user_profile_id",
@@ -178,7 +180,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "full_name": {
           "name": "full_name",
@@ -338,7 +341,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "time": {
           "name": "time",
@@ -357,6 +361,12 @@
           "type": "smallint",
           "primaryKey": false,
           "notNull": true
+        },
+        "group_style_variant_id": {
+          "name": "group_style_variant_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -408,6 +418,19 @@
           ],
           "onDelete": "restrict",
           "onUpdate": "no action"
+        },
+        "group_schedule_group_style_variant_id_group_style_variant_id_fk": {
+          "name": "group_schedule_group_style_variant_id_group_style_variant_id_fk",
+          "tableFrom": "group_schedule",
+          "tableTo": "group_style_variant",
+          "columnsFrom": [
+            "group_style_variant_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
         }
       },
       "compositePrimaryKeys": {},
@@ -424,7 +447,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "title": {
           "name": "title",
@@ -634,7 +658,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "title": {
           "name": "title",
@@ -802,7 +827,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "price": {
           "name": "price",
@@ -848,7 +874,7 @@
         },
         "status": {
           "name": "status",
-          "type": "status",
+          "type": "pass_status_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -982,7 +1008,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "user_profile_id": {
           "name": "user_profile_id",
@@ -1021,7 +1048,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "title": {
           "name": "title",
@@ -1134,7 +1162,7 @@
         },
         "status": {
           "name": "status",
-          "type": "status",
+          "type": "subscribtion_status_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1251,7 +1279,7 @@
         },
         "tier": {
           "name": "tier",
-          "type": "tier",
+          "type": "subscribtion_tier_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1322,7 +1350,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "date": {
           "name": "date",
@@ -1461,18 +1490,19 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "status": {
           "name": "status",
-          "type": "status",
+          "type": "training_status_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
         "type": {
           "name": "type",
-          "type": "type",
+          "type": "training_type_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1721,7 +1751,8 @@
           "name": "id",
           "type": "uuid",
           "primaryKey": true,
-          "notNull": true
+          "notNull": true,
+          "default": "gen_random_uuid()"
         },
         "full_name": {
           "name": "full_name",
@@ -1743,14 +1774,14 @@
         },
         "role": {
           "name": "role",
-          "type": "role",
+          "type": "userprofile_role_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
         },
         "status": {
           "name": "status",
-          "type": "status",
+          "type": "userprofile_status_enum",
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
@@ -1867,46 +1898,7 @@
       "isRLSEnabled": false
     }
   },
-  "enums": {
-    "public.status": {
-      "name": "status",
-      "schema": "public",
-      "values": [
-        "active",
-        "inactive",
-        "not_verified",
-        "blocked"
-      ]
-    },
-    "public.tier": {
-      "name": "tier",
-      "schema": "public",
-      "values": [
-        "basic",
-        "professional",
-        "elite"
-      ]
-    },
-    "public.type": {
-      "name": "type",
-      "schema": "public",
-      "values": [
-        "main",
-        "reserve",
-        "personal"
-      ]
-    },
-    "public.role": {
-      "name": "role",
-      "schema": "public",
-      "values": [
-        "admin",
-        "staff_member",
-        "guest",
-        "client"
-      ]
-    }
-  },
+  "enums": {},
   "schemas": {},
   "sequences": {},
   "roles": {},

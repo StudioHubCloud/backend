@@ -11,3 +11,8 @@ export const APP = {
 export const DATE_FORMAT = {
   DATE: 'yyyy-MM-dd',
 } as const
+
+export const ENVIRONMENTS = {
+  DEV: 'development',
+  PRODUCTION: 'production',
+}

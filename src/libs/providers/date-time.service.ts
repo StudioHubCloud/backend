@@ -1,14 +1,13 @@
-import { Inject, Injectable } from '@nestjs/common'
-import { ConfigService } from '@nestjs/config'
 import { add, format, startOfToday, subDays } from 'date-fns'
-import { APP, DATE_FORMAT } from 'src/libs/constants'
-import { TDateFormats } from '../types'
+import { Inject, Injectable } from '@nestjs/common'
+import { TypedConfigService } from '@app/infrastructure/config'
+import { APP, DATE_FORMAT, TDateFormats } from '@app/libs'
 
 export const DateTimeServiceInjector = () => Inject(APP.PROVIDERS.DATE_TIME_SERVICE)
 
 @Injectable()
 export class DateTimeService {
-  constructor(private readonly configService: ConfigService) {}
+  constructor(private readonly configService: TypedConfigService) {}
 
   addDaysToDate(days: number, date: Date = new Date()): Date {
     return add(date, { days })

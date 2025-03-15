@@ -1,0 +1,19 @@
+import { InferInsertModel } from 'drizzle-orm'
+import * as schemas from '../schemas'
+
+export type BusinessInsertModel = InferInsertModel<typeof schemas.business>
+export type ClientInsertModel = InferInsertModel<typeof schemas.client>
+export type CustomerInsertModel = InferInsertModel<typeof schemas.customer>
+export type GroupScheduleDayInsertModel = InferInsertModel<typeof schemas.groupScheduleDay>
+export type GroupScheduleInsertModel = InferInsertModel<typeof schemas.groupSchedule>
+export type GroupStyleInsertModel = InferInsertModel<typeof schemas.groupStyle>
+export type GroupStyleVariantInsertModel = InferInsertModel<typeof schemas.groupStyleVariant>
+export type GroupInsertModel = InferInsertModel<typeof schemas.group>
+export type PassInsertModel = InferInsertModel<typeof schemas.pass>
+export type StaffMemberInsertModel = InferInsertModel<typeof schemas.staffMember>
+export type StudioInsertModel = InferInsertModel<typeof schemas.studio>
+export type SubscribtionPlanInsertModel = InferInsertModel<typeof schemas.subscribtionPlan>
+export type SubscribtionInsertModel = InferInsertModel<typeof schemas.subscribtion>
+export type TrainingScheduleInsertModel = InferInsertModel<typeof schemas.trainingSchedule>
+export type TrainingInsertModel = InferInsertModel<typeof schemas.training>
+export type UserProfileInsertModel = InferInsertModel<typeof schemas.userProfile>
