@@ -1,9 +1,20 @@
-CREATE TYPE "public"."status" AS ENUM('active', 'inactive', 'not_verified', 'blocked');--> statement-breakpoint
-CREATE TYPE "public"."tier" AS ENUM('basic', 'professional', 'elite');--> statement-breakpoint
-CREATE TYPE "public"."type" AS ENUM('main', 'reserve', 'personal');--> statement-breakpoint
-CREATE TYPE "public"."role" AS ENUM('admin', 'staff_member', 'guest', 'client');--> statement-breakpoint
+
+CREATE TYPE pass_status_enum AS ENUM ('active','paused','expired');
+--> statement-breakpoint
+CREATE TYPE subscribtion_tier_enum AS ENUM ('basic','professional','elite');
+--> statement-breakpoint
+CREATE TYPE subscribtion_status_enum AS ENUM ('active','paused','expired','canceled');
+--> statement-breakpoint
+CREATE TYPE training_status_enum AS ENUM ('active','canceled','completed');
+--> statement-breakpoint
+CREATE TYPE training_type_enum AS ENUM ('main','reserve','personal');
+--> statement-breakpoint
+CREATE TYPE userprofile_role_enum AS ENUM ('admin','staff_member','guest','client');
+--> statement-breakpoint
+CREATE TYPE userprofile_status_enum AS ENUM ('active','inactive','not_verified','blocked');
+--> statement-breakpoint
 CREATE TABLE "business" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"display_name" varchar NOT NULL,
 	"public_email" varchar NOT NULL,
 	"phone_number" varchar NOT NULL,
@@ -12,12 +23,12 @@ CREATE TABLE "business" (
 );
 --> statement-breakpoint
 CREATE TABLE "client" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_profile_id" uuid NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "customer" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"full_name" varchar NOT NULL,
 	"email_address" varchar NOT NULL,
 	"phone_number" varchar,
@@ -39,14 +50,15 @@ CREATE TABLE "group_schedule_day" (
 );
 --> statement-breakpoint
 CREATE TABLE "group_schedule" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"time" timestamp NOT NULL,
 	"group_id" uuid NOT NULL,
-	"group_schedule_day_id" smallint NOT NULL
+	"group_schedule_day_id" smallint NOT NULL,
+	"group_style_variant_id" uuid
 );
 --> statement-breakpoint
 CREATE TABLE "group_style_variant" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"title" varchar NOT NULL,
 	"description" varchar,
 	"studio_id" uuid NOT NULL,
@@ -60,7 +72,7 @@ CREATE TABLE "group_style" (
 );
 --> statement-breakpoint
 CREATE TABLE "group" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"title" varchar NOT NULL,
 	"capacity" smallint NOT NULL,
 	"min_age_requirement" smallint,
@@ -70,7 +82,7 @@ CREATE TABLE "group" (
 );
 --> statement-breakpoint
 CREATE TABLE "pass" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"price" smallint NOT NULL,
 	"length" smallint NOT NULL,
 	"start_date" timestamp NOT NULL,
@@ -78,18 +90,18 @@ CREATE TABLE "pass" (
 	"paused_from_date" timestamp,
 	"paused_to_date" timestamp,
 	"expired_from_date" timestamp,
-	"status" "status" NOT NULL,
+	"status" "pass_status_enum" NOT NULL,
 	"group_id" uuid,
 	"client_id" uuid NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "staff_member" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"user_profile_id" uuid
 );
 --> statement-breakpoint
 CREATE TABLE "studio" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"title" varchar,
 	"street_address_1" varchar NOT NULL,
 	"street_address_2" varchar,
@@ -104,21 +116,21 @@ CREATE TABLE "subscribtion" (
 	"paused_from_date" timestamp,
 	"paused_to_date" timestamp,
 	"expired_from_date" timestamp,
-	"status" "status" NOT NULL,
+	"status" "subscribtion_status_enum" NOT NULL,
 	"subscribtion_plan_id" "smallserial" NOT NULL,
 	"customer_id" uuid NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "subscribtion_plan" (
 	"id" "smallserial" PRIMARY KEY NOT NULL,
-	"tier" "tier" NOT NULL,
+	"tier" "subscribtion_tier_enum" NOT NULL,
 	"description" varchar NOT NULL,
 	"price" smallint NOT NULL,
 	"currency_code_3" varchar(3) NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "training" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"date" timestamp NOT NULL,
 	"is_cancelled" boolean DEFAULT false NOT NULL,
 	"group_id" uuid NOT NULL,
@@ -126,21 +138,21 @@ CREATE TABLE "training" (
 );
 --> statement-breakpoint
 CREATE TABLE "training_schedule" (
-	"id" uuid PRIMARY KEY NOT NULL,
-	"status" "status" NOT NULL,
-	"type" "type" NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
+	"status" "training_status_enum" NOT NULL,
+	"type" "training_type_enum" NOT NULL,
 	"user_profile_id" uuid,
 	"pass_id" uuid,
 	"training_id" uuid NOT NULL
 );
 --> statement-breakpoint
 CREATE TABLE "user_profile" (
-	"id" uuid PRIMARY KEY NOT NULL,
+	"id" uuid PRIMARY KEY DEFAULT gen_random_uuid() NOT NULL,
 	"full_name" varchar NOT NULL,
 	"phone_number" varchar NOT NULL,
 	"telegram_id" varchar NOT NULL,
-	"role" "role" NOT NULL,
-	"status" "status" NOT NULL,
+	"role" "userprofile_role_enum" NOT NULL,
+	"status" "userprofile_status_enum" NOT NULL,
 	"business_id" uuid NOT NULL
 );
 --> statement-breakpoint
@@ -148,6 +160,7 @@ ALTER TABLE "business" ADD CONSTRAINT "business_customer_id_customer_id_fk" FORE
 ALTER TABLE "client" ADD CONSTRAINT "client_user_profile_id_user_profile_id_fk" FOREIGN KEY ("user_profile_id") REFERENCES "public"."user_profile"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "group_schedule" ADD CONSTRAINT "group_schedule_group_id_group_id_fk" FOREIGN KEY ("group_id") REFERENCES "public"."group"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "group_schedule" ADD CONSTRAINT "group_schedule_group_schedule_day_id_group_schedule_day_id_fk" FOREIGN KEY ("group_schedule_day_id") REFERENCES "public"."group_schedule_day"("id") ON DELETE restrict ON UPDATE no action;--> statement-breakpoint
+ALTER TABLE "group_schedule" ADD CONSTRAINT "group_schedule_group_style_variant_id_group_style_variant_id_fk" FOREIGN KEY ("group_style_variant_id") REFERENCES "public"."group_style_variant"("id") ON DELETE set null ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "group_style_variant" ADD CONSTRAINT "group_style_variant_studio_id_studio_id_fk" FOREIGN KEY ("studio_id") REFERENCES "public"."studio"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "group_style_variant" ADD CONSTRAINT "group_style_variant_group_style_id_group_style_id_fk" FOREIGN KEY ("group_style_id") REFERENCES "public"."group_style"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint
 ALTER TABLE "group_style" ADD CONSTRAINT "group_style_studio_id_studio_id_fk" FOREIGN KEY ("studio_id") REFERENCES "public"."studio"("id") ON DELETE cascade ON UPDATE no action;--> statement-breakpoint

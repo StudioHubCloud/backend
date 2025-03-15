@@ -2,6 +2,7 @@ import { index, integer, pgTable as table, uniqueIndex, uuid, varchar } from 'dr
 import { relations } from 'drizzle-orm'
 import { Studio } from './studio.schema'
 import { GroupStyle } from './group-style.schema'
+import { GroupSchedule } from './group-schedule.schema'
 
 export const GroupStyleVariant = table(
   'group_style_variant',
@@ -23,7 +24,8 @@ export const GroupStyleVariant = table(
   ],
 )
 
-export const grpup_style_variant_relations = relations(GroupStyleVariant, ({ one }) => ({
+export const grpup_style_variant_relations = relations(GroupStyleVariant, ({ one, many }) => ({
   studio: one(Studio, { fields: [GroupStyleVariant.studioId], references: [Studio.id] }),
   groupStyle: one(GroupStyle, { fields: [GroupStyleVariant.groupStyleId], references: [GroupStyle.id] }),
+  groupSchedules: many(GroupSchedule),
 }))
