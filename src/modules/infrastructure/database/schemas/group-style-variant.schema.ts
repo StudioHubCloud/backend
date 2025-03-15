@@ -6,7 +6,7 @@ import { GroupStyle } from './group-style.schema'
 export const GroupStyleVariant = table(
   'group_style_variant',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     title: varchar('title').notNull(),
     description: varchar('description'),
     studioId: uuid('studio_id')

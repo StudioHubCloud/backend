@@ -7,7 +7,7 @@ import { UserProfile } from './user-profile.schema'
 export const Business = table(
   'business',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     displayName: varchar('display_name').notNull(),
     publicEmail: varchar('public_email').notNull(),
     phoneNumber: varchar('phone_number').notNull(),

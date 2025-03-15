@@ -6,7 +6,7 @@ import { Business } from './business.schema'
 export const Customer = table(
   'customer',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     fullName: varchar('full_name').notNull(),
     emailAddress: varchar('email_address').notNull(),
     phone_number: varchar('phone_number').unique(),

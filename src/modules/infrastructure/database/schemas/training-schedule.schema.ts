@@ -8,7 +8,7 @@ import { Pass } from './pass.schema'
 export const TrainingSchedule = table(
   'training_schedule',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     status: TrainingStatusPgEnum().notNull(),
     type: TrainingTypePgEnum().notNull(),
     userProfileId: uuid('user_profile_id').references(() => UserProfile.id, { onDelete: 'set null' }),

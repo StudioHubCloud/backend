@@ -7,7 +7,7 @@ import { TrainingSchedule } from './training-schedule.schema'
 export const Training = table(
   'training',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     date: timestamp('date', { mode: 'string' }).notNull(),
     isCancelled: boolean('is_cancelled').notNull().default(false),
     groupId: uuid('group_id')

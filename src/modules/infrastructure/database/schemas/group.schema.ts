@@ -10,7 +10,7 @@ import { StaffMember } from './staff-member.schema'
 export const Group = table(
   'group',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     name: varchar('title').notNull(),
     capacity: smallint('capacity').notNull(),
     minAgeRequirement: smallint('min_age_requirement'),

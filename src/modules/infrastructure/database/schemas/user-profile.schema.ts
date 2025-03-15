@@ -1,4 +1,4 @@
-import { pgEnum, index, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { index, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { Business } from './business.schema'
 import { StaffMember } from './staff-member.schema'
@@ -8,7 +8,7 @@ import { UserProfileRolePgEnum, UserProfileStatusPgEnum } from '../database.enum
 export const UserProfile = table(
   'user_profile',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     fullName: varchar('full_name').notNull(),
     phoneNumber: varchar('phone_number').notNull(),
     telegramId: varchar('telegram_id').notNull(),

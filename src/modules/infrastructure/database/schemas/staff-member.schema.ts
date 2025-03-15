@@ -4,7 +4,7 @@ import { UserProfile } from './user-profile.schema'
 import { Group } from './group.schema'
 
 export const StaffMember = table('staff_member', {
-  id: uuid('id').primaryKey(),
+  id: uuid('id').primaryKey().defaultRandom(),
   userProfileId: uuid('user_profile_id').references(() => UserProfile.id),
 })
 

@@ -8,7 +8,7 @@ import { PassStatusPgEnum } from '../database.enums'
 export const Pass = table(
   'pass',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     price: smallint('price').notNull(),
     length: smallint('length').notNull(),
     startDate: timestamp('start_date', { mode: 'string' }).notNull(),

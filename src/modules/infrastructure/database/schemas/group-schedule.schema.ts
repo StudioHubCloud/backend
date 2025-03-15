@@ -6,7 +6,7 @@ import { GroupScheduleDay } from './group-schedule-day.schema'
 export const GroupSchedule = table(
   'group_schedule',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     time: timestamp('time', { mode: 'string' }).notNull(),
     groupId: uuid('group_id')
       .references(() => Group.id, { onDelete: 'cascade' })

@@ -7,7 +7,7 @@ import { GroupStyle } from './group-style.schema'
 export const Studio = table(
   'studio',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     title: varchar('title'),
     streetAddress1: varchar('street_address_1').notNull(),
     streetAddress2: varchar('street_address_2'),
