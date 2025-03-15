@@ -35,6 +35,8 @@
     "drizzle-orm": "^0.39.3",
     "drizzle-zod": "^0.7.0",
     "eslint-plugin-drizzle": "^0.2.3",
+    "grammy": "^1.35.0",
+    "grammy-middlewares": "^1.0.11",
     "ioredis": "^5.4.2",
     "lru-cache": "^11.0.2",
     "nestjs-pino": "^4.3.0",
