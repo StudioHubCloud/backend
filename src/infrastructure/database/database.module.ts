@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common'
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres'
-import { TypedConfigService } from '@app/modules/infrastructure/config'
+import { TypedConfigService } from '@app/infrastructure/config'
 import { Pool } from 'pg'
 import { DATABASE_CONNECTION } from './database.connection'
 import * as schema from './schemas'
@@ -17,7 +17,7 @@ import * as schema from './schemas'
           connectionString: DB_URL,
           ssl: true,
         })
-        return drizzle(pool, { schema }) as DataBase
+        return drizzle(pool, { schema }) as Database
       },
     },
   ],
@@ -25,4 +25,4 @@ import * as schema from './schemas'
 })
 export class DatabaseModule {}
 
-export type DataBase = NodePgDatabase<typeof schema>
+export type Database = NodePgDatabase<typeof schema>

@@ -1,5 +1,5 @@
 import { Global, Module } from '@nestjs/common'
-import { StartComposer, StaffComposer, AdminComposer, ClientComposer, GuestComposer } from './files'
+import { StartComposer, StaffComposer, AdminComposer, ClientComposer, GuestComposer } from './services'
 
 @Global()
 @Module({

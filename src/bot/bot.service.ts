@@ -1,21 +1,26 @@
 import { ENVIRONMENTS } from '@app/libs'
-import { TypedConfigService } from '@app/modules/infrastructure/config'
-import { Injectable } from '@nestjs/common'
+import { TypedConfigService } from '@app/infrastructure/config'
+import { Inject, Injectable } from '@nestjs/common'
 import { Bot, GrammyError, HttpError } from 'grammy'
 import { Update } from 'grammy/types'
-import { StartComposer } from '../composers'
+import { StartComposer } from './composers'
 import { PinoLogger } from 'nestjs-pino'
+import { MIDDLEWARE_SERVICE_PROVIDER, MiddlewareService } from './services'
+import { BotContext } from './bot.context'
 
 @Injectable()
-export class TelegramService {
+export class BotService {
   private bot: Bot
 
   constructor(
+    private readonly logger: PinoLogger,
     private readonly configService: TypedConfigService,
     private readonly startComposer: StartComposer,
-    private readonly logger: PinoLogger,
+    @Inject(MIDDLEWARE_SERVICE_PROVIDER) private readonly middlewareService: MiddlewareService,
   ) {
-    this.bot = new Bot(this.configService.get('BOT_TOKEN'))
+    this.bot = new Bot(this.configService.get('BOT_TOKEN'), { ContextConstructor: BotContext })
+    this.bot.use(this.middlewareService.validateBusiness)
+    this.bot.use(this.middlewareService.validateUser)
     this.bot.use(this.startComposer)
   }
 

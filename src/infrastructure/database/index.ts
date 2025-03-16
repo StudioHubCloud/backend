@@ -1,5 +1,5 @@
 export { DatabaseModule } from './database.module'
 export { DATABASE_CONNECTION } from './database.connection'
-export type { DataBase } from './database.module'
+export type { Database } from './database.module'
 export * from './database.enums'
 export * from './schemas'

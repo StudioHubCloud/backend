@@ -1,6 +1,6 @@
 import { Global, Module } from '@nestjs/common'
-import { StartHandler } from './files'
-import { BusinessModule } from '@app/modules/domain'
+import { BusinessModule } from 'src/domain'
+import { StartHandler } from './services'
 
 @Global()
 @Module({

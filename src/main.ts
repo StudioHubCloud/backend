@@ -2,9 +2,9 @@ import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { NestExpressApplication } from '@nestjs/platform-express'
 import { API } from './libs'
-import { TypedConfigService } from '@app/modules/infrastructure/config'
+import { TypedConfigService } from '@app/infrastructure/config'
 import { Logger } from 'nestjs-pino'
-import { TelegramService } from '@bot/telegram'
+import { BotService } from 'src/bot/bot.service'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -15,7 +15,7 @@ async function bootstrap() {
   app.setGlobalPrefix(API.GLOBAL_API_PREFIX_V1)
 
   const configService = app.get(TypedConfigService)
-  const telegramService = app.get(TelegramService)
+  const telegramService = app.get(BotService)
 
   await app.listen(configService.get('PORT'))
   await telegramService.init()

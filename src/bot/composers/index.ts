@@ -1,2 +1,2 @@
-export * from './files'
+export * from './services'
 export { ComposersModule } from './composers.module'

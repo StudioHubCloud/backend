@@ -20,8 +20,12 @@
     "paths": {
       "@app/libs": ["src/libs"],
       "@app/libs/*": ["src/libs/*"],
-      "@app/modules/*": ["src/modules/*"],
-      "@bot/*": ["src/modules/bot/*"],
+      "@app/domain": ["src/domain"],
+      "@app/domain/*": ["src/domain/*"],
+      "@app/infrastructure": ["src/infrastructure"],
+      "@app/infrastructure/*": ["src/infrastructure/*"],
+      "@app/bot": ["src/bot"],
+      "@app/bot/*": ["src/bot/*"],
     },
   },
 }
