@@ -1,11 +1,11 @@
-import { Inject, Injectable } from '@nestjs/common'
-import { Database, DATABASE_CONNECTION } from '@app/infrastructure/database'
+import { Injectable } from '@nestjs/common'
+import { DatabaseService } from '@app/infrastructure/database'
 
 @Injectable()
 export class BusinessService {
-  constructor(@Inject(DATABASE_CONNECTION) private readonly db: Database) {}
+  constructor(private readonly databaseService: DatabaseService) {}
 
   async getBusinessById(id: string) {
-    return this.db.query.business.findFirst({ where: (business, { eq }) => eq(business.id, id) })
+    return this.databaseService.drizzle.query.business.findFirst({ where: (business, { eq }) => eq(business.id, id) })
   }
 }
