@@ -1,11 +1,11 @@
 import { smallint, pgTable as table, timestamp, uuid, index } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { Group } from './group.schema'
-import { Client } from './client.schema'
-import { TrainingSchedule } from './training-schedule.schema'
+import { group } from './group.schema'
+import { client } from './client.schema'
+import { trainingSchedule } from './training-schedule.schema'
 import { PassStatusPgEnum } from '../database.enums'
 
-export const Pass = table(
+export const pass = table(
   'pass',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -17,9 +17,9 @@ export const Pass = table(
     pausedToDate: timestamp('paused_to_date', { mode: 'string' }),
     expiredFromDate: timestamp('expired_from_date', { mode: 'string' }),
     status: PassStatusPgEnum().notNull(),
-    groupId: uuid('group_id').references(() => Group.id, { onDelete: 'set null' }),
+    groupId: uuid('group_id').references(() => group.id, { onDelete: 'set null' }),
     clientId: uuid('client_id')
-      .references(() => Client.id, { onDelete: 'cascade' })
+      .references(() => client.id, { onDelete: 'cascade' })
       .notNull(),
   },
   (table) => [
@@ -30,8 +30,8 @@ export const Pass = table(
   ],
 )
 
-export const pass_relations = relations(Pass, ({ many, one }) => ({
-  trainingSchedules: many(TrainingSchedule),
-  group: one(Group, { fields: [Pass.groupId], references: [Group.id] }),
-  client: one(Client, { fields: [Pass.clientId], references: [Client.id] }),
+export const pass_relations = relations(pass, ({ many, one }) => ({
+  trainingSchedules: many(trainingSchedule),
+  group: one(group, { fields: [pass.groupId], references: [group.id] }),
+  client: one(client, { fields: [pass.clientId], references: [client.id] }),
 }))

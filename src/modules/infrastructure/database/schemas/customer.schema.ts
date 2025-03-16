@@ -1,9 +1,9 @@
 import { pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
-import { Subscribtion } from './subscribtion.schema'
-import { Business } from './business.schema'
+import { subscribtion } from './subscribtion.schema'
+import { business } from './business.schema'
 
-export const Customer = table(
+export const customer = table(
   'customer',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -19,7 +19,7 @@ export const Customer = table(
   ],
 )
 
-export const customer_relations = relations(Customer, ({ one, many }) => ({
-  subscribtion: one(Subscribtion),
-  businesess: many(Business),
+export const customer_relations = relations(customer, ({ one, many }) => ({
+  subscribtion: one(subscribtion),
+  businesess: many(business),
 }))

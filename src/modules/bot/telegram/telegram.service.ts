@@ -40,6 +40,7 @@ export class TelegramService {
         } else if (e instanceof HttpError) {
           this.logger.error('Could not contact Telegram:', e)
         } else {
+          console.log(e, 'ERROR')
           this.logger.error('Unknown error:', e)
         }
       })

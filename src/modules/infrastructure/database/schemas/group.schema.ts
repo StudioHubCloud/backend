@@ -1,13 +1,13 @@
 import { index, smallint, integer, pgTable as table, uuid, varchar } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { Training } from './training.schema'
-import { Pass } from './pass.schema'
-import { GroupSchedule } from './group-schedule.schema'
-import { Studio } from './studio.schema'
-import { GroupStyle } from './group-style.schema'
-import { StaffMember } from './staff-member.schema'
+import { training } from './training.schema'
+import { pass } from './pass.schema'
+import { groupSchedule } from './group-schedule.schema'
+import { studio } from './studio.schema'
+import { groupStyle } from './group-style.schema'
+import { staffMember } from './staff-member.schema'
 
-export const Group = table(
+export const group = table(
   'group',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -15,12 +15,12 @@ export const Group = table(
     capacity: smallint('capacity').notNull(),
     minAgeRequirement: smallint('min_age_requirement'),
     studioId: uuid('studio_id')
-      .references(() => Studio.id, { onDelete: 'cascade' })
+      .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
     groupStyleId: integer('group_style_id')
-      .references(() => GroupStyle.id, { onDelete: 'restrict' })
+      .references(() => groupStyle.id, { onDelete: 'restrict' })
       .notNull(),
-    staffMemberId: uuid('staff_member_id').references(() => StaffMember.id, { onDelete: 'set null' }),
+    staffMemberId: uuid('staff_member_id').references(() => staffMember.id, { onDelete: 'set null' }),
   },
   (table) => [
     index('[group]studioId_index').on(table.studioId),
@@ -30,11 +30,11 @@ export const Group = table(
   ],
 )
 
-export const group_relations = relations(Group, ({ one, many }) => ({
-  studio: one(Studio, { fields: [Group.studioId], references: [Studio.id] }),
-  groupStyle: one(GroupStyle, { fields: [Group.groupStyleId], references: [GroupStyle.id] }),
-  trainer: one(StaffMember, { fields: [Group.staffMemberId], references: [StaffMember.id] }),
-  trainings: many(Training),
-  passes: many(Pass),
-  groupSchedules: many(GroupSchedule),
+export const group_relations = relations(group, ({ one, many }) => ({
+  studio: one(studio, { fields: [group.studioId], references: [studio.id] }),
+  groupStyle: one(groupStyle, { fields: [group.groupStyleId], references: [groupStyle.id] }),
+  trainer: one(staffMember, { fields: [group.staffMemberId], references: [staffMember.id] }),
+  trainings: many(training),
+  passes: many(pass),
+  groupSchedules: many(groupSchedule),
 }))

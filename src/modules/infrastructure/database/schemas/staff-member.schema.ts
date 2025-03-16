@@ -1,14 +1,14 @@
 import { pgTable as table, uuid } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { UserProfile } from './user-profile.schema'
-import { Group } from './group.schema'
+import { userProfile } from './user-profile.schema'
+import { group } from './group.schema'
 
-export const StaffMember = table('staff_member', {
+export const staffMember = table('staff_member', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userProfileId: uuid('user_profile_id').references(() => UserProfile.id),
+  userProfileId: uuid('user_profile_id').references(() => userProfile.id),
 })
 
-export const staff_member_relations = relations(StaffMember, ({ one, many }) => ({
-  user_profile: one(UserProfile),
-  groups: many(Group),
+export const staff_member_relations = relations(staffMember, ({ one, many }) => ({
+  user_profile: one(userProfile),
+  groups: many(group),
 }))

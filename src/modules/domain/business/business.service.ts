@@ -1,26 +1,11 @@
-import { Injectable } from '@nestjs/common';
-import { CreateBusinessDto } from './dto/create-business.dto';
-import { UpdateBusinessDto } from './dto/update-business.dto';
+import { Inject, Injectable } from '@nestjs/common'
+import { DataBase, DATABASE_CONNECTION } from '@app/modules/infrastructure/database'
 
 @Injectable()
 export class BusinessService {
-  create(createBusinessDto: CreateBusinessDto) {
-    return 'This action adds a new business';
-  }
+  constructor(@Inject(DATABASE_CONNECTION) private readonly db: DataBase) {}
 
-  findAll() {
-    return `This action returns all business`;
-  }
-
-  findOne(id: number) {
-    return `This action returns a #${id} business`;
-  }
-
-  update(id: number, updateBusinessDto: UpdateBusinessDto) {
-    return `This action updates a #${id} business`;
-  }
-
-  remove(id: number) {
-    return `This action removes a #${id} business`;
+  async getBusinessById(id: string) {
+    return this.db.query.business.findFirst({ where: (business, { eq }) => eq(business.id, id) })
   }
 }

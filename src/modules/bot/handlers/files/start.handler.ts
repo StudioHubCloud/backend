@@ -1,13 +1,23 @@
+import { BusinessService } from '@app/modules/domain/business'
 import { Injectable } from '@nestjs/common'
 import { Context } from 'grammy'
 
 @Injectable()
 export class StartHandler {
-  welcomeHandler(ctx: Context) {
-    const studioName = ctx.message?.text?.split(' ')[1]
-    if (!studioName) {
+  constructor(private readonly businessService: BusinessService) {}
+
+  welcomeHandler = async (ctx: Context) => {
+    const businessId = ctx.message?.text?.split(' ')[1]
+    if (!businessId) {
       return ctx.reply('Wrong link')
     }
-    ctx.reply(studioName)
+
+    const business = await this.businessService.getBusinessById(businessId)
+
+    if (!business) {
+      return ctx.reply('Business not found')
+    }
+
+    ctx.reply(business.displayName)
   }
 }

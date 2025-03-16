@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common'
-import { BusinessModule, CustomerModule, StudioModule } from '@app/modules/domain'
+import { BusinessModule, CustomerModule, StudioModule, ClientModule } from '@app/modules/domain'
 import { LoggerModule, ConfigModule, DatabaseModule } from '@app/modules/infrastructure'
-import { TelegramModule } from './modules/bot/telegram/telegram.module'
+import { TelegramModule } from '@bot/telegram'
 
 @Module({
-  imports: [BusinessModule, CustomerModule, StudioModule, LoggerModule, ConfigModule, DatabaseModule, TelegramModule],
+  imports: [BusinessModule, CustomerModule, StudioModule, ClientModule, LoggerModule, ConfigModule, DatabaseModule, TelegramModule],
   providers: [],
 })
 export class AppModule {}

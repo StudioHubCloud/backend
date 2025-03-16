@@ -1,33 +1,33 @@
 import { smallint, pgTable as table, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { Group } from './group.schema'
-import { GroupScheduleDay } from './group-schedule-day.schema'
-import { GroupStyleVariant } from './group-style-variant.schema'
+import { group } from './group.schema'
+import { groupScheduleDay } from './group-schedule-day.schema'
+import { groupStyleVariant } from './group-style-variant.schema'
 
-export const GroupSchedule = table(
+export const groupSchedule = table(
   'group_schedule',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     time: timestamp('time', { mode: 'string' }).notNull(),
     groupId: uuid('group_id')
-      .references(() => Group.id, { onDelete: 'cascade' })
+      .references(() => group.id, { onDelete: 'cascade' })
       .notNull(),
     groupScheduleDayId: smallint('group_schedule_day_id')
-      .references(() => GroupScheduleDay.id, { onDelete: 'restrict' })
+      .references(() => groupScheduleDay.id, { onDelete: 'restrict' })
       .notNull(),
-    groupStyleVariantId: uuid('group_style_variant_id').references(() => GroupStyleVariant.id, { onDelete: 'set null' }),
+    groupStyleVariantsId: uuid('group_style_variant_id').references(() => groupStyleVariant.id, { onDelete: 'set null' }),
   },
   (table) => [uniqueIndex('[group_schedule_time]groupId_uindex').on(table.time, table.groupId)],
 )
 
-export const group_schedule_relations = relations(GroupSchedule, ({ one }) => ({
-  group: one(Group, { fields: [GroupSchedule.groupId], references: [Group.id] }),
-  groupScheduleDays: one(GroupScheduleDay, {
-    fields: [GroupSchedule.groupScheduleDayId],
-    references: [GroupScheduleDay.id],
+export const group_schedule_relations = relations(groupSchedule, ({ one }) => ({
+  group: one(group, { fields: [groupSchedule.groupId], references: [group.id] }),
+  groupScheduleDays: one(groupScheduleDay, {
+    fields: [groupSchedule.groupScheduleDayId],
+    references: [groupScheduleDay.id],
   }),
-  groupStyleVariant: one(GroupStyleVariant, {
-    fields: [GroupSchedule.groupStyleVariantId],
-    references: [GroupStyleVariant.id],
+  groupStyleVariants: one(groupStyleVariant, {
+    fields: [groupSchedule.groupStyleVariantsId],
+    references: [groupStyleVariant.id],
   }),
 }))

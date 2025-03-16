@@ -1,20 +1,20 @@
 import { pgTable as table, uuid, index, uniqueIndex } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { TrainingStatusPgEnum, TrainingTypePgEnum } from '../database.enums'
-import { UserProfile } from './user-profile.schema'
-import { Training } from './training.schema'
-import { Pass } from './pass.schema'
+import { userProfile } from './user-profile.schema'
+import { training } from './training.schema'
+import { pass } from './pass.schema'
 
-export const TrainingSchedule = table(
+export const trainingSchedule = table(
   'training_schedule',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     status: TrainingStatusPgEnum().notNull(),
     type: TrainingTypePgEnum().notNull(),
-    userProfileId: uuid('user_profile_id').references(() => UserProfile.id, { onDelete: 'set null' }),
-    passId: uuid('pass_id').references(() => Pass.id, { onDelete: 'set null' }),
+    userProfileId: uuid('user_profile_id').references(() => userProfile.id, { onDelete: 'set null' }),
+    passId: uuid('pass_id').references(() => pass.id, { onDelete: 'set null' }),
     trainingId: uuid('training_id')
-      .references(() => Training.id, { onDelete: 'cascade' })
+      .references(() => training.id, { onDelete: 'cascade' })
       .notNull(),
   },
   (table) => [
@@ -29,8 +29,8 @@ export const TrainingSchedule = table(
   ],
 )
 
-export const training_schedule_relations = relations(TrainingSchedule, ({ one }) => ({
-  user_profile: one(UserProfile, { fields: [TrainingSchedule.userProfileId], references: [UserProfile.id] }),
-  training: one(Training, { fields: [TrainingSchedule.trainingId], references: [Training.id] }),
-  pass: one(Pass, { fields: [TrainingSchedule.trainingId], references: [Pass.id] }),
+export const training_schedule_relations = relations(trainingSchedule, ({ one }) => ({
+  user_profile: one(userProfile, { fields: [trainingSchedule.userProfileId], references: [userProfile.id] }),
+  training: one(training, { fields: [trainingSchedule.trainingId], references: [training.id] }),
+  pass: one(pass, { fields: [trainingSchedule.trainingId], references: [pass.id] }),
 }))

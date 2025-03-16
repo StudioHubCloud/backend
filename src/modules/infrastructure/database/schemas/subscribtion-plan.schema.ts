@@ -1,9 +1,9 @@
 import { index, smallint, smallserial, pgTable as table, uniqueIndex, varchar } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
-import { Subscribtion } from './subscribtion.schema'
+import { subscribtion } from './subscribtion.schema'
 import { SubscribtionTierPgEnum } from '../database.enums'
 
-export const SubscribtionPlan = table(
+export const subscribtionPlan = table(
   'subscribtion_plan',
   {
     id: smallserial('id').primaryKey(),
@@ -18,6 +18,6 @@ export const SubscribtionPlan = table(
   ],
 )
 
-export const subscribtion_plan_relations = relations(SubscribtionPlan, ({ many }) => ({
-  subscribtions: many(Subscribtion),
+export const subscribtion_plan_relations = relations(subscribtionPlan, ({ many }) => ({
+  subscribtions: many(subscribtion),
 }))

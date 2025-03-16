@@ -1,10 +1,10 @@
 import { index, serial, smallserial, pgTable as table, timestamp, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { Customer } from './customer.schema'
+import { customer } from './customer.schema'
 import { SubscribtionStatusPgEnum } from '../database.enums'
-import { SubscribtionPlan } from './subscribtion-plan.schema'
+import { subscribtionPlan } from './subscribtion-plan.schema'
 
-export const Subscribtion = table(
+export const subscribtion = table(
   'subscribtion',
   {
     id: serial('id').primaryKey(),
@@ -13,10 +13,10 @@ export const Subscribtion = table(
     expiredFromDate: timestamp('expired_from_date', { mode: 'string' }),
     status: SubscribtionStatusPgEnum().notNull(),
     subscribtionPlanId: smallserial('subscribtion_plan_id')
-      .references(() => SubscribtionPlan.id, { onDelete: 'restrict' })
+      .references(() => subscribtionPlan.id, { onDelete: 'restrict' })
       .notNull(),
     customerId: uuid('customer_id')
-      .references(() => Customer.id, { onDelete: 'cascade' })
+      .references(() => customer.id, { onDelete: 'cascade' })
       .notNull(),
   },
   (table) => [
@@ -26,7 +26,7 @@ export const Subscribtion = table(
   ],
 )
 
-export const subscribtion_relations = relations(Subscribtion, ({ one }) => ({
-  customer: one(Customer, { fields: [Subscribtion.customerId], references: [Customer.id] }),
-  subscribtionPlan: one(SubscribtionPlan, { fields: [Subscribtion.subscribtionPlanId], references: [SubscribtionPlan.id] }),
+export const subscribtion_relations = relations(subscribtion, ({ one }) => ({
+  customer: one(customer, { fields: [subscribtion.customerId], references: [customer.id] }),
+  subscribtionPlan: one(subscribtionPlan, { fields: [subscribtion.subscribtionPlanId], references: [subscribtionPlan.id] }),
 }))

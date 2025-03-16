@@ -1,10 +1,10 @@
 import { pgTable as table, uuid, varchar, index } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { Business } from './business.schema'
-import { Group } from './group.schema'
-import { GroupStyle } from './group-style.schema'
+import { business } from './business.schema'
+import { group } from './group.schema'
+import { groupStyle } from './group-style.schema'
 
-export const Studio = table(
+export const studio = table(
   'studio',
   {
     id: uuid('id').primaryKey().defaultRandom(),
@@ -14,12 +14,12 @@ export const Studio = table(
     city: varchar('city'),
     state: varchar('state'),
     country: varchar('country'),
-    businessId: uuid('business_id').references(() => Business.id),
+    businessId: uuid('business_id').references(() => business.id),
   },
   (table) => [index('[studio]businessId_index').on(table.businessId)],
 )
-export const studio_relations = relations(Studio, ({ one, many }) => ({
-  business: one(Business, { fields: [Studio.businessId], references: [Business.id] }),
-  groups: many(Group),
-  groupStyles: many(GroupStyle),
+export const studio_relations = relations(studio, ({ one, many }) => ({
+  business: one(business, { fields: [studio.businessId], references: [business.id] }),
+  groups: many(group),
+  groupStyles: many(groupStyle),
 }))

@@ -1,20 +1,20 @@
 import { index, integer, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { Studio } from './studio.schema'
-import { GroupStyle } from './group-style.schema'
-import { GroupSchedule } from './group-schedule.schema'
+import { studio } from './studio.schema'
+import { groupStyle } from './group-style.schema'
+import { groupSchedule } from './group-schedule.schema'
 
-export const GroupStyleVariant = table(
+export const groupStyleVariant = table(
   'group_style_variant',
   {
     id: uuid('id').primaryKey().defaultRandom(),
     title: varchar('title').notNull(),
     description: varchar('description'),
     studioId: uuid('studio_id')
-      .references(() => Studio.id, { onDelete: 'cascade' })
+      .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
     groupStyleId: integer('group_style_id')
-      .references(() => GroupStyle.id, { onDelete: 'cascade' })
+      .references(() => groupStyle.id, { onDelete: 'cascade' })
       .notNull(),
   },
   (table) => [
@@ -24,8 +24,8 @@ export const GroupStyleVariant = table(
   ],
 )
 
-export const grpup_style_variant_relations = relations(GroupStyleVariant, ({ one, many }) => ({
-  studio: one(Studio, { fields: [GroupStyleVariant.studioId], references: [Studio.id] }),
-  groupStyle: one(GroupStyle, { fields: [GroupStyleVariant.groupStyleId], references: [GroupStyle.id] }),
-  groupSchedules: many(GroupSchedule),
+export const grpup_style_variant_relations = relations(groupStyleVariant, ({ one, many }) => ({
+  studio: one(studio, { fields: [groupStyleVariant.studioId], references: [studio.id] }),
+  groupStyle: one(groupStyle, { fields: [groupStyleVariant.groupStyleId], references: [groupStyle.id] }),
+  groupSchedules: many(groupSchedule),
 }))

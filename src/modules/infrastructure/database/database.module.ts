@@ -17,10 +17,12 @@ import * as schema from './schemas'
           connectionString: DB_URL,
           ssl: true,
         })
-        return drizzle(pool, { schema }) as NodePgDatabase<typeof schema>
+        return drizzle(pool, { schema }) as DataBase
       },
     },
   ],
   exports: [DATABASE_CONNECTION],
 })
 export class DatabaseModule {}
+
+export type DataBase = NodePgDatabase<typeof schema>
