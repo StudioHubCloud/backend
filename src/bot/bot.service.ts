@@ -19,7 +19,6 @@ export class BotService {
     @Inject(MIDDLEWARE_SERVICE_PROVIDER) private readonly middlewareService: MiddlewareService,
   ) {
     this.bot = new Bot(this.configService.get('BOT_TOKEN'), { ContextConstructor: BotContext })
-    this.bot.use(this.middlewareService.validateBusiness)
     this.bot.use(this.middlewareService.validateUser)
     this.bot.use(this.startComposer)
   }

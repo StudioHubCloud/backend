@@ -14,7 +14,7 @@ export const studio = table(
     city: varchar('city'),
     state: varchar('state'),
     country: varchar('country'),
-    businessId: uuid('business_id').references(() => business.id),
+    businessId: uuid('business_id').references(() => business.id, { onDelete: 'cascade' }),
   },
   (table) => [index('[studio]businessId_index').on(table.businessId)],
 )

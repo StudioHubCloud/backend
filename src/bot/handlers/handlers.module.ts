@@ -1,10 +1,9 @@
 import { Global, Module } from '@nestjs/common'
-import { BusinessModule } from 'src/domain'
 import { StartHandler } from './services'
 
 @Global()
 @Module({
-  imports: [BusinessModule],
+  imports: [],
   providers: [StartHandler],
   exports: [StartHandler],
 })

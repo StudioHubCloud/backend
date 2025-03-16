@@ -28,3 +28,4 @@ import { DatabaseService } from './database.service'
 export class DatabaseModule {}
 
 export type Database = NodePgDatabase<typeof schema>
+export type Transaction = Parameters<Parameters<Database['transaction']>[0]>[0]

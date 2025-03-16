@@ -1,12 +1,13 @@
-import { BusinessService } from 'src/domain/business'
+import { BotContext } from '@app/bot/bot.context'
+import { BusinessService } from '@app/domain/business'
 import { Injectable } from '@nestjs/common'
-import { Context } from 'grammy'
 
 @Injectable()
 export class StartHandler {
-  constructor(private readonly businessService: BusinessService) {}
+  constructor() {}
 
-  welcomeHandler = async (ctx: Context) => {
-    ctx.reply('Hello')
+  welcomeHandler = async (ctx: BotContext) => {
+    console.log(ctx, 'ctx')
+    ctx.reply(`Hello, ${ctx.state.user.fullName}!`)
   }
 }

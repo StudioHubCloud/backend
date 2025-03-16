@@ -1,4 +1,4 @@
-import { index, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { index, smallint, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { business } from './business.schema'
 import { staffMember } from './staff-member.schema'
@@ -9,8 +9,8 @@ export const userProfile = table(
   'user_profile',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    fullName: varchar('full_name').notNull(),
-    phoneNumber: varchar('phone_number').notNull(),
+    fullName: varchar('full_name'),
+    phoneNumber: varchar('phone_number'),
     telegramId: varchar('telegram_id').notNull(),
     role: UserProfileRolePgEnum().notNull().notNull(),
     status: UserProfileStatusPgEnum().notNull(),
