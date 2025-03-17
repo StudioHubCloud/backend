@@ -8,6 +8,7 @@ export const environmentsSchema = z.object({
   BOT_TOKEN: z.string(),
   BOT_TOKEN_TEST: z.string(),
   WEBHOOK_URL: z.string().url(),
+  MAINTAINER_CHAT_ID: z.string(),
 })
 
 export type Env = z.infer<typeof environmentsSchema>

@@ -3,7 +3,6 @@ import { TypedConfigService } from '@app/infrastructure/config'
 import { Inject, Injectable } from '@nestjs/common'
 import { Bot, GrammyError, HttpError } from 'grammy'
 import { Update } from 'grammy/types'
-import { StartComposer } from './composers'
 import { PinoLogger } from 'nestjs-pino'
 import { MIDDLEWARE_SERVICE_PROVIDER, MiddlewareService } from './services'
 import { BotContext } from './bot.context'
@@ -15,12 +14,14 @@ export class BotService {
   constructor(
     private readonly logger: PinoLogger,
     private readonly configService: TypedConfigService,
-    private readonly startComposer: StartComposer,
     @Inject(MIDDLEWARE_SERVICE_PROVIDER) private readonly middlewareService: MiddlewareService,
   ) {
     this.bot = new Bot(this.configService.get('BOT_TOKEN'), { ContextConstructor: BotContext })
     this.bot.use(this.middlewareService.validateUser)
-    this.bot.use(this.startComposer)
+    this.bot.catch((err) => {
+      this.bot.api.sendMessage(this.configService.get('MAINTAINER_CHAT_ID'), `Error in bot: ${err.message}`)
+      this.logger.error('Error in bot', err)
+    })
   }
 
   async handleUpdate(update: Update) {

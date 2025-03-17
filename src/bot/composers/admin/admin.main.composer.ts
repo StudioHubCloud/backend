@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { Composer, Context } from 'grammy'
 
 @Injectable()
-export class StaffComposer extends Composer<Context> {
+export class AdminMainComposer extends Composer<Context> {
   constructor() {
     super()
   }
