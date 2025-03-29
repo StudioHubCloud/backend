@@ -1,12 +1,12 @@
 import { TBotState } from '@app/libs/types/bot'
-import { Api, Context } from 'grammy'
-import { Update, UserFromGetMe } from 'grammy/types'
+import { Context, Telegram } from 'telegraf'
+import { Update, UserFromGetMe } from 'telegraf/typings/core/types/typegram'
 
 export class BotContext extends Context {
   public readonly state: TBotState
 
-  constructor(update: Update, api: Api, me: UserFromGetMe) {
+  constructor(update: Update, api: Telegram, me: UserFromGetMe) {
     super(update, api, me)
-    this.state = { user: null, business: null }
+    this.state = { user: false, business: true }
   }
 }

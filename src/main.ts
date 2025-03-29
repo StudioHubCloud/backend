@@ -1,7 +1,7 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { NestExpressApplication } from '@nestjs/platform-express'
-import { API } from './libs'
+import { API, ENVIRONMENTS } from './libs'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { Logger } from 'nestjs-pino'
 import { BotService } from 'src/bot/bot.service'
@@ -15,10 +15,16 @@ async function bootstrap() {
   app.setGlobalPrefix(API.GLOBAL_API_PREFIX_V1)
 
   const configService = app.get(TypedConfigService)
-  const telegramService = app.get(BotService)
+  const botService = app.get(BotService);
 
+  
+  if (process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION) {
+    app.use(await botService.getWebhookMiddleware())
+  } else {
+    botService.startPolling()
+  }
+  
   await app.listen(configService.get('PORT'))
-  await telegramService.init()
   logger.log(`Application is running on: ${await app.getUrl()}`)
 }
 bootstrap()
