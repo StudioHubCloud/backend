@@ -36,7 +36,7 @@ export class BotService {
   async init() {
     try {
       if (process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION) {
-        await this.startWebhook(this.configService.get('WEBHOOK_URL'))
+        await this.startWebhook()
       } else {
         await this.startPolling()
       }
@@ -64,7 +64,8 @@ export class BotService {
     this.logger.info('Bot started in polling mode')
   }
 
-  private async startWebhook(url: string) {
+  private async startWebhook() {
+    const url = this.configService.get('WEBHOOK_URL')
     await this.bot.api.setWebhook(url)
     this.logger.info(`Bot running in webhook mode: ${url}`)
   }
