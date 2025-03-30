@@ -1,12 +1,15 @@
-import { TBotState } from '@app/libs/types/bot'
-import { Context, Telegram } from 'telegraf'
+
+import { Context, Scenes, Telegram } from 'telegraf'
 import { Update, UserFromGetMe } from 'telegraf/typings/core/types/typegram'
+import { TBotStore } from './libs/types';
 
 export class BotContext extends Context {
-  public readonly state: TBotState
+  store: TBotStore
+  scene: Scenes.SceneContextScene<BotContext, Scenes.WizardSessionData>;
+  wizard: Scenes.WizardContextWizard<BotContext>;
 
   constructor(update: Update, api: Telegram, me: UserFromGetMe) {
     super(update, api, me)
-    this.state = { user: false, business: true }
+    this.store = { user: null, business: null }
   }
 }

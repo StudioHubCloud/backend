@@ -1,20 +1,35 @@
-import { DatabaseService, userProfile, UserProfileInsertModel, UserProfileSelectModel } from '@app/infrastructure/database'
-import { Transaction } from '@app/infrastructure/database/database.module'
 import { Injectable } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
+import { DatabaseService, userProfile, UserProfileInsertModel, UserProfileSelectModel, Transaction } from '@app/infrastructure/database'
+import { RedisCacheService } from '@app/infrastructure/redis'
 
 @Injectable()
 export class UserProfileService {
-  constructor(private readonly databaseService: DatabaseService) {}
+  private readonly cashe_key = 'user_profile'
+  constructor(
+    private readonly redisCacheService: RedisCacheService,
+    private readonly databaseService: DatabaseService,
+  ) {}
 
   async getUserProfileById(id: string) {
     return this.databaseService.drizzle.query.userProfile.findFirst({ where: (userProfile, { eq }) => eq(userProfile.id, id) })
   }
-  async findUserProfileByCondition(data: Partial<UserProfileSelectModel>) {
-    const conditions = Object.entries(data).map(([key, value]) => eq(userProfile[key], value))
-    return this.databaseService.drizzle.query.userProfile.findFirst({
-      where: and(...conditions),
+  async findUserProfileByCondition(conditions: Partial<UserProfileSelectModel>) {
+    const cacheKey = `${this.cashe_key}:${JSON.stringify(conditions)}`
+
+    const userProfileCashed = await this.redisCacheService.get<UserProfileSelectModel>(cacheKey)
+    if (userProfileCashed) {
+      return userProfileCashed
+    }
+
+    const userProfileFound = await this.databaseService.drizzle.query.userProfile.findFirst({
+      where: and(...Object.entries(conditions).map(([key, value]) => eq(userProfile[key], value))),
     })
+
+    if (userProfileFound) {
+      await this.redisCacheService.set(cacheKey, userProfileFound)
+    }
+    return userProfileFound
   }
 
   async createUserProfile(data: UserProfileInsertModel, tx?: Transaction) {

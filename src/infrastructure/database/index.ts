@@ -1,4 +1,4 @@
-export { DatabaseModule } from './database.module'
+export { DatabaseModule, Transaction } from './database.module'
 export { DatabaseService } from './database.service'
 export * from './models'
 export * from './database.enums'

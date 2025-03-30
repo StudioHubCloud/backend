@@ -1,9 +1,10 @@
 import { Module } from '@nestjs/common'
 
 import { BotService } from './bot.service'
+import { KeyboardModule, MiddlewareModule, StageModule } from './modules'
 
 @Module({
-  imports: [],
+  imports: [KeyboardModule, MiddlewareModule, StageModule],
   providers: [BotService],
   exports: [BotService],
 })

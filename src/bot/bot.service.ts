@@ -1,9 +1,11 @@
-import { TypedConfigService } from '@app/infrastructure/config'
+import { session, Telegraf } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
-import { BotContext } from './bot.context'
-import { Telegraf } from 'telegraf'
+
+import { MiddlewareService, StageService } from './modules'
+import { TypedConfigService } from '@app/infrastructure/config'
 import { ENVIRONMENTS } from '@app/libs'
+import { BotContext } from './bot.context'
 
 @Injectable()
 export class BotService {
@@ -11,20 +13,42 @@ export class BotService {
   constructor(
     private readonly logger: PinoLogger,
     private readonly configService: TypedConfigService,
+    private readonly middlewareService: MiddlewareService,
+    private readonly stageService: StageService,
   ) {
     this.logger.setContext(BotService.name)
-    const token = this.configService.get(process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? 'BOT_TOKEN' : 'BOT_TOKEN_TEST')
+    const isProduction = this.configService.get('NODE_ENV') === ENVIRONMENTS.PRODUCTION
+    const token = this.configService.get(isProduction ? 'BOT_TOKEN' : 'BOT_TOKEN_TEST')
     this.bot = new Telegraf<BotContext>(token, {
       contextType: BotContext,
     })
-    this.setupBotCommands()
+    this.bot.use(session())
+    this.initMiddlewares()
+    this.bot.use(this.stageService.stage.middleware());
+    this.initExitGuard()
+  
+
+    this.bot.catch((err: any, ctx: BotContext) => {
+      console.error(`Encountered an error for ctx.update: ${ctx.update}`, err);
+      this.logger.error(`Encountered an error for ctx.update: ${ctx.update}`, err);
+      ctx.reply('An unexpected error occurred. Please try again later.'); // Notify the user (optional)
+    });
+  }
+  
+  private initMiddlewares() {
+    this.bot.use(this.middlewareService.timerMiddleware)
+    this.bot.use(this.middlewareService.loggingMiddleware)
+    this.bot.use(this.middlewareService.authMiddleware)
+    this.bot.use(this.middlewareService.roleBasedAccessMiddleware)
+
   }
 
-  private setupBotCommands() {
-    this.bot.start((ctx) => {
-      this.logger.info(`New /start command from user ${ctx.from.id}`)
-      ctx.reply('Welcome!')
-    })
+  private initExitGuard() {
+    this.bot.action(/(.*)/, (ctx) => {
+      ctx.answerCbQuery()
+      const match = ctx.match[0]
+      this.logger.error('Exit guard triggered with match: %s', match)
+    });
   }
 
   startPolling() {
@@ -38,5 +62,10 @@ export class BotService {
       domain: `${process.env.RAILWAY_PUBLIC_DOMAIN}`,
       secret_token: this.bot.secretPathComponent(),
     })
+  }
+
+  stopBot(reason: 'SIGINT' | 'SIGTERM') {
+    this.bot.stop(reason)
+    this.logger.warn('Bot stopped with reason: %s', reason)
   }
 }
