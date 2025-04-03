@@ -29,6 +29,7 @@
     "@nestjs/core": "^11.0.1",
     "@nestjs/mapped-types": "*",
     "@nestjs/platform-express": "^11.0.1",
+    "@nestjs/schedule": "^5.0.1",
     "@nestjs/typeorm": "^11.0.0",
     "@types/pg": "^8.11.11",
     "@typescript-eslint/eslint-plugin": "^8.24.0",

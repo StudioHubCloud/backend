@@ -1,8 +1,7 @@
 import { Module } from '@nestjs/common'
 import { BusinessModule, CustomerModule, StudioModule, ClientModule, UserProfileModule } from '@app/domain'
-import { LoggerModule, ConfigModule, DatabaseModule, RedisCacheModule } from '@app/infrastructure'
+import { LoggerModule, ConfigModule, DatabaseModule, RedisCacheModule, CronModule, HealthModule } from '@app/infrastructure'
 import { BotModule } from 'src/bot/bot.module'
-import { HealthModule } from './infrastructure/health'
 
 @Module({
   imports: [
@@ -17,6 +16,7 @@ import { HealthModule } from './infrastructure/health'
     UserProfileModule,
     HealthModule,
     BotModule,
+    CronModule,
   ],
   providers: [],
 })

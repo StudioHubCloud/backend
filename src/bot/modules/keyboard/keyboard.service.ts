@@ -1,5 +1,5 @@
 import { KeyboardHelper } from '@app/bot/helpers'
-import { CALLBACK_DATA } from '@app/bot/libs/constants';
+import { CALLBACK_DATA } from '@app/libs';
 import { Injectable } from '@nestjs/common'
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram'
 

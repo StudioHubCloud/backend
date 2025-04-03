@@ -1,3 +1,4 @@
+import { CALLBACK_DATA } from '@app/libs'
 import { Injectable } from '@nestjs/common'
 import {
   InlineKeyboardMarkup,
@@ -5,7 +6,6 @@ import {
   ReplyKeyboardMarkup,
   ReplyKeyboardRemove,
 } from 'telegraf/typings/core/types/typegram'
-import { CALLBACK_DATA } from '../libs/constants'
 
 @Injectable()
 export class KeyboardHelper {

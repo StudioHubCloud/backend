@@ -1,7 +1,7 @@
 import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { SCENES } from '@app/bot/libs/constants'
+import { SCENES } from '@app/libs'
 
 @Injectable()
 export class GuestScene extends Scenes.BaseScene<BotContext> {

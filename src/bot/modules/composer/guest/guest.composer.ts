@@ -1,6 +1,6 @@
 import { BotContext } from '@app/bot/bot.context'
-import { CALLBACK_DATA } from '@app/bot/libs/constants'
 import { KeyboardService } from '@app/bot/modules'
+import { CALLBACK_DATA } from '@app/libs'
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
 

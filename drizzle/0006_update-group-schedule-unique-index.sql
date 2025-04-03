@@ -1,0 +1,2 @@
+DROP INDEX "[group_schedule_time]groupId_uindex";--> statement-breakpoint
+CREATE UNIQUE INDEX "[group_schedule]time_groupId_day_uindex" ON "group_schedule" USING btree ("group_id","time","group_schedule_day_id");

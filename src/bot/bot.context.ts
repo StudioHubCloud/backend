@@ -1,7 +1,7 @@
 
 import { Context, Scenes, Telegram } from 'telegraf'
 import { Update, UserFromGetMe } from 'telegraf/typings/core/types/typegram'
-import { TBotStore } from './libs/types';
+import { TBotStore } from '@app/libs';
 
 export class BotContext extends Context {
   store: TBotStore

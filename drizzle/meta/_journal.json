@@ -29,6 +29,27 @@
       "when": 1742134144653,
       "tag": "0003_update-telegram-id-type",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1743713534269,
+      "tag": "0004_update-group-style-variant-unique-index",
+      "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1743715832510,
+      "tag": "0005_update-group-style-schedule-time-column",
+      "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1743716194195,
+      "tag": "0006_update-group-schedule-unique-index",
+      "breakpoints": true
     }
   ]
 }

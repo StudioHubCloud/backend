@@ -9,7 +9,7 @@ export const customer = table(
     id: uuid('id').primaryKey().defaultRandom(),
     fullName: varchar('full_name').notNull(),
     emailAddress: varchar('email_address'),
-    phone_number: varchar('phone_number').unique(),
+    phoneNumber: varchar('phone_number').unique(),
     telegramId: varchar('telegram_id').unique(),
     countryCode: varchar('country_code').default('UA'),
   },

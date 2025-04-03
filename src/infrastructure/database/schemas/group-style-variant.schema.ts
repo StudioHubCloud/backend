@@ -19,8 +19,8 @@ export const groupStyleVariant = table(
   },
   (table) => [
     index('title_index').on(table.title),
+    index('[group_style_variant]studioId-groupStyleId_index').on(table.studioId, table.groupStyleId),
     uniqueIndex('[group_style_variant]groupStyleId-title_uindex').on(table.groupStyleId, table.title),
-    uniqueIndex('[group_style_variant]studioId-groupStyleId_uindex').on(table.studioId, table.groupStyleId),
   ],
 )
 
