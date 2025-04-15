@@ -2,7 +2,7 @@ import { smallint, pgTable as table, timestamp, uuid, index } from 'drizzle-orm/
 import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
 import { client } from './client.schema'
-import { trainingSchedule } from './training-schedule.schema'
+import { trainingSignup } from './training-signup.schema'
 import { PassStatusPgEnum } from '../database.enums'
 
 export const pass = table(
@@ -31,7 +31,7 @@ export const pass = table(
 )
 
 export const pass_relations = relations(pass, ({ many, one }) => ({
-  trainingSchedules: many(trainingSchedule),
+  trainingSignups: many(trainingSignup),
   group: one(group, { fields: [pass.groupId], references: [group.id] }),
   client: one(client, { fields: [pass.clientId], references: [client.id] }),
 }))

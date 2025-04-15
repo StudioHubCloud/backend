@@ -6,6 +6,9 @@ import { groupSchedule } from './group-schedule.schema'
 import { studio } from './studio.schema'
 import { groupStyle } from './group-style.schema'
 import { staffMember } from './staff-member.schema'
+import { GroupStatusPgEnum } from '../database.enums'
+import { GroupStatusEnum } from '@app/libs/constants/enums'
+import { groupAgeRestriction } from './group-age-restriction'
 
 export const group = table(
   'group',
@@ -13,7 +16,7 @@ export const group = table(
     id: uuid('id').primaryKey().defaultRandom(),
     name: varchar('title').notNull(),
     capacity: smallint('capacity').notNull(),
-    minAgeRequirement: smallint('min_age_requirement'),
+    status: GroupStatusPgEnum('status').notNull().default(GroupStatusEnum.ACTIVE),
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
@@ -23,8 +26,8 @@ export const group = table(
     staffMemberId: uuid('staff_member_id').references(() => staffMember.id, { onDelete: 'set null' }),
   },
   (table) => [
-    index('[group]studioId_index').on(table.studioId),
-    index('[group]staffMemberId_index').on(table.staffMemberId),
+    index('[group]studioId-status_index').on(table.studioId, table.status),
+    index('[group]staffMemberId-status_index').on(table.staffMemberId, table.status),
     index('[group]studioId-groupStyleId_uindex').on(table.studioId, table.groupStyleId),
     index('[group]studioId-staffMemberId_uindex').on(table.studioId, table.staffMemberId),
   ],
@@ -37,4 +40,5 @@ export const group_relations = relations(group, ({ one, many }) => ({
   trainings: many(training),
   passes: many(pass),
   groupSchedules: many(groupSchedule),
+  groupAgeRestrictions: many(groupAgeRestriction),
 }))

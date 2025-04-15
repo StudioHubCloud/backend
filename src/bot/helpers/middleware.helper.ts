@@ -34,7 +34,7 @@ export class MiddlewareHelper {
         telegramId: telegramId,
         fullName: `${firstName}${lastName ? ` ${lastName}` : ''}`,
         role: UserProfileRoleEnum.GUEST,
-        status: UserProfileStatusEnum.NOT_VERIFIED,
+        status: UserProfileStatusEnum.ACTIVE,
         businessId: businessId,
       })
       return createdUser

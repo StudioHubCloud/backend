@@ -19,7 +19,7 @@ export const groupStyle = table(
   ],
 )
 
-export const grpup_style_relations = relations(groupStyle, ({ one, many }) => ({
+export const group_style_relations = relations(groupStyle, ({ one, many }) => ({
   studio: one(studio, { fields: [groupStyle.studioId], references: [studio.id] }),
   groupStyleVariantss: many(groupStyleVariant),
   groups: many(group),

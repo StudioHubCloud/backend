@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { BusinessModule, CustomerModule, StudioModule, ClientModule, UserProfileModule } from '@app/domain'
+import { BusinessModule, CustomerModule, StudioModule, ClientModule, UserProfileModule, TrainingModule } from '@app/domain'
 import { LoggerModule, ConfigModule, DatabaseModule, RedisCacheModule, CronModule, HealthModule } from '@app/infrastructure'
 import { BotModule } from 'src/bot/bot.module'
 
@@ -10,6 +10,7 @@ import { BotModule } from 'src/bot/bot.module'
     StudioModule,
     ClientModule,
     LoggerModule,
+    TrainingModule,
     ConfigModule,
     DatabaseModule,
     RedisCacheModule,

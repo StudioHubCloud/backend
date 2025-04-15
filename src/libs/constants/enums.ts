@@ -17,13 +17,14 @@ export enum SubscribtionStatusEnum {
   CANCELED = 'canceled',
 }
 
-export enum TrainingStatusEnum {
+export enum TrainingSignupStatusEnum {
   ACTIVE = 'active',
   CANCELED = 'canceled',
   COMPLETED = 'completed',
+  ARCHIVED = 'archived',
 }
 
-export enum TrainingTypeEnum {
+export enum TrainingSignupTypeEnum {
   MAIN = 'main',
   RESERVE = 'reserve',
   PERSONAL = 'personal',
@@ -39,6 +40,10 @@ export enum UserProfileRoleEnum {
 export enum UserProfileStatusEnum {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
-  NOT_VERIFIED = 'not_verified',
   BLOCKED = 'blocked',
+}
+
+export enum GroupStatusEnum {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
 }

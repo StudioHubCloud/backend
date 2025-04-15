@@ -14,6 +14,6 @@ export type StaffMemberSelectModel = InferSelectModel<typeof schemas.staffMember
 export type StudioSelectModel = InferSelectModel<typeof schemas.studio>
 export type SubscribtionPlanSelectModel = InferSelectModel<typeof schemas.subscribtionPlan>
 export type SubscribtionSelectModel = InferSelectModel<typeof schemas.subscribtion>
-export type TrainingScheduleSelectModel = InferSelectModel<typeof schemas.trainingSchedule>
+export type TrainingScheduleSelectModel = InferSelectModel<typeof schemas.trainingSignup>
 export type TrainingSelectModel = InferSelectModel<typeof schemas.training>
 export type UserProfileSelectModel = InferSelectModel<typeof schemas.userProfile>

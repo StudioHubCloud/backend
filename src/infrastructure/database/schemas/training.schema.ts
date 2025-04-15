@@ -2,7 +2,8 @@ import { boolean, pgTable as table, timestamp, uuid, index } from 'drizzle-orm/p
 import { relations, sql } from 'drizzle-orm'
 import { group } from './group.schema'
 import { staffMember } from './staff-member.schema'
-import { trainingSchedule } from './training-schedule.schema'
+import { trainingSignup } from './training-signup.schema'
+import { groupSchedule } from './group-schedule.schema'
 
 export const training = table(
   'training',
@@ -14,6 +15,7 @@ export const training = table(
       .references(() => group.id, { onDelete: 'cascade' })
       .notNull(),
     trainerId: uuid('trainer_id').references(() => staffMember.id, { onDelete: 'set null' }),
+    groupScheduleId: uuid('group_schedule_id').references(() => groupSchedule.id, { onDelete: 'set null' }),
   },
   (table) => [
     index('[training]groupId_index').on(table.groupId),
@@ -28,5 +30,6 @@ export const training = table(
 export const training_relations = relations(training, ({ one, many }) => ({
   group: one(group, { fields: [training.groupId], references: [group.id] }),
   trainer: one(staffMember, { fields: [training.trainerId], references: [staffMember.id] }),
-  trainingSchedules: many(trainingSchedule),
+  groupSchedule: one(groupSchedule, { fields: [training.groupScheduleId], references: [groupSchedule.id] }),
+  trainingSignups: many(trainingSignup),
 }))
