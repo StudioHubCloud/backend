@@ -21,7 +21,7 @@ export {
   SubscribtionTierPgEnum,
   TrainingSignupStatusPgEnum,
   TrainingSignupTypePgEnum,
+  GroupStatusPgEnum,
   UserProfileRolePgEnum,
   UserProfileStatusPgEnum,
-  GroupStatusPgEnum,
 } from '../database.enums'
