@@ -1,21 +1,49 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common'
+import { StudioService } from '../studio'
+import { DateTimeService, DateTimeServiceInjector } from '@app/infrastructure/providers'
+import { DatabaseService, GroupScheduleSelectModel, training, TrainingInsertModel } from '@app/infrastructure/database'
 
 @Injectable()
 export class TrainingService {
-  constructor() {}
+  constructor(
+    @DateTimeServiceInjector() private readonly dateTimeService: DateTimeService,
+    private readonly databaseService: DatabaseService,
+    private readonly studioService: StudioService,
+  ) {}
 
-  addTrainings() {
-    //goal is to add trainins to database
+  async addTrainingsForActiveGroups() {
+    const studios = await this.studioService.getAllStudiosWithActiveGroups({ allowTrainingInsertCron: true })
+    const interval = this.dateTimeService.getNextMonthDateInterval()
+    let trainingsToInsert: TrainingInsertModel[] = []
 
-    //get all studios ( consider adding bool for auth cron schedule)
-    // loop through all studios and get their groups
-    //iterage through all groups and get ther group_schedules
-    //get last training by current group (sorted by time)
-    //get a group schedule of current group and create next 30 trainings that follows schema ( schema is , time, day of week, group_style_variant.name))
-    //insert trainings to database 
-    //go next group and repeat
-    //if all groups are done, go to next studio and repeat
-    //if all studios are done, end the process
+    studios.forEach((studio) => {
+      studio.groups.forEach((group) => {
+        group.groupSchedules.forEach((schedule) => {
+          const trainingDates = this.dateTimeService.getEachDayOfIntervalForDayIndex(interval, schedule.groupScheduleDays.dayIndex)
+          trainingsToInsert = [...trainingsToInsert, ...this.generateTrainingsRecords(trainingDates, group.id, schedule)]
+        })
+      })
+    })
+    const result = await this.databaseService.drizzle
+      .insert(training)
+      .values(trainingsToInsert)
+      .onConflictDoNothing({ target: [training.date, training.groupId] })
+      .returning()
+    return result
   }
 
+  private generateTrainingsRecords(trainingDates: Date[], groupId: string, schedule: GroupScheduleSelectModel) {
+    const trainingsToInsert: TrainingInsertModel[] = []
+
+    trainingDates.forEach((date) => {
+      const trainingDate = this.dateTimeService.addTimeToDate(date, schedule.time).toISOString()
+      const trainingRecord = {
+        date: trainingDate,
+        groupId: groupId,
+        groupScheduleId: schedule.id,
+      }
+      trainingsToInsert.push(trainingRecord)
+    })
+    return trainingsToInsert
+  }
 }

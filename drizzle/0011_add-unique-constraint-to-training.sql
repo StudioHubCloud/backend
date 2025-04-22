@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "[training]date_groupId_trainerId_uindex" ON "training" USING btree ("date","group_id");

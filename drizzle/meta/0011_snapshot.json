@@ -1,6 +1,6 @@
 {
-  "id": "36a3c378-0444-4464-9248-557305a8faba",
-  "prevId": "17c0803d-bf9c-456a-a95c-755fd0cb1b39",
+  "id": "355bed3d-5b35-4bec-b20a-2612a03236c7",
+  "prevId": "49be0c02-cde3-4f5d-a6fe-f44e344e412a",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1254,12 +1254,19 @@
           "primaryKey": false,
           "notNull": false
         },
-        "allow_training_insert_cron": {
-          "name": "allow_training_insert_cron",
+        "time_zone": {
+          "name": "time_zone",
           "type": "varchar",
           "primaryKey": false,
+          "notNull": true,
+          "default": "'Europe/Kyiv'"
+        },
+        "allow_training_insert_cron": {
+          "name": "allow_training_insert_cron",
+          "type": "boolean",
+          "primaryKey": false,
           "notNull": false,
-          "default": "'false'"
+          "default": false
         },
         "country": {
           "name": "country",
@@ -1566,6 +1573,27 @@
         }
       },
       "indexes": {
+        "[training]date_groupId_trainerId_uindex": {
+          "name": "[training]date_groupId_trainerId_uindex",
+          "columns": [
+            {
+              "expression": "date",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "group_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
         "[training]groupId_index": {
           "name": "[training]groupId_index",
           "columns": [

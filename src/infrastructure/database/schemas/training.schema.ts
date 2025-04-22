@@ -1,4 +1,4 @@
-import { boolean, pgTable as table, timestamp, uuid, index } from 'drizzle-orm/pg-core'
+import { boolean, pgTable as table, timestamp, uuid, index, unique, uniqueIndex } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
 import { group } from './group.schema'
 import { staffMember } from './staff-member.schema'
@@ -18,6 +18,7 @@ export const training = table(
     groupScheduleId: uuid('group_schedule_id').references(() => groupSchedule.id, { onDelete: 'set null' }),
   },
   (table) => [
+    uniqueIndex('[training]date_groupId_trainerId_uindex').on(table.date, table.groupId),
     index('[training]groupId_index').on(table.groupId),
     index('[training]trainerId_index').on(table.trainerId),
     index('[training]date-isCancelled_index').on(table.date, table.isCancelled),

@@ -1,4 +1,4 @@
-import { pgTable as table, uuid, varchar, index } from 'drizzle-orm/pg-core'
+import { pgTable as table, uuid, varchar, index, boolean } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { business } from './business.schema'
 import { group } from './group.schema'
@@ -13,6 +13,8 @@ export const studio = table(
     streetAddress2: varchar('street_address_2'),
     city: varchar('city'),
     state: varchar('state'),
+    timeZone: varchar('time_zone').notNull().default('Europe/Kyiv'),
+    allowTrainingInsertCron: boolean('allow_training_insert_cron').default(false),
     country: varchar('country'),
     businessId: uuid('business_id').references(() => business.id, { onDelete: 'cascade' }),
   },

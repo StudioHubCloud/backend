@@ -23,6 +23,8 @@
     "test:e2e": "jest --config ./apps/backend/test/jest-e2e.json"
   },
   "dependencies": {
+    "@date-fns/tz": "^1.2.0",
+    "@date-fns/utc": "^2.1.0",
     "@nestjs/cache-manager": "^3.0.1",
     "@nestjs/common": "^11.0.1",
     "@nestjs/config": "^4.0.0",

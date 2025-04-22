@@ -1,6 +1,6 @@
 {
-  "id": "36a3c378-0444-4464-9248-557305a8faba",
-  "prevId": "17c0803d-bf9c-456a-a95c-755fd0cb1b39",
+  "id": "5cf119c0-f45d-4389-b417-9ecb80106707",
+  "prevId": "36a3c378-0444-4464-9248-557305a8faba",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -1256,10 +1256,10 @@
         },
         "allow_training_insert_cron": {
           "name": "allow_training_insert_cron",
-          "type": "varchar",
+          "type": "boolean",
           "primaryKey": false,
           "notNull": false,
-          "default": "'false'"
+          "default": false
         },
         "country": {
           "name": "country",

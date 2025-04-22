@@ -1,0 +1,1 @@
+ALTER TABLE "studio" ADD COLUMN "allow_training_insert_cron" varchar DEFAULT 'false';

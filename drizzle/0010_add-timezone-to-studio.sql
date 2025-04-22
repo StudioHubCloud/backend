@@ -1,0 +1,1 @@
+ALTER TABLE "studio" ADD COLUMN "time_zone" varchar DEFAULT 'Europe/Kyiv' NOT NULL;

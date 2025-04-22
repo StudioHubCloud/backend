@@ -1,7 +1,8 @@
-import { add, format, startOfToday, subDays } from 'date-fns'
+import { add, format, startOfToday, subDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
 import { Inject, Injectable } from '@nestjs/common'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { APP, DATE_FORMAT, TDateFormats } from '@app/libs'
+import { TZDate, tz} from '@date-fns/tz'
 
 export const DateTimeServiceInjector = () => Inject(APP.PROVIDERS.DATE_TIME_SERVICE)
 
@@ -15,6 +16,13 @@ export class DateTimeService {
 
   addMinutesToDate(minutes: number, date: Date = new Date()): Date {
     return add(date, { minutes })
+  }
+
+  addTimeToDate(date: Date, time: string): Date {
+    const [hours, minutes] = time.split(':').map(Number)
+    const newDate = new Date(date)
+    newDate.setHours(hours, minutes)
+    return newDate
   }
 
   formatDate(options: { date?: Date; dateFormat?: TDateFormats } = {}): string {
@@ -33,5 +41,22 @@ export class DateTimeService {
 
   getStartOfTodayDate(): Date {
     return startOfToday()
+  }
+
+
+  toUTCString(date: Date): string {
+    return date.toUTCString()
+  }
+
+  getNextMonthDateInterval(): { start: Date; end: Date } {
+    const nextMonth = addMonths(new Date (), 1)
+    const startDate = startOfMonth(nextMonth)
+    const endDate = endOfMonth(nextMonth)
+
+    return { start: startDate, end: endDate }
+  }
+
+  getEachDayOfIntervalForDayIndex(options: {start: Date, end: Date}, dayIndex: number): Date[] {
+    return eachDayOfInterval(options).filter((date) => date.getDay() === dayIndex)
   }
 }

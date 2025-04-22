@@ -5,5 +5,6 @@ import { StudioController } from './studio.controller';
 @Module({
   controllers: [StudioController],
   providers: [StudioService],
+  exports: [StudioService],
 })
 export class StudioModule {}

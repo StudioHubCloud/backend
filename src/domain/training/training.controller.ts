@@ -7,6 +7,6 @@ export class TrainingController {
 
   @Post()
   addTrainings() {
-    return this.trainingService.addTrainings()
+    return this.trainingService.addTrainingsForActiveGroups()
   }
 }

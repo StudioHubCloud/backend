@@ -57,6 +57,34 @@
       "when": 1744752568826,
       "tag": "0007_add-enums-to-migration",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1745271724682,
+      "tag": "0008_add-boolean-allow-to-studio",
+      "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1745272401855,
+      "tag": "0009_change-boolean-allow-to-studio",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1745312451112,
+      "tag": "0010_add-timezone-to-studio",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1745315500685,
+      "tag": "0011_add-unique-constraint-to-training",
+      "breakpoints": true
     }
   ]
 }
