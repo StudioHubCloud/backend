@@ -1,12 +1,12 @@
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardService } from '@app/bot/modules'
+import { CLIENT_PATTERNS } from '@app/bot/static/patterns'
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
 
 @Injectable()
-export class ClientComposer {
+export class PassInfoComposer {
   private readonly composer: Composer<BotContext>
-  constructor(private readonly keyboardService: KeyboardService) {
+  constructor() {
     this.composer = new Composer<BotContext>()
     this.initComposer()
   }
@@ -16,8 +16,10 @@ export class ClientComposer {
   }
 
   initComposer() {
-    this.composer.start((ctx) => {
-      ctx.reply('Welcome from Client!', this.keyboardService.removeKeyboard())
-    })
+    this.composer.hears(CLIENT_PATTERNS.PASS_INFO, this.passInfoHandler)
+  }
+
+  private passInfoHandler = async (ctx: BotContext) => {
+    await ctx.reply('Pass info handler works')
   }
 }

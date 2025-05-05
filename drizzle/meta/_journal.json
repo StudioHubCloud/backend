@@ -85,6 +85,20 @@
       "when": 1745315500685,
       "tag": "0011_add-unique-constraint-to-training",
       "breakpoints": true
+    },
+    {
+      "idx": 12,
+      "version": "7",
+      "when": 1746395530397,
+      "tag": "0012_change-default-group-status",
+      "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1746486664915,
+      "tag": "0013_change-user-role-enum-values",
+      "breakpoints": true
     }
   ]
 }

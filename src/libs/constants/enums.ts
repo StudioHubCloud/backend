@@ -32,7 +32,7 @@ export enum TrainingSignupTypeEnum {
 
 export enum UserProfileRoleEnum {
   ADMIN = 'admin',
-  STAFF_MEMBER = 'staff_member',
+  TRAINER = 'trainer',
   GUEST = 'guest',
   CLIENT = 'client',
 }

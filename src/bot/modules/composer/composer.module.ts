@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common'
-import { ClientComposer } from './client/client.composer'
-import { GuestComposer } from './guest/guest.composer'
-import { StaffComposer } from './staff/staff.composer'
+import ClientComposers from './client'
+import StaffComposers from './staff'
+import GuestComposers from './guest'
 import { ComposerService } from './composer.service'
 
 @Module({
   imports: [],
-  providers: [ClientComposer, GuestComposer, StaffComposer, ComposerService],
+  providers: [ComposerService, ...GuestComposers, ...ClientComposers, ...StaffComposers],
   exports: [ComposerService],
 })
 export class ComposerModule {}

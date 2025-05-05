@@ -1,6 +1,6 @@
-### Script + CRON for adding trainings to active groups
+### CRON for adding trainings to active groups
 ### Staff member invite link + rules
-### new client start wizzard ( name, dob, phone)
+### new client start wizzard ( name, DoB, phone)
 ### Client main menu
 ### Client training select keyboard
 ### Client pass info view
@@ -12,9 +12,6 @@
 
 ### Admin - confirm guest schedule for training
 ### Admin - confirm guest request for activation as a client
-
-## on new user register - create user profile with status active and role guest
-## change group status default from active to inactive
 
 
 BACKLOG

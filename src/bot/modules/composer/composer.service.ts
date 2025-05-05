@@ -1,9 +1,9 @@
 import { Composer } from 'telegraf';
 import { BotContext } from '@app/bot/bot.context';
 import { Injectable } from '@nestjs/common';
-import { GuestComposer } from './guest/guest.composer';
-import { StaffComposer } from './staff/staff.composer';
-import { ClientComposer } from './client/client.composer';
+import { GuestRootComposer } from './guest/guest-root.composer';
+import { StaffRootComposer } from './staff/staff-root.composer';
+import { ClientRootComposer } from './client/client-root.composer';
 import { UserProfileRoleEnum } from '@app/libs';
 
 
@@ -12,15 +12,15 @@ export class ComposerService {
   private readonly roleComposerMap: Record<UserProfileRoleEnum, Composer<BotContext>>;
 
   constructor(
-     private readonly clientComposer: ClientComposer,
-     private readonly staffComposer: StaffComposer,
-     private readonly guestComposer: GuestComposer,
+    private readonly guestRootComposer: GuestRootComposer,
+     private readonly clientRootComposer: ClientRootComposer,
+     private readonly staffRootComposer: StaffRootComposer,
   ) {
     this.roleComposerMap = {
-      guest: this.guestComposer.getComposer(),
-      client: this.clientComposer.getComposer(),
-      staff_member: this.staffComposer.getComposer(),
-      admin: this.staffComposer.getComposer(),
+      guest: this.guestRootComposer.getComposer(),
+      client: this.clientRootComposer.getComposer(),
+      trainer: this.staffRootComposer.getComposer(),
+      admin: this.staffRootComposer.getComposer(),
     };
   }
 

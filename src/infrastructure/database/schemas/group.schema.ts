@@ -16,7 +16,7 @@ export const group = table(
     id: uuid('id').primaryKey().defaultRandom(),
     name: varchar('title').notNull(),
     capacity: smallint('capacity').notNull(),
-    status: GroupStatusPgEnum('status').notNull().default(GroupStatusEnum.ACTIVE),
+    status: GroupStatusPgEnum('status').notNull().default(GroupStatusEnum.INACTIVE),
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),

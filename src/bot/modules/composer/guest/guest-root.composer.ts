@@ -24,7 +24,7 @@ const testData = [
 ]
 
 @Injectable()
-export class GuestComposer {
+export class GuestRootComposer {
   private readonly composer: Composer<BotContext>
   private readonly callbackPrefix = 'menu'
   private normalizedOptions: { label: string; value: string }[]

@@ -1,15 +1,14 @@
 import { KeyboardHelper } from '@app/bot/helpers'
-import { CALLBACK_DATA } from '@app/libs';
+import { CALLBACK_DATA } from '@app/libs'
 import { Injectable } from '@nestjs/common'
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram'
 
 @Injectable()
 export class KeyboardService {
-
-  constructor(private readonly keyboardHelper: KeyboardHelper) {}
+  constructor() {}
 
   removeKeyboard() {
-    return this.keyboardHelper.removeReplyMarkupKeyboard()
+    return KeyboardHelper.removeReplyMarkupKeyboard()
   }
 
   static prepareMenuOptions<T>(
@@ -26,7 +25,7 @@ export class KeyboardService {
 
   createPaginatedMenu(
     data: { label: string; value: string }[],
-    optons: { page?: number; perPage?: number, prefix: string },
+    optons: { page?: number; perPage?: number; prefix: string },
   ): InlineKeyboardMarkup {
     const { page = 1, perPage = 6, prefix } = optons
 

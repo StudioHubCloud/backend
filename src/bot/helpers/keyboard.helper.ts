@@ -1,17 +1,10 @@
 import { CALLBACK_DATA } from '@app/libs'
-import { Injectable } from '@nestjs/common'
-import {
-  InlineKeyboardMarkup,
-  KeyboardButton,
-  ReplyKeyboardMarkup,
-  ReplyKeyboardRemove,
-} from 'telegraf/typings/core/types/typegram'
+import { KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove } from 'telegraf/typings/core/types/typegram'
 
-@Injectable()
 export class KeyboardHelper {
   constructor() {}
 
-  removeReplyMarkupKeyboard(): { reply_markup: ReplyKeyboardRemove } {
+  static removeReplyMarkupKeyboard(): { reply_markup: ReplyKeyboardRemove } {
     return {
       reply_markup: {
         remove_keyboard: true,
@@ -19,39 +12,20 @@ export class KeyboardHelper {
     }
   }
 
-  createReplyMarkupKeyboard(buttons: string[][]) {
-    return {
-      reply_markup: {
-        keyboard: buttons.map((row) => row.map((button) => ({ text: button }))),
-        resize_keyboard: true,
-        one_time_keyboard: true,
-      },
-    }
-  }
-
-  static genericInlineKeyboard(items: string[], callbackDataPrefix: string): InlineKeyboardMarkup {
-    const buttons = items.map((item) => [{ text: item, callback_data: `${callbackDataPrefix}:${item}` }])
-    return {
-      inline_keyboard: buttons,
-    }
-  }
-
-  static createInlineKeyboard(buttons: { text: string; callback_data: string }[][]): InlineKeyboardMarkup {
-    return {
-      inline_keyboard: buttons,
-    }
-  }
-
   static createReplyMarkupKeyboard(
     buttons: string[][],
     options: Partial<KeyboardButton> = {},
     extras: Omit<ReplyKeyboardMarkup, 'keyboard'> = {},
-  ): ReplyKeyboardMarkup {
+  ): { reply_markup: ReplyKeyboardMarkup } {
     const { resize_keyboard = true, one_time_keyboard = false } = extras
     return {
-      keyboard: buttons.map((row) => row.map((button) => ({ text: button, ...(KeyboardHelper.isObject(options) ? options : {}) }))),
-      resize_keyboard: resize_keyboard,
-      one_time_keyboard: one_time_keyboard,
+      reply_markup: {
+        keyboard: buttons.map((row) =>
+          row.map((button) => ({ text: button, ...(KeyboardHelper.isObject(options) ? options : {}) })),
+        ),
+        resize_keyboard: resize_keyboard,
+        one_time_keyboard: one_time_keyboard,
+      },
     }
   }
 
@@ -66,8 +40,7 @@ export class KeyboardHelper {
     }
     const nextButton = {
       text: '➡️',
-      callback_data:
-        page < totalPages ? `${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:${page + 1}` : CALLBACK_DATA.DISABLED,
+      callback_data: page < totalPages ? `${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:${page + 1}` : CALLBACK_DATA.DISABLED,
     }
     const currentPageButton = {
       text: `${page} / ${totalPages}`,
