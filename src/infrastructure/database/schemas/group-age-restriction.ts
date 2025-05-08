@@ -15,7 +15,7 @@ export const groupAgeRestriction = table(
       .notNull(),
   },
   (table) => [
-    index('groupId_index').on(table.groupId),
+    index().on(table.groupId),
   ],
 )
 

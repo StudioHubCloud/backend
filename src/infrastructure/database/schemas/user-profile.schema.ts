@@ -1,33 +1,34 @@
 import { index, date, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
-import { business } from './business.schema'
 import { staffMember } from './staff-member.schema'
 import { client } from './client.schema'
 import { UserProfileRolePgEnum, UserProfileStatusPgEnum } from '../database.enums'
+import { studio } from './studio.schema'
 
 export const userProfile = table(
   'user_profile',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    fullName: varchar('full_name'),
+    firstName: varchar('first_name').notNull().default('unspecified'),
+    lastName: varchar('last_name'),
+    fullName: varchar('full_name').notNull(),
     phoneNumber: varchar('phone_number'),
     telegramId: varchar('telegram_id').notNull(),
     dateOfBirth: date('date_of_birth', { mode: 'string' }),
     role: UserProfileRolePgEnum().notNull().notNull(),
     status: UserProfileStatusPgEnum().notNull(),
-    businessId: uuid('business_id')
-      .references(() => business.id, { onDelete: 'cascade' })
+    studioId: uuid('studio_id')
+      .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
   },
   (table) => [
-    index('[user_profile]businessId-role-status_index').on(table.businessId, table.role, table.status),
-    uniqueIndex('[user_profile]telegramId-role-businessId_uindex').on(table.telegramId, table.role, table.businessId),
-    uniqueIndex('[user_profile]phoneNumber-role-businessId_uindex').on(table.phoneNumber, table.role, table.businessId),
+    uniqueIndex().on(table.telegramId, table.role, table.studioId),
+    uniqueIndex().on(table.phoneNumber, table.role, table.studioId),
   ],
 )
 
 export const user_profile_relations = relations(userProfile, ({ one }) => ({
-  business: one(business, { fields: [userProfile.businessId], references: [business.id] }),
+  studio: one(studio, { fields: [userProfile.studioId], references: [studio.id] }),
   staffMember: one(staffMember),
   client: one(client),
 }))

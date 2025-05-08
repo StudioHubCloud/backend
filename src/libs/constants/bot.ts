@@ -1,12 +1,3 @@
-export const MENU_OPTIONS = {
-  CLIENT: {
-    MAIN: {},
-  },
-  BOT: {
-    BACK: '⬅️ Назад',
-    START: '🏠 Головне меню',
-  },
-} as const
 
 export const SCENES = {
   GUEST: {

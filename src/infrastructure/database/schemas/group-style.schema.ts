@@ -1,4 +1,4 @@
-import { index, serial, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { index, serial, pgTable as table, uniqueIndex, uuid, varchar, integer } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { studio } from './studio.schema'
 import { group } from './group.schema'
@@ -9,13 +9,15 @@ export const groupStyle = table(
   {
     id: serial('id').primaryKey(),
     title: varchar('title').notNull(),
+    emoji: varchar('emoji').notNull().default('🔘'),
+    sortGroupPriority: integer('sort_group_priority').notNull().default(0),
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
   },
   (table) => [
-    index('studioId_index').on(table.studioId),
-    uniqueIndex('[group_style]studioId-title_uindex').on(table.studioId, table.title),
+    index().on(table.studioId),
+    uniqueIndex().on(table.studioId, table.title),
   ],
 )
 

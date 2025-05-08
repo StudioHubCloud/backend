@@ -18,4 +18,4 @@ export const ENVIRONMENTS = {
 }
 export const CACHE = {
   DEFAULT_TTL: 5 * 60 * 1000, // 5 minutes
-}
+} as const

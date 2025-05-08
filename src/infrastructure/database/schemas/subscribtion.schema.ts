@@ -20,9 +20,9 @@ export const subscribtion = table(
       .notNull(),
   },
   (table) => [
-    uniqueIndex('[subscribtion]customerId_uindex').on(table.customerId),
-    index('[subscribtion]subscribtionPlanId_index').on(table.subscribtionPlanId),
-    index('[subscribtion]customerId-status_index').on(table.customerId, table.status),
+    uniqueIndex().on(table.customerId),
+    index().on(table.subscribtionPlanId),
+    index().on(table.customerId, table.status),
   ],
 )
 

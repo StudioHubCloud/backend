@@ -99,6 +99,27 @@
       "when": 1746486664915,
       "tag": "0013_change-user-role-enum-values",
       "breakpoints": true
+    },
+    {
+      "idx": 14,
+      "version": "7",
+      "when": 1746653221378,
+      "tag": "0014_change-default-user-status-and-add-name-comlumn",
+      "breakpoints": true
+    },
+    {
+      "idx": 15,
+      "version": "7",
+      "when": 1746656963260,
+      "tag": "0015_add-sort-group-priority-and-emoji",
+      "breakpoints": true
+    },
+    {
+      "idx": 16,
+      "version": "7",
+      "when": 1746717626759,
+      "tag": "0016_remove-business-entity",
+      "breakpoints": true
     }
   ]
 }

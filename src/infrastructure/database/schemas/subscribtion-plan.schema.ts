@@ -13,8 +13,8 @@ export const subscribtionPlan = table(
     currencyCode3: varchar('currency_code_3', { length: 3 }).notNull(),
   },
   (table) => [
-    index('[subscribtion_plan]tier_uindex').on(table.tier),
-    uniqueIndex('[subscribtion_plan]currencyCode3_uindex').on(sql`UPPER(${table.currencyCode3})`),
+    index().on(table.tier),
+    uniqueIndex('subscribtionPlan_currencyCode3').on(sql`UPPER(${table.currencyCode3})`),
   ],
 )
 

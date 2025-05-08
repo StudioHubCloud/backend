@@ -23,10 +23,10 @@ export const pass = table(
       .notNull(),
   },
   (table) => [
-    index('[pass]groupId_index').on(table.groupId),
-    index('[pass]clientId_index').on(table.clientId),
-    index('[pass]groupId-status_index').on(table.groupId, table.status),
-    index('[pass]clientId-status_index').on(table.clientId, table.status),
+    index().on(table.groupId),
+    index().on(table.clientId),
+    index().on(table.groupId, table.status),
+    index().on(table.clientId, table.status),
   ],
 )
 

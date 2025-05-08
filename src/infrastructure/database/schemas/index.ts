@@ -1,4 +1,3 @@
-export { business, business_relations } from './business.schema'
 export { client, client_relations } from './client.schema'
 export { customer, customer_relations } from './customer.schema'
 export { groupScheduleDay, group_schedule_day_relations } from './group-schedule-day.schema'

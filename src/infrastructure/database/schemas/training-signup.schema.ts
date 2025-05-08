@@ -18,14 +18,14 @@ export const trainingSignup = table(
       .notNull(),
   },
   (table) => [
-    index('[training_signup]userProfileId_index').on(table.userProfileId),
-    index('[training_signup]passId_index').on(table.passId),
-    index('[training_signup]trainingId_index').on(table.trainingId),
-    index('[training_signup]trainingId-status-type_index').on(table.trainingId, table.status, table.type),
-    index('[training_signup]userProfileId-status-type_index').on(table.userProfileId, table.status, table.type),
-    index('[training_signup]passId-status-type_index').on(table.passId, table.status, table.type),
-    uniqueIndex('[training_signup]trainingId-userProfileId_uindex').on(table.trainingId, table.userProfileId),
-    uniqueIndex('[training_signup]trainingId-passId_uindex').on(table.trainingId, table.passId),
+    index().on(table.userProfileId),
+    index().on(table.passId),
+    index().on(table.trainingId),
+    index().on(table.trainingId, table.status, table.type),
+    index().on(table.userProfileId, table.status, table.type),
+    index().on(table.passId, table.status, table.type),
+    uniqueIndex().on(table.trainingId, table.userProfileId),
+    uniqueIndex().on(table.trainingId, table.passId),
   ],
 )
 

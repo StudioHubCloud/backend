@@ -5,6 +5,7 @@ import { ClientKeyboards } from './client.keyboard'
 import { SchedulerComposer } from './scheduler/scheduler.composer'
 import { CLIENT_PATTERNS } from '@app/bot/static/patterns'
 import { PassInfoComposer } from './pass-info/pass-info.composer'
+import { UserHelper } from '@app/bot/helpers'
 
 @Injectable()
 export class ClientRootComposer {
@@ -16,7 +17,7 @@ export class ClientRootComposer {
     this.composer = new Composer<BotContext>()
 
     this.initComposer()
-
+ 
     this.composer.use(this.schedulerComposer.getComposer())
     this.composer.use(this.passInfoComposer.getComposer())
   }
@@ -32,14 +33,15 @@ export class ClientRootComposer {
   }
 
   private startHandler = async (ctx: BotContext) => {
-    return ctx.reply(`Вітаємо в особистому кабінеті ❤️`, ClientKeyboards.mainMenu())
+    const user = UserHelper.getUser(ctx)
+    return ctx.reply(`Вітаємо в особистому кабінеті ${user.firstName}❤️`, ClientKeyboards.mainMenu())
   }
 
   private paymentHandler = async (ctx: BotContext) => {
-    return ctx.reply('Payment handler works')
+    return ctx.reply('Тут будуть реквізити для оплати на першому етапі, потім підключим онлайн оплату')
   }
 
   private rulesHandler = async (ctx: BotContext) => {
-    return ctx.reply('Rules handler works')
+    return ctx.reply('Якщо потрібні якісь правила, можна їх сюди вставити')
   }
 }

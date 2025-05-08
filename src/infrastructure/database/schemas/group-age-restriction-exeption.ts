@@ -14,7 +14,7 @@ export const groupAgeRestrictionException = table(
       .references(() => group.id, { onDelete: 'cascade' })
       .notNull(),
   },
-  (table) => [uniqueIndex('[group_age_restriction]userProfileId-groupId_uindex').on(table.userProfileId, table.groupId)],
+  (table) => [uniqueIndex().on(table.userProfileId, table.groupId)],
 )
 
 

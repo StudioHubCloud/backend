@@ -61,14 +61,15 @@ export class MiddlewareService {
 
     const { first_name, last_name, id } = from
 
-    const businessId = deunionize(ctx.message)?.text?.split(' ')[1]
+    const studioId = deunionize(ctx.message)?.text?.split(' ')[1]
 
     const response = await this.middlewareHelper.validateOrCreateUser(
       { firstName: first_name, telegramId: id.toString(), lastName: last_name },
-      businessId,
+      studioId,
     )
 
-    if (typeof response === 'string') {
+    if (typeof response === 'string') { //error message
+      this.logger.error('Error during user validation: %s', response)
       return ctx.reply(response)
     }
 

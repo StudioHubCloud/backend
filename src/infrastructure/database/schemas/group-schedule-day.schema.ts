@@ -10,7 +10,7 @@ export const groupScheduleDay = table(
     dayTitleLong: varchar('day_title_long').unique().notNull(),
     dayTitleShort: varchar('day_title_short', { length: 3 }).unique().notNull(),
   },
-  (table) => [check('[group_schedule_day]dayIndex_check', sql`${table.dayIndex} >= 0 AND ${table.dayIndex} <= 6`)],
+  (table) => [check('dayIndex_check', sql`${table.dayIndex} >= 0 AND ${table.dayIndex} <= 6`)],
 )
 
 export const group_schedule_day_relations = relations(groupScheduleDay, ({ many }) => ({

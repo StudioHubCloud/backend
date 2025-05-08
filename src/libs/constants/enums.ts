@@ -41,6 +41,7 @@ export enum UserProfileStatusEnum {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
   BLOCKED = 'blocked',
+  UNVERIVIED = 'unverified',
 }
 
 export enum GroupStatusEnum {

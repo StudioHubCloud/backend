@@ -26,10 +26,10 @@ export const group = table(
     staffMemberId: uuid('staff_member_id').references(() => staffMember.id, { onDelete: 'set null' }),
   },
   (table) => [
-    index('[group]studioId-status_index').on(table.studioId, table.status),
-    index('[group]staffMemberId-status_index').on(table.staffMemberId, table.status),
-    index('[group]studioId-groupStyleId_uindex').on(table.studioId, table.groupStyleId),
-    index('[group]studioId-staffMemberId_uindex').on(table.studioId, table.staffMemberId),
+    index().on(table.studioId, table.status),
+    index().on(table.staffMemberId, table.status),
+    index().on(table.studioId, table.groupStyleId),
+    index().on(table.studioId, table.staffMemberId),
   ],
 )
 

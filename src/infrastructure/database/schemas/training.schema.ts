@@ -18,13 +18,11 @@ export const training = table(
     groupScheduleId: uuid('group_schedule_id').references(() => groupSchedule.id, { onDelete: 'set null' }),
   },
   (table) => [
-    uniqueIndex('[training]date_groupId_trainerId_uindex').on(table.date, table.groupId),
-    index('[training]groupId_index').on(table.groupId),
-    index('[training]trainerId_index').on(table.trainerId),
-    index('[training]date-isCancelled_index').on(table.date, table.isCancelled),
-    index('[training]isCancelled(true)_index')
-      .using('btree', table.isCancelled)
-      .where(sql`${table.isCancelled} = true`),
+    uniqueIndex().on(table.date, table.groupId),
+    index().on(table.groupId),
+    index().on(table.trainerId),
+    index().on(table.date, table.isCancelled),
+    index().on(table.isCancelled).where(sql`${table.isCancelled} = true`),
   ],
 )
 

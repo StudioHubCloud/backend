@@ -17,7 +17,7 @@ export const groupSchedule = table(
       .notNull(),
     groupStyleVariantsId: uuid('group_style_variant_id').references(() => groupStyleVariant.id, { onDelete: 'set null' }),
   },
-  (table) => [uniqueIndex('[group_schedule]time_groupId_day_uindex').on(table.groupId, table.time, table.groupScheduleDayId)],
+  (table) => [uniqueIndex().on(table.groupId, table.time, table.groupScheduleDayId)],
 )
 
 export const group_schedule_relations = relations(groupSchedule, ({ one }) => ({
