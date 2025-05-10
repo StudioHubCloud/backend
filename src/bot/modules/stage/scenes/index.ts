@@ -1,1 +1,1 @@
-export { VerificationRequestScene } from './guest.scene'
+export { VerificationRequestScene } from './verification-request.scene'

@@ -1,6 +1,6 @@
-import { ReplyKeyboardMarkup } from '@telegraf/types'
-import { CLIENT_KEYBOARD } from '@app/bot/static/keyboards'
 import { KeyboardHelper } from '@app/bot/helpers'
+import { CLIENT_KEYBOARD } from '@app/bot/static/keyboards'
+import { ReplyKeyboardMarkup } from '@telegraf/types'
 
 export class ClientKeyboards {
   static mainMenu(): { reply_markup: ReplyKeyboardMarkup } {

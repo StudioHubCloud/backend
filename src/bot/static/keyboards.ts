@@ -1,10 +1,10 @@
 import { CLIENT_PATTERNS } from './patterns'
 
-export const CLIENT_KEYBOARD: Record<string, string[][]> = {
+export const CLIENT_KEYBOARD = {
   MAIN_MENU: [
     [CLIENT_PATTERNS.SCHEDULE, CLIENT_PATTERNS.ACTIVE_SCHEDULES],
     [CLIENT_PATTERNS.PASS_INFO],
     [CLIENT_PATTERNS.PAYMENT],
     [CLIENT_PATTERNS.RULES],
   ],
-}
+} 

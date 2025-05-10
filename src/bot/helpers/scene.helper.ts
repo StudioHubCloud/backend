@@ -10,7 +10,7 @@ export class SceneHelper<T extends Record<string, any>> {
     } as T
   }
 
-  getState<K extends keyof T>(ctx: BotContext, key: K | K[]) {
+  getState<K extends keyof T>(ctx: BotContext, key?: K | K[]) {
     const scene_state = (ctx.scene.state || {} ) as T
 
     if(!key) {
