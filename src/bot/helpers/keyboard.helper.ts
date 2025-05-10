@@ -1,5 +1,5 @@
+import { InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove } from '@telegraf/types'
 import { CALLBACK_DATA } from '@app/libs'
-import { KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove } from 'telegraf/typings/core/types/typegram'
 
 export class KeyboardHelper {
   constructor() {}
@@ -11,6 +11,28 @@ export class KeyboardHelper {
       },
     }
   }
+
+  static createPaginatedMenu(
+      data: { label: string; value: string }[],
+      optons: { page?: number; perPage?: number; prefix: string },
+    ): InlineKeyboardMarkup {
+      const { page = 1, perPage = 6, prefix } = optons
+  
+      const totalPages = Math.ceil(data.length / perPage)
+      const startIndex = (page - 1) * perPage
+      const endIndex = Math.min(startIndex + perPage, data.length)
+  
+      const paginatedData = data.slice(startIndex, endIndex)
+  
+      const dataButtons = paginatedData.map(({ label, value }) => [
+        { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` },
+      ])
+      const paginationRow = this.createPaginationRow(prefix, { page, totalPages })
+  
+      return {
+        inline_keyboard: [...dataButtons, ...paginationRow],
+      }
+    }
 
   static createReplyMarkupKeyboard(
     buttons: string[][],
@@ -48,6 +70,53 @@ export class KeyboardHelper {
     }
 
     return [[prevButton, currentPageButton, nextButton]]
+  }
+
+  static prepareInlineMenuOptions<T extends Record<string, any>>(
+    items: T[],
+    {
+      labelKey,
+      valueKey,
+      emoji,
+    }: {
+      labelKey: keyof T | (keyof T)[]
+      valueKey: keyof T
+      emoji?: string | string[]
+    },
+  ): { label: string; value: string }[] {
+    return items.map((item) => {
+      let emojiPrefix = ''
+
+      if (emoji) {
+        if (typeof emoji === 'string') {
+          emojiPrefix = `${emoji} `
+        } else {
+          let current: Record<string, any> | null = item
+          for (const key of emoji) {
+            if (current && typeof current === 'object' && key in current) {
+              current = current[key]
+            } else {
+              current = null
+              break
+            }
+          }
+          if (typeof current === 'string') {
+            emojiPrefix = `${current} `
+          }
+        }
+      }
+
+      const labelPart = Array.isArray(labelKey)
+        ? labelKey.map((key) => String(item[key])).join(' ')
+        : String(item[labelKey as keyof T])
+
+      const label = emojiPrefix + labelPart
+
+      return {
+        label,
+        value: String(item[valueKey]),
+      }
+    })
   }
 
   private static isObject(value: any): value is object {

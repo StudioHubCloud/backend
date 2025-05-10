@@ -6,6 +6,9 @@ import { SchedulerComposer } from './scheduler/scheduler.composer'
 import { CLIENT_PATTERNS } from '@app/bot/static/patterns'
 import { PassInfoComposer } from './pass-info/pass-info.composer'
 import { UserHelper } from '@app/bot/helpers'
+import { type TNextFunction } from '@app/libs/types'
+import { MESSAGES_COMMON } from '@app/bot/static/messages'
+import { SCENES } from '@app/libs'
 
 @Injectable()
 export class ClientRootComposer {
@@ -16,8 +19,9 @@ export class ClientRootComposer {
   ) {
     this.composer = new Composer<BotContext>()
 
+    this.initComposerGuards()
     this.initComposer()
- 
+
     this.composer.use(this.schedulerComposer.getComposer())
     this.composer.use(this.passInfoComposer.getComposer())
   }
@@ -26,14 +30,36 @@ export class ClientRootComposer {
     return this.composer
   }
 
-  initComposer() {
+  private initComposerGuards() {
+    this.composer.use(this.unverifiedGuard)
+  }
+
+  private initComposer() {
     this.composer.start(this.startHandler)
     this.composer.hears(CLIENT_PATTERNS.PAYMENT, this.paymentHandler)
     this.composer.hears(CLIENT_PATTERNS.RULES, this.rulesHandler)
   }
 
+  private unverifiedGuard = async (ctx: BotContext, next: TNextFunction) => {
+    const isUnverified = UserHelper.isUnverifiedStatus(ctx)
+    if (!isUnverified) {
+      await ctx.reply('user is verified')
+      return await next()
+    }
+    const isVerificationRequested = UserHelper.isVerificatonRequestedStatus(ctx)
+
+    if(isVerificationRequested) {
+      return ctx.reply(MESSAGES_COMMON.VERIFICATION_REQUESTED)
+    }
+
+    await ctx.reply('unverified guard triggered')
+
+    return ctx.scene.enter(SCENES.GUEST.EXAMPLE)
+  }
+
   private startHandler = async (ctx: BotContext) => {
     const user = UserHelper.getUser(ctx)
+    throw new Error('An error occurred in the start handler')
     return ctx.reply(`Вітаємо в особистому кабінеті ${user.firstName}❤️`, ClientKeyboards.mainMenu())
   }
 

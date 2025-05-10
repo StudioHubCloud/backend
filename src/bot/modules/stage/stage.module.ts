@@ -4,7 +4,7 @@ import * as Stage from './scenes'
 
 @Module({
   imports: [],
-  providers: [StageService, Stage.GuestScene],
+  providers: [StageService, Stage.VerificationRequestScene],
   exports: [StageService],
 })
 export class StageModule {}

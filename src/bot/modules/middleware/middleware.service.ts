@@ -1,29 +1,34 @@
 import { Injectable } from '@nestjs/common'
 import { deunionize } from 'telegraf'
 import { PinoLogger } from 'nestjs-pino'
+import { validate } from 'uuid'
 
-import { MiddlewareHelper } from '@app/bot/helpers'
-import { ComposerService } from '@app/bot/modules/composer'
+import { UserHelper } from '@app/bot/helpers'
 import { BotContext } from '@app/bot/bot.context'
-import { User } from 'telegraf/typings/core/types/typegram'
+import { StudioService } from '@app/domain/studio'
+import { UserProfileService } from '@app/domain/user-profile'
+import { TypedConfigService } from '@app/infrastructure/config'
+import { type TNextFunction, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { BotHelper } from '@app/bot/helpers/bot.helper'
 
 @Injectable()
 export class MiddlewareService {
   constructor(
     private readonly logger: PinoLogger,
-    private readonly composerService: ComposerService,
-    private readonly middlewareHelper: MiddlewareHelper,
+    private readonly configService: TypedConfigService,
+    private readonly studioService: StudioService,
+    private readonly userProfileService: UserProfileService,
   ) {
     this.logger.setContext(MiddlewareService.name)
   }
 
-  loggingMiddleware = async (ctx: BotContext, next: () => Promise<void>) => {
+  loggingMiddleware = async (ctx: BotContext, next: TNextFunction) => {
     const user = ctx.from ? `${ctx.from.id} (${ctx.from.username || ctx.from.first_name})` : 'Unknown User'
     this.logger.debug('Incoming update from %s', user)
     await next()
   }
 
-  timerMiddleware = async (ctx: BotContext, next: () => Promise<void>) => {
+  timerMiddleware = async (ctx: BotContext, next: TNextFunction) => {
     const start = Date.now()
     await next()
     const duration = Date.now() - start
@@ -44,54 +49,72 @@ export class MiddlewareService {
     }
   }
 
-  authMiddleware = async (ctx: BotContext, next: () => Promise<void>) => {
-    const update = deunionize(ctx.update)
-    let from: User
+  authMiddleware = async (ctx: BotContext, next: TNextFunction) => {
+    const from = BotHelper.getFrom(ctx)
 
-    if (update.callback_query) {
-      from = update.callback_query.from
-    } else if (update.message) {
-      from = update.message.from
-    } else {
-      this.logger.error('No message or callback_query found in context')
-      return
+    if (!from || from.is_bot) {
+      this.logger.error('Unsupported update type or bot detected')
+      return ctx.reply('Unsupported update type')
     }
 
-    if (from.is_bot) return
+    const { id } = from
 
-    const { first_name, last_name, id } = from
+    const user = await this.userProfileService.findUserProfileByCondition({
+      telegramId: id.toString(),
+      studioId: this.configService.get('STUDIO_ID'),
+    })
 
-    const studioId = deunionize(ctx.message)?.text?.split(' ')[1]
+    UserHelper.setUser(ctx, user)
 
-    const response = await this.middlewareHelper.validateOrCreateUser(
-      { firstName: first_name, telegramId: id.toString(), lastName: last_name },
-      studioId,
-    )
-
-    if (typeof response === 'string') { //error message
-      this.logger.error('Error during user validation: %s', response)
-      return ctx.reply(response)
-    }
-
-    ctx.store.user = response
     await next()
   }
 
-  roleBasedAccessMiddleware = async (ctx: BotContext, next: () => Promise<void>) => {
-    if (!ctx.store.user) {
-      this.logger.error('User with id %s not found in context store', ctx.from?.id)
-      return ctx.reply('Помилка авторизації')
+  newUserRegistrationMiddleware = async (ctx: BotContext, next: TNextFunction) => {
+    const user = UserHelper.getUserUnsafe(ctx)
+
+    if (user) {
+      return await next()
     }
 
-    const role = ctx.store.user.role
+    const from = BotHelper.getFrom(ctx)
 
-    const rbaComposer = this.composerService.getComposer(role)
-
-    if (rbaComposer) {
-      return rbaComposer.middleware()(ctx, next)
-    } else {
-      this.logger.error('No composer found for role: %s', role)
-      return next()
+    if (!from || from.is_bot) {
+      this.logger.error('Unsupported update type or bot detected')
+      return ctx.reply('Unsupported update type')
     }
+
+    const { first_name, last_name, id } = from
+
+    const payload = deunionize(ctx.message)?.text?.split(' ')[1]
+    const [role, studioId] = payload ? payload.split('_') : []
+
+    if (!studioId || !validate(studioId)) {
+      this.logger.error('Invalid or absent invite link')
+      return ctx.reply('Invalid or absent invite link')
+    }
+
+    const studio = await this.studioService.getStudioById(studioId)
+
+    if (!studio) {
+      this.logger.error('Studio with id %s not found', studioId)
+      return ctx.reply('Invalid invite link')
+    }
+
+    const [createdUser] = await this.userProfileService.createUserProfile({
+      telegramId: id.toString(),
+      firstName: first_name,
+      lastName: last_name,
+      fullName: `${first_name}${last_name ? ` ${last_name}` : ''}`,
+      role: (role as UserProfileRoleEnum) ?? UserProfileRoleEnum.GUEST,
+      status: UserProfileStatusEnum.UNVERIVIED,
+      studioId,
+    })
+
+    if (!createdUser) {
+      this.logger.error('Failed to create user profile')
+      return ctx.reply('Failed to create user profile')
+    }
+    UserHelper.setUser(ctx, createdUser)
+    await next()
   }
 }

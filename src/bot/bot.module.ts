@@ -1,10 +1,10 @@
 import { Module } from '@nestjs/common'
 
 import { BotService } from './bot.service'
-import { KeyboardModule, MiddlewareModule, StageModule } from './modules'
+import { ComposerModule, KeyboardModule, MiddlewareModule, StageModule } from './modules'
 
 @Module({
-  imports: [KeyboardModule, MiddlewareModule, StageModule],
+  imports: [KeyboardModule, MiddlewareModule, StageModule, ComposerModule],
   providers: [BotService],
   exports: [BotService],
 })

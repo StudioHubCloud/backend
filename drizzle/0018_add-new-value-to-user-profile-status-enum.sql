@@ -1,0 +1,1 @@
+ALTER TYPE "public"."userprofile_status_enum" ADD VALUE 'verification_requested';

@@ -1,6 +1,8 @@
-import { BusinessSelectModel, UserProfileSelectModel } from '@app/infrastructure/database/models'
+import { StudioSelectModel, UserProfileSelectModel } from '@app/infrastructure/database/models'
 
 export type TBotStore = {
   user: UserProfileSelectModel | null
-  business: BusinessSelectModel | null
+  studio: StudioSelectModel | null
 }
+
+export type TNextFunction = () => Promise<void>

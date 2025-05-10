@@ -120,6 +120,20 @@
       "when": 1746717626759,
       "tag": "0016_remove-business-entity",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1746720236080,
+      "tag": "0017_add-customer-studio-relation",
+      "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1746824715392,
+      "tag": "0018_add-new-value-to-user-profile-status-enum",
+      "breakpoints": true
     }
   ]
 }

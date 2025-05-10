@@ -2,7 +2,6 @@ import { DatabaseService, group, GroupSelectModel } from '@app/infrastructure/da
 import { RedisCacheService } from '@app/infrastructure/redis'
 import { GroupStatusEnum } from '@app/libs'
 import { Injectable } from '@nestjs/common'
-import { and, eq } from 'drizzle-orm'
 
 @Injectable()
 export class GroupService {
@@ -20,10 +19,12 @@ export class GroupService {
       return groupsCashed
     }
 
-    const groupsFound = await this.databaseService.drizzle
-      .select()
-      .from(group)
-      .where(and(...Object.entries(filters).map(([key, value]) => eq(group[key], value))))
+    const groupsFound = await this.databaseService.drizzle.query.group.findMany({
+      where: (group, { and, eq }) => and(...Object.entries(filters).map(([key, value]) => eq(group[key], value))),
+      with: {
+        groupStyle: true,
+      },
+    })
 
     if (groupsFound) {
       await this.redisCacheService.set(cacheKey, groupsFound)
@@ -31,7 +32,10 @@ export class GroupService {
     return groupsFound
   }
 
-  async getAllActiveGroups () {
-    return this.getAllGroups({ status: GroupStatusEnum.ACTIVE })
+  async getAllActiveGroups({ studioId }: { studioId: string | null }) {
+    if (!studioId) {
+      return []
+    }
+    return this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId })
   }
 }

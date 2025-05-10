@@ -1,10 +1,10 @@
+import { Composer } from 'telegraf'
+import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardService } from '@app/bot/modules/keyboard'
+import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
 import { CLIENT_PATTERNS } from '@app/bot/static/patterns'
 import { GroupService } from '@app/domain/group'
 import { CALLBACK_DATA } from '@app/libs'
-import { Injectable } from '@nestjs/common'
-import { Composer } from 'telegraf'
 
 @Injectable()
 export class SchedulerComposer {
@@ -16,7 +16,6 @@ export class SchedulerComposer {
 
   constructor(
     private readonly groupService: GroupService,
-    private readonly keyboardService: KeyboardService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -37,7 +36,6 @@ export class SchedulerComposer {
     this.composer.action(this.MenuSelectItemRegex, async (ctx) => {
       ctx.answerCbQuery()
       const itemId = ctx.match[1]
-      //remoge group keyboard
       //get users pass info
       //if multiple passes - render keyboard to select pass
       //if single pass - get training list based of user pass expired date
@@ -48,25 +46,36 @@ export class SchedulerComposer {
     this.composer.action(this.MenuPaginationActionRexExp, async (ctx) => {
       ctx.answerCbQuery()
       const page = parseInt(ctx.match[1])
+      const studioId = UserHelper.getStudioId(ctx)
 
       if (!this.normalizedOptions) {
-        const groups = await this.groupService.getAllActiveGroups()
-        this.normalizedOptions = KeyboardService.prepareMenuOptions(groups, { labelKey: 'name', valueKey: 'id' })
+        const groups = await this.groupService.getAllActiveGroups({ studioId })
+        this.normalizedOptions = KeyboardHelper.prepareInlineMenuOptions(groups, {
+          labelKey: 'name',
+          valueKey: 'id',
+          emoji: ['groupStyle', 'emoji'],
+        })
       }
 
-      const menu = this.keyboardService.createPaginatedMenu(this.normalizedOptions, { prefix: this.callbackPrefix, page })
+      const menu = KeyboardHelper.createPaginatedMenu(this.normalizedOptions, { prefix: this.callbackPrefix, page })
       await ctx.editMessageText('Choose an item:', { reply_markup: menu })
     })
   }
 
   private trainingScheduleHandler = async (ctx: BotContext) => {
-    const groups = await this.groupService.getAllActiveGroups()
+    const studioId = UserHelper.getStudioId(ctx)
+    const groups = await this.groupService.getAllActiveGroups({ studioId })
+
     if (!groups || groups.length === 0) {
       return ctx.reply('Немає доступних aктивних груп для запису на тренування.')
     }
 
-    this.normalizedOptions = KeyboardService.prepareMenuOptions(groups, { labelKey: 'name', valueKey: 'id' })
-    const menu = this.keyboardService.createPaginatedMenu(this.normalizedOptions, { prefix: this.callbackPrefix })
+    this.normalizedOptions = KeyboardHelper.prepareInlineMenuOptions(groups, {
+      labelKey: 'name',
+      valueKey: 'id',
+      emoji: ['groupStyle', 'emoji'],
+    })
+    const menu = KeyboardHelper.createPaginatedMenu(this.normalizedOptions, { prefix: this.callbackPrefix })
 
     return ctx.reply('Вибаріть групу:', { reply_markup: menu })
   }

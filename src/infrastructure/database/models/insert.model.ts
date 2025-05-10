@@ -1,7 +1,6 @@
 import { InferInsertModel } from 'drizzle-orm'
 import * as schemas from '../schemas'
 
-export type BusinessInsertModel = InferInsertModel<typeof schemas.business>
 export type ClientInsertModel = InferInsertModel<typeof schemas.client>
 export type CustomerInsertModel = InferInsertModel<typeof schemas.customer>
 export type GroupScheduleDayInsertModel = InferInsertModel<typeof schemas.groupScheduleDay>

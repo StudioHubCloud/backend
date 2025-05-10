@@ -1,4 +1,3 @@
-export { BusinessModule } from './business/business.module'
 export { ClientModule } from './client/client.module'
 export { CustomerModule } from './customer/customer.module'
 export { GroupModule } from './group/group.module'

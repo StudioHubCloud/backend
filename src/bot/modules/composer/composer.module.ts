@@ -3,11 +3,11 @@ import ClientComposers from './client'
 import StaffComposers from './staff'
 import GuestComposers from './guest'
 import { ComposerService } from './composer.service'
-import { GroupModule, GroupService } from '@app/domain/group'
+import { GroupModule } from '@app/domain/group'
 
 @Module({
   imports: [GroupModule],
-  providers: [ComposerService, ...GuestComposers, ...ClientComposers, ...StaffComposers, GroupService],
+  providers: [ComposerService, ...GuestComposers, ...ClientComposers, ...StaffComposers],
   exports: [ComposerService],
 })
 export class ComposerModule {}
