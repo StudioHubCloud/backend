@@ -1,5 +1,11 @@
-import { InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove } from '@telegraf/types'
-import { CALLBACK_DATA, UserProfileRoleEnum } from '@app/libs'
+import {
+  InlineKeyboardButton,
+  InlineKeyboardMarkup,
+  KeyboardButton,
+  ReplyKeyboardMarkup,
+  ReplyKeyboardRemove,
+} from '@telegraf/types'
+import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, UserProfileRoleEnum } from '@app/libs'
 import { ClientKeyboards, GuestKeyboards } from '../modules/keyboard/storage'
 
 export class KeyboardHelper {
@@ -13,10 +19,15 @@ export class KeyboardHelper {
     }
   }
 
-  static createPaginatedMenu(
-    data: { label: string; value: string }[],
-    optons: { page?: number; perPage?: number; prefix: string },
-  ): InlineKeyboardMarkup {
+  static createInlineKeyboard(buttons: InlineKeyboardButton[][]): { reply_markup: InlineKeyboardMarkup } {
+    return {
+      reply_markup: {
+        inline_keyboard: buttons,
+      },
+    }
+  }
+
+  static createPaginatedMenu(data: TNormalizedOption[], optons: TPaginatedMenuOptions): InlineKeyboardMarkup {
     const { page = 1, perPage = 6, prefix } = optons
 
     const totalPages = Math.ceil(data.length / perPage)
@@ -26,7 +37,7 @@ export class KeyboardHelper {
     const paginatedData = data.slice(startIndex, endIndex)
 
     const dataButtons = paginatedData.map(({ label, value }) => [
-      { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` },
+      { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` }, //potentialy refactor this to use a function
     ])
     const paginationRow = this.createPaginationRow(prefix, { page, totalPages })
 
@@ -59,11 +70,11 @@ export class KeyboardHelper {
     const { page, totalPages } = options
     const prevButton = {
       text: '⬅️',
-      callback_data: page > 1 ? `${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:${page - 1}` : CALLBACK_DATA.DISABLED,
+      callback_data: page > 1 ? `${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:${page - 1}` : CALLBACK_DATA.DISABLED, //potentialy refactor this to use a function
     }
     const nextButton = {
       text: '➡️',
-      callback_data: page < totalPages ? `${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:${page + 1}` : CALLBACK_DATA.DISABLED,
+      callback_data: page < totalPages ? `${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:${page + 1}` : CALLBACK_DATA.DISABLED, //potentialy refactor this to use a function
     }
     const currentPageButton = {
       text: `${page} / ${totalPages}`,
@@ -84,7 +95,7 @@ export class KeyboardHelper {
       valueKey: keyof T
       emoji?: string | string[]
     },
-  ): { label: string; value: string }[] {
+  ): TNormalizedOption[] {
     return items.map((item) => {
       let emojiPrefix = ''
 
@@ -136,9 +147,8 @@ export class KeyboardHelper {
 
     const KeyboardsMap = {
       [UserProfileRoleEnum.CLIENT]: ClientKeyboards.registerAsClient(),
-      [UserProfileRoleEnum.GUEST]: completed ? GuestKeyboards.mainMenu(): GuestKeyboards.registerAsGuest(),
-      //
-      [UserProfileRoleEnum.ADMIN]: ClientKeyboards.mainMenu(),
+      [UserProfileRoleEnum.GUEST]: completed ? GuestKeyboards.mainMenu() : GuestKeyboards.registerAsGuest(),
+      //,
       [UserProfileRoleEnum.TRAINER]: GuestKeyboards.mainMenu(),
     }
     return KeyboardsMap[role]

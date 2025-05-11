@@ -9,7 +9,7 @@ import { DateTimeService } from '@app/infrastructure/providers'
   imports: [UserProfileModule],
   providers: [
     StageService,
-    Stage.VerificationRequestScene,
+    Stage.RegisterScene,
     {
       provide: APP.PROVIDERS.DATE_TIME_SERVICE,
       useClass: DateTimeService,

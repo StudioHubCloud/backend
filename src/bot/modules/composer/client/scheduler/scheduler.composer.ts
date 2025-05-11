@@ -1,16 +1,15 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
+import { KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { PATTERNS_CLIENT } from '@app/bot/static/patterns'
 import { GroupService } from '@app/domain/group'
-import { CALLBACK_DATA } from '@app/libs'
+import { CALLBACK_PREFIX, TNormalizedOption } from '@app/libs'
 
 @Injectable()
 export class SchedulerComposer {
   private readonly composer: Composer<BotContext>
-  private readonly callbackPrefix = 'group-select-client'
-  private normalizedOptions: { label: string; value: string }[] = []
+  private normalizedOptions: TNormalizedOption[] = []
   private MenuPaginationActionRexExp: RegExp
   private MenuSelectItemRegex: RegExp
 
@@ -19,8 +18,8 @@ export class SchedulerComposer {
   ) {
     this.composer = new Composer<BotContext>()
 
-    this.MenuPaginationActionRexExp = new RegExp(`^${this.callbackPrefix}:${CALLBACK_DATA.PAGINATION_KEY}:(.*)$`)
-    this.MenuSelectItemRegex = new RegExp(`^${this.callbackPrefix}:${CALLBACK_DATA.ITEM_KEY}:(.*)$`)
+    this.MenuPaginationActionRexExp = RegexHelper.createMenuPaginationActionRegex(CALLBACK_PREFIX.CLIENT_GROUP_SELECT)
+    this.MenuSelectItemRegex = RegexHelper.createMenuSelectItemRegex(CALLBACK_PREFIX.CLIENT_GROUP_SELECT)
 
     this.initComposer()
   }
@@ -36,10 +35,7 @@ export class SchedulerComposer {
     this.composer.action(this.MenuSelectItemRegex, async (ctx) => {
       ctx.answerCbQuery()
       const itemId = ctx.match[1]
-      //get users pass info
-      //if multiple passes - render keyboard to select pass
-      //if single pass - get training list based of user pass expired date
-      //
+      //get training list based of user pass expired date
       return ctx.reply(`You selected item with ID: ${itemId}`)
     })
 
@@ -57,7 +53,7 @@ export class SchedulerComposer {
         })
       }
 
-      const menu = KeyboardHelper.createPaginatedMenu(this.normalizedOptions, { prefix: this.callbackPrefix, page })
+      const menu = KeyboardHelper.createPaginatedMenu(this.normalizedOptions, { prefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT, page })
       await ctx.editMessageText('Choose an item:', { reply_markup: menu })
     })
   }
@@ -75,7 +71,7 @@ export class SchedulerComposer {
       valueKey: 'id',
       emoji: ['groupStyle', 'emoji'],
     })
-    const menu = KeyboardHelper.createPaginatedMenu(this.normalizedOptions, { prefix: this.callbackPrefix })
+    const menu = KeyboardHelper.createPaginatedMenu(this.normalizedOptions, { prefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT })
 
     return ctx.reply('Вибаріть групу:', { reply_markup: menu })
   }

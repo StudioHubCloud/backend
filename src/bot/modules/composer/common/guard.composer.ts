@@ -12,19 +12,18 @@ export class GuardComposer {
   constructor() {
     this.composer = new Composer<BotContext>()
 
-    this.initComposersPublicListeners()
-
+    this.initPublicListeners()
     this.composer.use(UnverifiedGuard)
   }
 
-  private initComposersPublicListeners() {
+  private initPublicListeners() {
+
     this.composer.hears([PATTERNS_COMMON.REGISTER_AS_CLIENT, PATTERNS_COMMON.REGISTER_AS_GUEST], async (ctx: BotContext, next: TNextFunction) => {
       const isUnverified = UserHelper.isUnverifiedStatus(ctx)
-      if(!isUnverified) {
+      if (!isUnverified) {
         return await next()
       }
-      const role = UserHelper.getUserRole(ctx)
-      return ctx.scene.enter(SCENES.VERIFICATION_REQUEST, { role })
+      return ctx.scene.enter(SCENES.REGISTER)
     })
   }
 

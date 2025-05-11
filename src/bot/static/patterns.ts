@@ -1,6 +1,7 @@
 export const PATTERNS_COMMON = {
   YES: '✅ Так',
   CONFIRM: '✅ Підтвердити',
+  VERIFY: '✅ Верифікувати',
   CANCEL: '❌ Ні',
   BACK: '⬅️ Назад',
   EXIT: '🚪 Вийти',

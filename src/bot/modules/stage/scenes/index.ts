@@ -1,1 +1,1 @@
-export { VerificationRequestScene } from './verification-request.scene'
+export { RegisterScene } from './register/register.scene'

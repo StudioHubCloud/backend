@@ -7,7 +7,9 @@ import * as Stage from './scenes'
 export class StageService {
   public readonly stage: Scenes.Stage<BotContext>
 
-  constructor(private readonly verificationRequestScene: Stage.VerificationRequestScene) {
-    this.stage = new Scenes.Stage<BotContext>([verificationRequestScene])
+  constructor(
+    public readonly registerScene: Stage.RegisterScene,
+  ) {
+    this.stage = new Scenes.Stage<BotContext>([registerScene])
   }
 }
