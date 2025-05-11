@@ -2,12 +2,12 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { SchedulerComposer } from './scheduler/scheduler.composer'
-import { CLIENT_PATTERNS } from '@app/bot/static/patterns'
+import { GuardComposer } from '../common/guard.composer'
+import { PATTERNS_CLIENT, PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { PassInfoComposer } from './pass-info/pass-info.composer'
 import { UserHelper } from '@app/bot/helpers'
 import { PinoLogger } from 'nestjs-pino'
-import { UnverifiedGuard } from '@app/bot/guards'
-import { Keyboards } from '@app/bot/modules/keyboard'
+import { ClientKeyboards } from '@app/bot/modules/keyboard/storage'
 
 @Injectable()
 export class ClientRootComposer {
@@ -16,27 +16,31 @@ export class ClientRootComposer {
     private readonly logger: PinoLogger,
     private readonly schedulerComposer: SchedulerComposer,
     private readonly passInfoComposer: PassInfoComposer,
+    private readonly guardComposer: GuardComposer
   ) {
     this.composer = new Composer<BotContext>()
     this.logger.setContext(ClientRootComposer.name)
 
-    this.composer.use(UnverifiedGuard)
+    this.composer.use(this.guardComposer.getComposer())
+    
+    this.initComposersListeners()
+    this.initExternalComposers()
+  }
 
-    this.initComposer()
+  private initComposersListeners() {
+    this.composer.start(this.startHandler)
+    this.composer.hears(PATTERNS_CLIENT.PAYMENT, this.paymentHandler)
+    this.composer.hears(PATTERNS_COMMON.RULES, this.rulesHandler)
+  }
 
+  private initExternalComposers() {
     this.composer.use(this.schedulerComposer.getComposer())
     this.composer.use(this.passInfoComposer.getComposer())
   }
 
-  private initComposer() {
-    this.composer.start(this.startHandler)
-    this.composer.hears(CLIENT_PATTERNS.PAYMENT, this.paymentHandler)
-    this.composer.hears(CLIENT_PATTERNS.RULES, this.rulesHandler)
-  }
-
   private startHandler = async (ctx: BotContext) => {
     const user = UserHelper.getUser(ctx)
-    return ctx.reply(`Вітаємо в особистому кабінеті ${user.firstName}❤️`, Keyboards.client.mainMenu())
+    return ctx.reply(`Вітаємо в особистому кабінеті ${user.firstName}❤️`, ClientKeyboards.mainMenu())
   }
 
   private paymentHandler = async (ctx: BotContext) => {

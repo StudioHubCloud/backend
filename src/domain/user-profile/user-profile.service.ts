@@ -14,6 +14,11 @@ export class UserProfileService {
   async getUserProfileById(id: string) {
     return this.databaseService.drizzle.query.userProfile.findFirst({ where: (userProfile, { eq }) => eq(userProfile.id, id) })
   }
+
+  findUserForAuthTelegram({telegramId}) {
+    //implement this with cache key factory 
+  }
+
   async findUserProfileByCondition(conditions: Partial<UserProfileSelectModel>) {
     const cacheKey = `${this.cashe_key}:${JSON.stringify(conditions)}`
 
@@ -35,5 +40,10 @@ export class UserProfileService {
   async createUserProfile(data: UserProfileInsertModel, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
     return dbProvider.insert(userProfile).values(data).returning()
+  }
+
+  async updateUserProfile(id: string, data: Partial<UserProfileInsertModel>, tx?: Transaction) {
+    const dbProvider = tx || this.databaseService.drizzle
+    return dbProvider.update(userProfile).set(data).where(eq(userProfile.id, id)).returning()
   }
 }

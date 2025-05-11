@@ -1,5 +1,5 @@
 import { BotContext } from '@app/bot/bot.context'
-import { CLIENT_PATTERNS } from '@app/bot/static/patterns'
+import { PATTERNS_CLIENT } from '@app/bot/static/patterns'
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
 
@@ -16,7 +16,7 @@ export class PassInfoComposer {
   }
 
   initComposer() {
-    this.composer.hears(CLIENT_PATTERNS.PASS_INFO, this.passInfoHandler)
+    this.composer.hears(PATTERNS_CLIENT.PASS_INFO, this.passInfoHandler)
   }
 
   private passInfoHandler = async (ctx: BotContext) => {

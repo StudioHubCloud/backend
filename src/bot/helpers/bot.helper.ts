@@ -17,19 +17,19 @@ export class BotHelper {
     return from
   }
 
-  static getUpdatePayload(ctx: BotContext) {
+  static getUpdatePayload(ctx: BotContext): string {
     const update = deunionize(ctx.update)
-    let messageText: string | null = null
+    let messageText: string | null = ''
 
     switch (true) {
       case !!update.callback_query:
-        messageText = deunionize(ctx.callbackQuery)?.data ?? null
+        messageText = deunionize(ctx.callbackQuery)?.data ?? ''
         break
       case !!update.message:
-        messageText = deunionize(ctx.message)?.text ?? null
+        messageText = deunionize(ctx.message)?.text ?? ''
         break
       case !!update.inline_query:
-        messageText = deunionize(ctx.inlineQuery)?.query ?? null
+        messageText = deunionize(ctx.inlineQuery)?.query ?? ''
         break
       default:
         break

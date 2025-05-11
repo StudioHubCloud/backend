@@ -1,5 +1,6 @@
 import { InlineKeyboardMarkup, KeyboardButton, ReplyKeyboardMarkup, ReplyKeyboardRemove } from '@telegraf/types'
-import { CALLBACK_DATA } from '@app/libs'
+import { CALLBACK_DATA, UserProfileRoleEnum } from '@app/libs'
+import { ClientKeyboards, GuestKeyboards } from '../modules/keyboard/storage'
 
 export class KeyboardHelper {
   constructor() {}
@@ -13,26 +14,26 @@ export class KeyboardHelper {
   }
 
   static createPaginatedMenu(
-      data: { label: string; value: string }[],
-      optons: { page?: number; perPage?: number; prefix: string },
-    ): InlineKeyboardMarkup {
-      const { page = 1, perPage = 6, prefix } = optons
-  
-      const totalPages = Math.ceil(data.length / perPage)
-      const startIndex = (page - 1) * perPage
-      const endIndex = Math.min(startIndex + perPage, data.length)
-  
-      const paginatedData = data.slice(startIndex, endIndex)
-  
-      const dataButtons = paginatedData.map(({ label, value }) => [
-        { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` },
-      ])
-      const paginationRow = this.createPaginationRow(prefix, { page, totalPages })
-  
-      return {
-        inline_keyboard: [...dataButtons, ...paginationRow],
-      }
+    data: { label: string; value: string }[],
+    optons: { page?: number; perPage?: number; prefix: string },
+  ): InlineKeyboardMarkup {
+    const { page = 1, perPage = 6, prefix } = optons
+
+    const totalPages = Math.ceil(data.length / perPage)
+    const startIndex = (page - 1) * perPage
+    const endIndex = Math.min(startIndex + perPage, data.length)
+
+    const paginatedData = data.slice(startIndex, endIndex)
+
+    const dataButtons = paginatedData.map(({ label, value }) => [
+      { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` },
+    ])
+    const paginationRow = this.createPaginationRow(prefix, { page, totalPages })
+
+    return {
+      inline_keyboard: [...dataButtons, ...paginationRow],
     }
+  }
 
   static createReplyMarkupKeyboard(
     buttons: string[][],
@@ -117,6 +118,30 @@ export class KeyboardHelper {
         value: String(item[valueKey]),
       }
     })
+  }
+
+  static getRoleBasedMainMenuKeyboard(role: UserProfileRoleEnum) {
+    const KeyboardsMap = {
+      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu(),
+      [UserProfileRoleEnum.GUEST]: GuestKeyboards.mainMenu(),
+      //
+      [UserProfileRoleEnum.ADMIN]: ClientKeyboards.mainMenu(),
+      [UserProfileRoleEnum.TRAINER]: ClientKeyboards.mainMenu(),
+    }
+    return KeyboardsMap[role]
+  }
+
+  static getRoleBasedRegisterRequestKeyboard(role: UserProfileRoleEnum, options: { completed?: boolean } = {}) {
+    const { completed } = options
+
+    const KeyboardsMap = {
+      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.registerAsClient(),
+      [UserProfileRoleEnum.GUEST]: completed ? GuestKeyboards.mainMenu(): GuestKeyboards.registerAsGuest(),
+      //
+      [UserProfileRoleEnum.ADMIN]: ClientKeyboards.mainMenu(),
+      [UserProfileRoleEnum.TRAINER]: GuestKeyboards.mainMenu(),
+    }
+    return KeyboardsMap[role]
   }
 
   private static isObject(value: any): value is object {

@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
 import { groupStyle } from './group-style.schema'
 import { customer } from './customer.schema'
+import { pass } from './pass.schema'
 
 export const studio = table('studio', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -21,5 +22,6 @@ export const studio = table('studio', {
 export const studio_relations = relations(studio, ({ one, many }) => ({
   customer: one(customer, { fields: [studio.customerId], references: [customer.id] }),
   groups: many(group),
+  passes: many(pass),
   groupStyles: many(groupStyle),
 }))

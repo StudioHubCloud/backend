@@ -134,6 +134,13 @@
       "when": 1746824715392,
       "tag": "0018_add-new-value-to-user-profile-status-enum",
       "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1746888923886,
+      "tag": "0019_link-pass-and-studio",
+      "breakpoints": true
     }
   ]
 }

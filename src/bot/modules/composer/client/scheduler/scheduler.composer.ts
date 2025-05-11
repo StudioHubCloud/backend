@@ -2,7 +2,7 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
-import { CLIENT_PATTERNS } from '@app/bot/static/patterns'
+import { PATTERNS_CLIENT } from '@app/bot/static/patterns'
 import { GroupService } from '@app/domain/group'
 import { CALLBACK_DATA } from '@app/libs'
 
@@ -30,8 +30,8 @@ export class SchedulerComposer {
   }
 
   initComposer() {
-    this.composer.hears(CLIENT_PATTERNS.SCHEDULE, this.trainingScheduleHandler)
-    this.composer.hears(CLIENT_PATTERNS.ACTIVE_SCHEDULES, this.activeSchedulesHandler)
+    this.composer.hears(PATTERNS_CLIENT.SCHEDULE, this.trainingScheduleHandler)
+    this.composer.hears(PATTERNS_CLIENT.ACTIVE_SCHEDULES, this.activeSchedulesHandler)
 
     this.composer.action(this.MenuSelectItemRegex, async (ctx) => {
       ctx.answerCbQuery()

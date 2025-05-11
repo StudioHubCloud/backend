@@ -52,7 +52,12 @@ export class UserHelper {
 
   static isUnverifiedStatus(ctx: BotContext) {
     const user = this.getUser(ctx)
-    return user.status === UserProfileStatusEnum.VERIFICATION_REQUESTED || user.status === UserProfileStatusEnum.UNVERIVIED
+    return user.status === UserProfileStatusEnum.UNVERIVIED
+  }
+
+  static needVerification(ctx: BotContext) {
+    const user = this.getUser(ctx)
+    return user.status === UserProfileStatusEnum.UNVERIVIED || user.status === UserProfileStatusEnum.VERIFICATION_REQUESTED
   }
 
   static isBlockedStatus(ctx: BotContext) {

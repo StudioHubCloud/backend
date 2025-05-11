@@ -1,4 +1,4 @@
-import { add, format, startOfToday, subDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval } from 'date-fns'
+import { add, format, startOfToday, subDays, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, parse } from 'date-fns'
 import { Inject, Injectable } from '@nestjs/common'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { APP, DATE_FORMAT, TDateFormats } from '@app/libs'
@@ -26,8 +26,14 @@ export class DateTimeService {
   }
 
   formatDate(options: { date?: Date; dateFormat?: TDateFormats } = {}): string {
-    const { date = new Date(), dateFormat = DATE_FORMAT.DATE } = options
+    const { date = new Date(), dateFormat = DATE_FORMAT.DATE_MAIN } = options
     return format(date, dateFormat)
+  }
+
+  parseAndFormatDate(options: { date: string; dateFormat?: TDateFormats, parseFormat?: TDateFormats }): string {
+    const { date, dateFormat = DATE_FORMAT.DATE_MAIN, parseFormat = DATE_FORMAT.DATE_INPUT } = options
+    const parsedDate = parse(date, parseFormat, new Date())
+    return format(parsedDate, dateFormat)
   }
 
   getDateNDaysAgo(days: number, date?: Date): Date {

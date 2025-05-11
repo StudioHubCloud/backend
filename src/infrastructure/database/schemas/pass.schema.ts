@@ -4,6 +4,7 @@ import { group } from './group.schema'
 import { client } from './client.schema'
 import { trainingSignup } from './training-signup.schema'
 import { PassStatusPgEnum } from '../database.enums'
+import { studio } from './studio.schema'
 
 export const pass = table(
   'pass',
@@ -18,6 +19,7 @@ export const pass = table(
     expiredFromDate: timestamp('expired_from_date', { mode: 'string' }),
     status: PassStatusPgEnum().notNull(),
     groupId: uuid('group_id').references(() => group.id, { onDelete: 'set null' }),
+    studioId: uuid('studio_id').references(() => studio.id, { onDelete: 'cascade' }).notNull(),
     clientId: uuid('client_id')
       .references(() => client.id, { onDelete: 'cascade' })
       .notNull(),
@@ -25,6 +27,7 @@ export const pass = table(
   (table) => [
     index().on(table.groupId),
     index().on(table.clientId),
+    index().on(table.studioId),
     index().on(table.groupId, table.status),
     index().on(table.clientId, table.status),
   ],
@@ -33,5 +36,6 @@ export const pass = table(
 export const pass_relations = relations(pass, ({ many, one }) => ({
   trainingSignups: many(trainingSignup),
   group: one(group, { fields: [pass.groupId], references: [group.id] }),
+  studio: one(studio, { fields: [pass.studioId], references: [studio.id] }),
   client: one(client, { fields: [pass.clientId], references: [client.id] }),
 }))

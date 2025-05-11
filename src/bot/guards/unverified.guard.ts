@@ -1,22 +1,21 @@
-import { SCENES } from '@app/libs'
 import { BotContext } from '../bot.context'
-import { UserHelper } from '../helpers'
+import { KeyboardHelper, UserHelper } from '../helpers'
 import { MESSAGES_COMMON } from '../static/messages'
 
 export const UnverifiedGuard = async (ctx: BotContext, next: () => Promise<void>) => {
-  const isUnverified = UserHelper.isUnverifiedStatus(ctx)
+  const needVerification = UserHelper.needVerification(ctx)
 
-  if (!isUnverified) {
+  if (!needVerification) {
     return await next()
   }
-  
-  const isVerificationRequested = UserHelper.isVerificatonRequestedStatus(ctx)
 
+  const isVerificationRequested = UserHelper.isVerificatonRequestedStatus(ctx)
   if (isVerificationRequested) {
     return ctx.reply(MESSAGES_COMMON.VERIFICATION_REQUESTED)
   }
 
   const role = UserHelper.getUserRole(ctx)
+  const keyboard = KeyboardHelper.getRoleBasedRegisterRequestKeyboard(role)
 
-  return ctx.scene.enter(SCENES.VERIFICATION_REQUEST, { role })
-}
+  return ctx.reply(MESSAGES_COMMON.GREETING, keyboard)
+  }

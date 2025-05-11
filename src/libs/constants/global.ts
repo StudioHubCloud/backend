@@ -9,7 +9,8 @@ export const APP = {
 } as const
 
 export const DATE_FORMAT = {
-  DATE: 'yyyy-MM-dd',
+  DATE_MAIN: 'yyyy-MM-dd',
+  DATE_INPUT: 'dd.MM.yyyy'
 } as const
 
 export const ENVIRONMENTS = {
