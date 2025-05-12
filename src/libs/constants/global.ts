@@ -10,7 +10,8 @@ export const APP = {
 
 export const DATE_FORMAT = {
   DATE_MAIN: 'yyyy-MM-dd',
-  DATE_INPUT: 'dd.MM.yyyy'
+  DATE_INPUT: 'dd.MM.yyyy',
+  DB: 'yyyy-MM-dd HH:mm:ss',
 } as const
 
 export const ENVIRONMENTS = {

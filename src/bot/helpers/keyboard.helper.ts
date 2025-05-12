@@ -39,7 +39,7 @@ export class KeyboardHelper {
     const dataButtons = paginatedData.map(({ label, value }) => [
       { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` }, //potentialy refactor this to use a function
     ])
-    const paginationRow = this.createPaginationRow(prefix, { page, totalPages })
+    const paginationRow = data.length > perPage ?  this.createPaginationRow(prefix, { page, totalPages }) : []
 
     return {
       inline_keyboard: [...dataButtons, ...paginationRow],

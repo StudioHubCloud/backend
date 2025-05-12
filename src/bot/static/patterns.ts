@@ -9,10 +9,10 @@ export const PATTERNS_COMMON = {
   RULES: '‼️ПРАВИЛА ТА УМОВИ‼️',
   REGISTER_AS_GUEST: '👤 Зареєструватись як гість',
   REGISTER_AS_CLIENT: '👤 Зареєструватись як клієнт',
+  SCHEDULE: '📝 Записатись на тренування',
 } as const
 
 export const PATTERNS_CLIENT = {
-  SCHEDULE: '📝 Записатись на тренування',
   ACTIVE_SCHEDULES: '✅ Мої активні записи',
   PASS_INFO: '📙 Інформація про абонемент',
   PAYMENT: '💳 Оплатити абонемент (реквізити)',

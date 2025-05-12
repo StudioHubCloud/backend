@@ -1,3 +1,4 @@
+import { TypedConfigService } from '@app/infrastructure/config'
 import { DatabaseService, group, GroupSelectModel } from '@app/infrastructure/database'
 import { RedisCacheService } from '@app/infrastructure/redis'
 import { GroupStatusEnum } from '@app/libs'
@@ -9,6 +10,7 @@ export class GroupService {
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly redisCacheService: RedisCacheService,
+    private readonly configService: TypedConfigService,
   ) {}
 
   async getAllGroups(filters: Partial<GroupSelectModel> = {}) {
@@ -32,10 +34,7 @@ export class GroupService {
     return groupsFound
   }
 
-  async getAllActiveGroups({ studioId }: { studioId: string | null }) {
-    if (!studioId) {
-      return []
-    }
-    return this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId })
+  async getAllActiveGroups() {
+    return this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID') })
   }
 }

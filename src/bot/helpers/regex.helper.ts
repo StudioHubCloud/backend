@@ -3,11 +3,11 @@ import { BotContext } from '../bot.context';
 
 export class RegexHelper {
   static createMenuPaginationActionRegex(prefix: string) {
-    return new RegExp(`^$${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:(.*)$`) //add named groups
+    return new RegExp(`^${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:(.*)$`) //add named groups
   }
 
   static createMenuSelectItemRegex(prefix: string) {
-    return new RegExp(`^$${prefix}:${CALLBACK_DATA.ITEM_KEY}:(.*)$`) // add named groups
+    return new RegExp(`^${prefix}:${CALLBACK_DATA.ITEM_KEY}:(.*)$`) // add named groups
   }
 
   static createButtonActionRegex(prefix: string) {

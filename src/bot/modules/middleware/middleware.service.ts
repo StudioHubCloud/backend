@@ -57,12 +57,7 @@ export class MiddlewareService {
       return ctx.reply('Unsupported update type')
     }
 
-    const { id } = from
-
-    const user = await this.userProfileService.findUserProfileByCondition({
-      telegramId: id.toString(),
-      studioId: this.configService.get('STUDIO_ID'),
-    })
+    const user = await this.userProfileService.getTelegramAuthenticatedUser(from.id)
 
     UserHelper.setUser(ctx, user)
 

@@ -1,7 +1,15 @@
 import { Injectable } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
-import { DatabaseService, userProfile, UserProfileInsertModel, UserProfileSelectModel, Transaction } from '@app/infrastructure/database'
+import {
+  DatabaseService,
+  userProfile,
+  UserProfileInsertModel,
+  UserProfileSelectModel,
+  Transaction,
+} from '@app/infrastructure/database'
 import { RedisCacheService } from '@app/infrastructure/redis'
+import { TypedConfigService } from '@app/infrastructure/config'
+import { GLOBAL_CACHE_KEYS } from '@app/libs'
 
 @Injectable()
 export class UserProfileService {
@@ -9,14 +17,35 @@ export class UserProfileService {
   constructor(
     private readonly redisCacheService: RedisCacheService,
     private readonly databaseService: DatabaseService,
+    private readonly configService: TypedConfigService,
   ) {}
 
   async getUserProfileById(id: string) {
     return this.databaseService.drizzle.query.userProfile.findFirst({ where: (userProfile, { eq }) => eq(userProfile.id, id) })
   }
 
-  findUserForAuthTelegram({telegramId}) {
-    //implement this with cache key factory 
+  async getTelegramAuthenticatedUser(telegramId: number) {
+    const authUserCashed = await this.redisCacheService.get<UserProfileSelectModel>(GLOBAL_CACHE_KEYS.AUTH_USER)
+    if (authUserCashed) {
+      return authUserCashed
+    }
+
+    const authUserFound = await this.databaseService.drizzle.query.userProfile.findFirst({
+      where: (userProfile, { eq, and }) =>
+        and(eq(userProfile.telegramId, telegramId.toString()), eq(userProfile.studioId, this.configService.get('STUDIO_ID'))),
+      with: {
+        client: {
+          columns: {
+            id: true
+          }
+        }
+      }
+    })
+
+    if (authUserFound) {
+      await this.redisCacheService.set(GLOBAL_CACHE_KEYS.AUTH_USER, authUserFound)
+    }
+    return authUserFound
   }
 
   async findUserProfileByCondition(conditions: Partial<UserProfileSelectModel>) {

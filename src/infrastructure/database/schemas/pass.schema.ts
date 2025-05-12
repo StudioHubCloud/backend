@@ -1,4 +1,4 @@
-import { smallint, pgTable as table, timestamp, uuid, index } from 'drizzle-orm/pg-core'
+import { smallint, pgTable as table, timestamp, uuid, index, integer } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
 import { client } from './client.schema'
@@ -10,7 +10,7 @@ export const pass = table(
   'pass',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    price: smallint('price').notNull(),
+    price: integer('price').notNull(),
     length: smallint('length').notNull(),
     startDate: timestamp('start_date', { mode: 'string' }).notNull(),
     endDate: timestamp('end_date', { mode: 'string' }).notNull(),

@@ -5,9 +5,10 @@ import GuestComposers from './guest'
 import CommonComposers from './common'
 import { ComposerService } from './composer.service'
 import { GroupModule } from '@app/domain/group'
+import { TrainingModule } from '@app/domain'
 
 @Module({
-  imports: [GroupModule],
+  imports: [GroupModule, TrainingModule],
   providers: [ComposerService, ...GuestComposers, ...ClientComposers, ...StaffComposers, ...CommonComposers],
   exports: [ComposerService],
 })

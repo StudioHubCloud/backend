@@ -141,6 +141,13 @@
       "when": 1746888923886,
       "tag": "0019_link-pass-and-studio",
       "breakpoints": true
+    },
+    {
+      "idx": 20,
+      "version": "7",
+      "when": 1746993749871,
+      "tag": "0020_chage-price-type-to-integer",
+      "breakpoints": true
     }
   ]
 }

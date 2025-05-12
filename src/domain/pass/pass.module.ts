@@ -5,5 +5,6 @@ import { PassController } from './pass.controller';
 @Module({
   controllers: [PassController],
   providers: [PassService],
+  exports: [PassService],
 })
 export class PassModule {}

@@ -15,11 +15,6 @@ export class UserHelper {
     return ctx.store.user
   }
 
-  static getStudioId(ctx: BotContext) {
-    const user = this.getUser(ctx)
-    return user.studioId
-  }
-
   static getUserRole(ctx: BotContext) {
     const user = this.getUser(ctx)
     return user.role
