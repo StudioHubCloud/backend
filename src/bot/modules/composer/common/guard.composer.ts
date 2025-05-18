@@ -27,7 +27,7 @@ export class GuardComposer {
     })
   }
 
-  getComposer() {
-    return this.composer
+  middleware() {
+    return this.composer.middleware()
   }
 }

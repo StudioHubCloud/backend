@@ -1,19 +1,26 @@
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 import { StudioService } from '../studio'
-import { DateTimeService, DateTimeServiceInjector } from '@app/infrastructure/providers'
-import { DatabaseService, GroupScheduleSelectModel, training, TrainingInsertModel } from '@app/infrastructure/database'
-import { UserProfileService } from '../user-profile'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+import {
+  DatabaseService,
+  GroupScheduleSelectModel,
+  PassSelectModel,
+  training,
+  TrainingInsertModel,
+} from '@app/infrastructure/database'
 import { PassService } from '../pass'
-import { DATE_FORMAT } from '@app/libs'
+import { DATE_FORMAT, UserProfileRoleEnum } from '@app/libs'
+import { RedisCacheService, TrainingCacheKey } from '@app/infrastructure/redis'
 
 @Injectable()
 export class TrainingService {
+
   constructor(
-    @DateTimeServiceInjector() private readonly dateTimeService: DateTimeService,
+    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
     private readonly databaseService: DatabaseService,
     private readonly studioService: StudioService,
-    private readonly userProfileService: UserProfileService,
     private readonly passService: PassService,
+    private readonly redisCacheService: RedisCacheService,
   ) {}
 
   async addTrainingsForActiveGroups() {
@@ -25,7 +32,10 @@ export class TrainingService {
       studio.groups.forEach((group) => {
         group.groupSchedules.forEach((schedule) => {
           const trainingDates = this.dateTimeService.getEachDayOfIntervalForDayIndex(interval, schedule.groupScheduleDays.dayIndex)
-          trainingsToInsert = [...trainingsToInsert, ...this.generateTrainingsRecords(trainingDates, group.id, schedule, group.staffMemberId)]
+          trainingsToInsert = [
+            ...trainingsToInsert,
+            ...this.generateTrainingsRecords(trainingDates, group.id, schedule, group.staffMemberId),
+          ]
         })
       })
     })
@@ -38,17 +48,20 @@ export class TrainingService {
     return result
   }
 
-  async getTrainingsListForSchedule(groupId: string, telegramId: number) {
-    const user = await this.userProfileService.getTelegramAuthenticatedUser(telegramId)
+  async getTrainingsListForSchedule(options: { groupId: string; clientId?: string; userId: string; role: UserProfileRoleEnum }) {
+    const { groupId, clientId, userId, role } = options
+    const cacheKey = TrainingCacheKey.trainingsForSchedule(groupId, userId)
 
-    if (!user) {
-      throw new BadRequestException('Користувач не знайдений')
+    const cachedTrainings = await this.redisCacheService.get<typeof trainings>(cacheKey)
+    if (cachedTrainings) {
+      return cachedTrainings
     }
 
-    const pass = await this.passService.findPassByClientId(user['client']?.id)
+    let pass: PassSelectModel | null = null
 
-    if (!pass) {
-      throw new BadRequestException('Користувач не має абонементу')
+    if (role === UserProfileRoleEnum.CLIENT) {
+      console.log('RENDERS PASS')
+      pass = await this.passService.findActivePassByClientId(clientId)
     }
 
     const trainings = await this.databaseService.drizzle.query.training.findMany({
@@ -57,20 +70,59 @@ export class TrainingService {
           eq(training.groupId, groupId),
           eq(training.isCancelled, false),
           gte(training.date, this.dateTimeService.formatDate({ dateFormat: DATE_FORMAT.DB })),
-          lte(training.date, pass.endDate),
+          // lte(training.date, pass ? pass.endDate : ), // finish add 1 week for guest
         ),
+      with: {
+        group: true,
+        groupSchedule: true,
+      },
     })
+
+    if (trainings) {
+      this.redisCacheService.set(cacheKey, trainings)
+    }
 
     return trainings
   }
 
-  private generateTrainingsRecords(trainingDates: Date[], groupId: string, schedule: GroupScheduleSelectModel, trainerId: string | null) {
+  async getTrainingById(trainingId: string) {
+    const cacheKey = TrainingCacheKey.trainingById(trainingId)
+
+    const cachedTraining = await this.redisCacheService.get<typeof training>(cacheKey)
+    if (cachedTraining) {
+      return cachedTraining
+    }
+
+    const training = await this.databaseService.drizzle.query.training.findFirst({
+      where: (training, { eq }) => eq(training.id, trainingId),
+      with: {
+        group: {
+          columns: {
+            status: true,
+          },
+        },
+      },
+    })
+    if (!training) {
+      throw new NotFoundException(`Training with id: ${trainingId} not found`)
+    }
+
+    this.redisCacheService.set(cacheKey, training)
+
+    return training
+  }
+
+  private generateTrainingsRecords(
+    trainingDates: Date[],
+    groupId: string,
+    schedule: GroupScheduleSelectModel,
+    trainerId: string | null,
+  ) {
     const trainingsToInsert: TrainingInsertModel[] = []
 
     trainingDates.forEach((date) => {
-      const trainingDate = this.dateTimeService.addTimeToDate(date, schedule.time).toISOString()
       const trainingRecord = {
-        date: trainingDate,
+        date: this.dateTimeService.toISOStringWithTz(this.dateTimeService.addTimeToDate(date, schedule.time)),
         groupId: groupId,
         groupScheduleId: schedule.id,
         trainerId: trainerId,

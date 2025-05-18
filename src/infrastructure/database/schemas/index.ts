@@ -13,6 +13,8 @@ export { subscribtion, subscribtion_relations } from './subscribtion.schema'
 export { trainingSignup, training_signup_relations } from './training-signup.schema'
 export { training, training_relations } from './training.schema'
 export { userProfile, user_profile_relations } from './user-profile.schema'
+export { groupAgeRestriction, group_age_restriction_relations } from './group-age-restriction.schema'
+export { groupAgeRestrictionException, group_age_restriction_exception_relations } from './group-age-restriction-exeption.schema'
 
 export {
   PassStatusPgEnum,

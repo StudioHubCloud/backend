@@ -21,21 +21,21 @@ export class ClientRootComposer {
     this.composer = new Composer<BotContext>()
     this.logger.setContext(ClientRootComposer.name)
 
-    this.composer.use(this.guardComposer.getComposer())
+    this.composer.use(this.guardComposer.middleware())
     
-    this.initComposersListeners()
+    this.initComposerHandlers()
     this.initExternalComposers()
   }
 
-  private initComposersListeners() {
+  private initComposerHandlers() {
     this.composer.start(this.startHandler)
     this.composer.hears(PATTERNS_CLIENT.PAYMENT, this.paymentHandler)
     this.composer.hears(PATTERNS_COMMON.RULES, this.rulesHandler)
   }
 
   private initExternalComposers() {
-    this.composer.use(this.schedulerComposer.getComposer())
-    this.composer.use(this.passInfoComposer.getComposer())
+    this.composer.use(this.schedulerComposer.middleware())
+    this.composer.use(this.passInfoComposer.middleware())
   }
 
   private startHandler = async (ctx: BotContext) => {
@@ -51,7 +51,7 @@ export class ClientRootComposer {
     return ctx.reply('Якщо потрібні якісь правила, можна їх сюди вставити')
   }
 
-  getComposer() {
-    return this.composer
+  middleware() {
+    return this.composer.middleware()
   }
 }

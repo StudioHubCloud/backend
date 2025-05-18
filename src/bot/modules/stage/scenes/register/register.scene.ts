@@ -8,7 +8,7 @@ import { CommonSceneKeyboards, GuestKeyboards } from '@app/bot/modules/keyboard/
 import { SceneNavigation } from '../scene.navigation'
 import { PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { UserProfileService } from '@app/domain/user-profile'
-import { DateTimeService, DateTimeServiceInjector } from '@app/infrastructure/providers'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { RedisCacheService } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { REGISTER_SCENE_CURSOR_MAP, REGISTER_SCENE_NAVIGATION_MAP } from './register.navigation-map'
@@ -24,7 +24,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     private readonly userProfileService: UserProfileService,
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
-    @DateTimeServiceInjector() private readonly dateTimeService: DateTimeService,
+    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
   ) {
     super(
       SCENES.REGISTER,

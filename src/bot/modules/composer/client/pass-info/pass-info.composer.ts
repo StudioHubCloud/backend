@@ -8,14 +8,14 @@ export class PassInfoComposer {
   private readonly composer: Composer<BotContext>
   constructor() {
     this.composer = new Composer<BotContext>()
-    this.initComposer()
+    this.initComposerHandlers()
   }
 
-  getComposer() {
-    return this.composer
+  middleware() {
+    return this.composer.middleware()
   }
 
-  initComposer() {
+  initComposerHandlers() {
     this.composer.hears(PATTERNS_CLIENT.PASS_INFO, this.passInfoHandler)
   }
 

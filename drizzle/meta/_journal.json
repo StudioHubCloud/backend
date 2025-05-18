@@ -148,6 +148,41 @@
       "when": 1746993749871,
       "tag": "0020_chage-price-type-to-integer",
       "breakpoints": true
+    },
+    {
+      "idx": 21,
+      "version": "7",
+      "when": 1747433060362,
+      "tag": "0021_change-column-type-to-tz",
+      "breakpoints": true
+    },
+    {
+      "idx": 22,
+      "version": "7",
+      "when": 1747433311472,
+      "tag": "0022_change-column-type-to-not-z",
+      "breakpoints": true
+    },
+    {
+      "idx": 23,
+      "version": "7",
+      "when": 1747441675856,
+      "tag": "0023_add-calculated-price-to-training-signup",
+      "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1747442307476,
+      "tag": "0024_remove-calculated-price",
+      "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1747524845338,
+      "tag": "0025_add-trial-status-to-training-schedule",
+      "breakpoints": true
     }
   ]
 }

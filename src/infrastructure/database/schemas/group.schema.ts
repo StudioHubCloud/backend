@@ -8,7 +8,9 @@ import { groupStyle } from './group-style.schema'
 import { staffMember } from './staff-member.schema'
 import { GroupStatusPgEnum } from '../database.enums'
 import { GroupStatusEnum } from '@app/libs/constants/enums'
-import { groupAgeRestriction } from './group-age-restriction'
+import { groupAgeRestriction } from './group-age-restriction.schema'
+import { trainingSignup } from './training-signup.schema'
+import { groupAgeRestrictionException } from './group-age-restriction-exeption.schema'
 
 export const group = table(
   'group',
@@ -37,8 +39,10 @@ export const group_relations = relations(group, ({ one, many }) => ({
   studio: one(studio, { fields: [group.studioId], references: [studio.id] }),
   groupStyle: one(groupStyle, { fields: [group.groupStyleId], references: [groupStyle.id] }),
   trainer: one(staffMember, { fields: [group.staffMemberId], references: [staffMember.id] }),
+  groupAgeRestrictions: one(groupAgeRestriction),
   trainings: many(training),
+  trainingSignups: many(trainingSignup),
   passes: many(pass),
   groupSchedules: many(groupSchedule),
-  groupAgeRestrictions: many(groupAgeRestriction),
+  groupAgeRestrictionExeptions: many(groupAgeRestrictionException)
 }))

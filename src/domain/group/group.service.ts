@@ -1,12 +1,11 @@
 import { TypedConfigService } from '@app/infrastructure/config'
-import { DatabaseService, group, GroupSelectModel } from '@app/infrastructure/database'
-import { RedisCacheService } from '@app/infrastructure/redis'
+import { DatabaseService, GroupSelectModel } from '@app/infrastructure/database'
+import { RedisCacheService, GroupCacheKey } from '@app/infrastructure/redis'
 import { GroupStatusEnum } from '@app/libs'
-import { Injectable } from '@nestjs/common'
+import { Injectable, NotFoundException } from '@nestjs/common'
 
 @Injectable()
 export class GroupService {
-  private readonly cashe_key = 'groups'
   constructor(
     private readonly databaseService: DatabaseService,
     private readonly redisCacheService: RedisCacheService,
@@ -14,8 +13,8 @@ export class GroupService {
   ) {}
 
   async getAllGroups(filters: Partial<GroupSelectModel> = {}) {
-    const cacheKey = `${this.cashe_key}:${JSON.stringify(filters)}`
-    const groupsCashed = await this.redisCacheService.get<GroupSelectModel[]>(cacheKey)
+    const cacheKey = GroupCacheKey.groupByFilterConditions(filters)
+    const groupsCashed = await this.redisCacheService.get<typeof groupsFound>(cacheKey)
 
     if (groupsCashed) {
       return groupsCashed
@@ -29,12 +28,42 @@ export class GroupService {
     })
 
     if (groupsFound) {
-      await this.redisCacheService.set(cacheKey, groupsFound)
+      this.redisCacheService.set(cacheKey, groupsFound)
     }
     return groupsFound
   }
 
   async getAllActiveGroups() {
     return this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID') })
+  }
+
+  async getGroupById(groupId: string) {
+
+    const cacheKey = GroupCacheKey.groupById(groupId)
+
+    const groupCashed = await this.redisCacheService.get<typeof groupFound>(cacheKey)
+
+    if (groupCashed) {
+      return groupCashed
+    }
+
+    const groupFound = await this.databaseService.drizzle.query.group.findFirst({
+      where: (group, { eq }) => eq(group.id, groupId),
+      with: {
+        groupStyle: true,
+        groupAgeRestrictions: true,
+        groupAgeRestrictionExeptions: true,
+      },
+    })
+
+    if (!groupFound) {
+      throw new NotFoundException(`Training with id: ${groupId} not found`)
+    }
+
+    if (groupFound) {
+      this.redisCacheService.set(cacheKey, groupFound)
+    }
+
+    return groupFound
   }
 }

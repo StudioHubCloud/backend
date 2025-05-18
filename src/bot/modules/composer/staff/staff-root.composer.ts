@@ -13,14 +13,14 @@ export class StaffRootComposer {
 
     this.composer.use(UnverifiedGuard)
 
-    this.initComposer()
+    this.initComposerHandlers()
   }
 
-  getComposer() {
-    return this.composer
+  middleware() {
+    return this.composer.middleware()
   }
 
-  initComposer() {
+  initComposerHandlers() {
     this.composer.start((ctx) => {
       ctx.reply('Welcome from Staff!', KeyboardHelper.removeReplyMarkupKeyboard())
     })

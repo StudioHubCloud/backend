@@ -1,4 +1,4 @@
-import { Composer } from 'telegraf'
+import { Composer, MiddlewareFn } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
 import { Injectable } from '@nestjs/common'
 import { GuestRootComposer } from './guest/guest-root.composer'
@@ -10,7 +10,7 @@ import { UserHelper } from '@app/bot/helpers'
 
 @Injectable()
 export class ComposerService {
-  private readonly roleComposerMap: Record<UserProfileRoleEnum, Composer<BotContext>>
+  private readonly roleComposerMap: Record<UserProfileRoleEnum, MiddlewareFn<BotContext>>
 
   constructor(
     private readonly guestRootComposer: GuestRootComposer,
@@ -19,14 +19,14 @@ export class ComposerService {
     private readonly logger: PinoLogger,
   ) {
     this.roleComposerMap = {
-      guest: this.guestRootComposer.getComposer(),
-      client: this.clientRootComposer.getComposer(),
-      trainer: this.staffRootComposer.getComposer(),
-      admin: this.staffRootComposer.getComposer(),
+      guest: this.guestRootComposer.middleware(),
+      client: this.clientRootComposer.middleware(),
+      trainer: this.staffRootComposer.middleware(),
+      admin: this.staffRootComposer.middleware(),
     }
   }
 
-  initRootComposer = async (ctx: BotContext, next: TNextFunction) => {
+  initRootComposerMiddleware = async (ctx: BotContext, next: TNextFunction) => {
     if (!ctx.store.user) {
       this.logger.error('User with id %s not found in context store', ctx.from?.id)
       return ctx.reply('Помилка авторизації')
@@ -34,10 +34,10 @@ export class ComposerService {
 
     const role = UserHelper.getUserRole(ctx)
 
-    const RootComposer = this.roleComposerMap[role]
+    const rootComposerMiddleware = this.roleComposerMap[role]
 
-    if (RootComposer) {
-      return RootComposer.middleware()(ctx, next)
+    if (rootComposerMiddleware) {
+      return rootComposerMiddleware(ctx, next)
     } else {
       this.logger.error('No composer found for role: %s', role)
       return next()

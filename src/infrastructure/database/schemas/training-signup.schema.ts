@@ -1,9 +1,10 @@
-import { pgTable as table, uuid, index, uniqueIndex } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { pgTable as table, uuid, index, uniqueIndex, integer } from 'drizzle-orm/pg-core'
+import { is, relations } from 'drizzle-orm'
 import { TrainingSignupStatusPgEnum, TrainingSignupTypePgEnum } from '../database.enums'
 import { userProfile } from './user-profile.schema'
 import { training } from './training.schema'
 import { pass } from './pass.schema'
+import { group } from './group.schema'
 
 export const trainingSignup = table(
   'training_signup',
@@ -13,6 +14,9 @@ export const trainingSignup = table(
     type: TrainingSignupTypePgEnum().notNull(),
     userProfileId: uuid('user_profile_id').references(() => userProfile.id, { onDelete: 'set null' }),
     passId: uuid('pass_id').references(() => pass.id, { onDelete: 'set null' }),
+    groupId: uuid('group_id')
+      .references(() => group.id, { onDelete: 'cascade' })
+      .notNull(),
     trainingId: uuid('training_id')
       .references(() => training.id, { onDelete: 'cascade' })
       .notNull(),
@@ -32,5 +36,6 @@ export const trainingSignup = table(
 export const training_signup_relations = relations(trainingSignup, ({ one }) => ({
   user_profile: one(userProfile, { fields: [trainingSignup.userProfileId], references: [userProfile.id] }),
   training: one(training, { fields: [trainingSignup.trainingId], references: [training.id] }),
+  group: one(group, { fields: [trainingSignup.groupId], references: [group.id] }),
   pass: one(pass, { fields: [trainingSignup.trainingId], references: [pass.id] }),
 }))

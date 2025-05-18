@@ -1,13 +1,12 @@
-import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { AuthUserProfile, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { BotContext } from '../bot.context'
-import { UserProfileSelectModel } from '@app/infrastructure/database'
 
 export class UserHelper {
-  static getUser(ctx: BotContext): UserProfileSelectModel {
-    return ctx.store.user || ({} as UserProfileSelectModel)
+  static getUser(ctx: BotContext): AuthUserProfile {
+    return ctx.store.user || ({} as AuthUserProfile)
   }
 
-  static setUser(ctx: BotContext, user?: UserProfileSelectModel) {
+  static setUser(ctx: BotContext, user?: AuthUserProfile) {
     ctx.store.user = user ?? null
   }
 
@@ -25,9 +24,8 @@ export class UserHelper {
     return user.role === UserProfileRoleEnum.ADMIN
   }
 
-  static isClientRole(ctx: BotContext) {
-    const user = this.getUser(ctx)
-    return user.role === UserProfileRoleEnum.ADMIN
+  static isClientRole(role: UserProfileRoleEnum) {
+    return role === UserProfileRoleEnum.CLIENT
   }
 
   static isTrainerRole(ctx: BotContext) {

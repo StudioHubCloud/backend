@@ -13,4 +13,5 @@ export const CALLBACK_DATA = {
 export const CALLBACK_PREFIX = {
   VERIFY_USER: 'verifyuser',
   CLIENT_GROUP_SELECT: 'groupselectclient',
+  CLEINT_TRAINING_SELECT: 'trainingselectclient',
 } as const

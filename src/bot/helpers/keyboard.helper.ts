@@ -5,7 +5,7 @@ import {
   ReplyKeyboardMarkup,
   ReplyKeyboardRemove,
 } from '@telegraf/types'
-import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, UserProfileRoleEnum } from '@app/libs'
+import { AutocompletableString, CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, UserProfileRoleEnum } from '@app/libs'
 import { ClientKeyboards, GuestKeyboards } from '../modules/keyboard/storage'
 
 export class KeyboardHelper {
@@ -39,7 +39,7 @@ export class KeyboardHelper {
     const dataButtons = paginatedData.map(({ label, value }) => [
       { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` }, //potentialy refactor this to use a function
     ])
-    const paginationRow = data.length > perPage ?  this.createPaginationRow(prefix, { page, totalPages }) : []
+    const paginationRow = data.length > perPage ? this.createPaginationRow(prefix, { page, totalPages }) : []
 
     return {
       inline_keyboard: [...dataButtons, ...paginationRow],
@@ -91,7 +91,7 @@ export class KeyboardHelper {
       valueKey,
       emoji,
     }: {
-      labelKey: keyof T | (keyof T)[]
+      labelKey: keyof T | (keyof T)[] | AutocompletableString
       valueKey: keyof T
       emoji?: string | string[]
     },
@@ -118,9 +118,13 @@ export class KeyboardHelper {
         }
       }
 
-      const labelPart = Array.isArray(labelKey)
-        ? labelKey.map((key) => String(item[key])).join(' ')
-        : String(item[labelKey as keyof T])
+      let labelPart: string
+
+      if (Array.isArray(labelKey)) {
+        labelPart = labelKey.map((key) => String(item[key])).join(' ')
+      } else {
+        labelPart = String(item[labelKey as keyof T])
+      }
 
       const label = emojiPrefix + labelPart
 

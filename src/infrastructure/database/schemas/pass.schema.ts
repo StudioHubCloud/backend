@@ -12,6 +12,7 @@ export const pass = table(
     id: uuid('id').primaryKey().defaultRandom(),
     price: integer('price').notNull(),
     length: smallint('length').notNull(),
+    availableSlots: smallint('available_slots').notNull().default(0),
     startDate: timestamp('start_date', { mode: 'string' }).notNull(),
     endDate: timestamp('end_date', { mode: 'string' }).notNull(),
     pausedFromDate: timestamp('paused_from_date', { mode: 'string' }),

@@ -1,5 +1,13 @@
 import { Module } from '@nestjs/common'
-import { CustomerModule, StudioModule, ClientModule, UserProfileModule, TrainingModule } from '@app/domain'
+import {
+  CustomerModule,
+  StudioModule,
+  ClientModule,
+  UserProfileModule,
+  TrainingModule,
+  GroupAgeRestrictionExeptionModule,
+  GroupAgeRestrictionModule,
+} from '@app/domain'
 import { LoggerModule, ConfigModule, DatabaseModule, RedisCacheModule, CronModule, HealthModule } from '@app/infrastructure'
 import { BotModule } from 'src/bot/bot.module'
 
@@ -17,6 +25,8 @@ import { BotModule } from 'src/bot/bot.module'
     HealthModule,
     BotModule,
     CronModule,
+    GroupAgeRestrictionModule,
+    GroupAgeRestrictionExeptionModule,
   ],
   providers: [],
 })

@@ -7,7 +7,6 @@ import { UserHelper } from '@app/bot/helpers'
 import { BotContext } from '@app/bot/bot.context'
 import { StudioService } from '@app/domain/studio'
 import { UserProfileService } from '@app/domain/user-profile'
-import { TypedConfigService } from '@app/infrastructure/config'
 import { type TNextFunction, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { BotHelper } from '@app/bot/helpers/bot.helper'
 
@@ -15,7 +14,6 @@ import { BotHelper } from '@app/bot/helpers/bot.helper'
 export class MiddlewareService {
   constructor(
     private readonly logger: PinoLogger,
-    private readonly configService: TypedConfigService,
     private readonly studioService: StudioService,
     private readonly userProfileService: UserProfileService,
   ) {
@@ -57,8 +55,9 @@ export class MiddlewareService {
       return ctx.reply('Unsupported update type')
     }
 
-    const user = await this.userProfileService.getTelegramAuthenticatedUser(from.id)
+    const user = await this.userProfileService.findTelegramAuthenticatedUser(from.id.toString())
 
+    //@ts-ignore
     UserHelper.setUser(ctx, user)
 
     await next()
@@ -109,7 +108,7 @@ export class MiddlewareService {
       this.logger.error('Failed to create user profile')
       return ctx.reply('Failed to create user profile')
     }
-    UserHelper.setUser(ctx, createdUser)
+    UserHelper.setUser(ctx, {...createdUser, client: null})
     await next()
   }
 }

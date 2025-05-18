@@ -20,5 +20,5 @@ export const groupAgeRestriction = table(
 )
 
 export const group_age_restriction_relations = relations(groupAgeRestriction, ({ one }) => ({
-  studio: one(group, { fields: [groupAgeRestriction.groupId], references: [group.id] }),
+  group: one(group, { fields: [groupAgeRestriction.groupId], references: [group.id] }),
 }))

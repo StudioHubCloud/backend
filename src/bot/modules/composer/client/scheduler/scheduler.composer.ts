@@ -1,88 +1,98 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { PATTERNS_CLIENT, PATTERNS_COMMON } from '@app/bot/static/patterns'
-import { GroupService } from '@app/domain/group'
-import { TrainingService } from '@app/domain/training'
-import { CALLBACK_PREFIX, TNormalizedOption } from '@app/libs'
+import { API, CALLBACK_PREFIX } from '@app/libs'
+import { GroupSelectMenu, TrainingSelectMenu } from '@app/bot/modules/inline-menu'
+import { UserHelper } from '@app/bot/helpers'
+import { TrainingSignupService } from '@app/domain/training-signup'
+import { PassService } from '@app/domain/pass'
+import { PassSelectModel } from '@app/infrastructure/database'
 
 @Injectable()
 export class SchedulerComposer {
   private readonly composer: Composer<BotContext>
-  private normalizedOptions: TNormalizedOption[] = []
-  private MenuPaginationActionRexExp: RegExp
-  private MenuSelectItemRegex: RegExp
 
   constructor(
-    private readonly groupService: GroupService,
-    private readonly trainingService: TrainingService,
+    private readonly groupSelectMenu: GroupSelectMenu,
+    private readonly trainingSelectMenu: TrainingSelectMenu,
+    private readonly trainingSignupService: TrainingSignupService,
+    private readonly passService: PassService,
   ) {
     this.composer = new Composer<BotContext>()
 
-    this.MenuPaginationActionRexExp = RegexHelper.createMenuPaginationActionRegex(CALLBACK_PREFIX.CLIENT_GROUP_SELECT)
-    this.MenuSelectItemRegex = RegexHelper.createMenuSelectItemRegex(CALLBACK_PREFIX.CLIENT_GROUP_SELECT)
+    this.configureMenus()
 
-    this.initComposer()
+    this.initComposerHandlers()
   }
 
-  getComposer() {
-    return this.composer
+  middleware() {
+    return this.composer.middleware()
   }
 
-  initComposer() {
+  private initComposerHandlers() {
     this.composer.hears(PATTERNS_COMMON.SCHEDULE, this.trainingScheduleHandler)
     this.composer.hears(PATTERNS_CLIENT.ACTIVE_SCHEDULES, this.activeSchedulesHandler)
+  }
 
-    this.composer.action(this.MenuSelectItemRegex, async (ctx) => {
-      ctx.answerCbQuery()
-      const itemId = ctx.match[1]
-      //get training list based of user pass expired date
-      const availableTrainings = await this.trainingService.getTrainingsListForSchedule(itemId, ctx.from.id)
-
-      console.log(availableTrainings, 'availableTrainings')
-      return ctx.reply(`You selected item with ID: ${itemId}`)
+  private configureMenus() {
+    this.groupSelectMenu.configure({
+      callbackPrefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT,
+      promptMessage: 'Виберіть групу:',
+      onItemSelect: this.handleGroupSelect,
     })
 
-    this.composer.action(this.MenuPaginationActionRexExp, async (ctx) => {
-      ctx.answerCbQuery()
-      const page = parseInt(ctx.match[1])
-
-      if (!this.normalizedOptions) {
-        const groups = await this.groupService.getAllActiveGroups()
-        this.normalizedOptions = KeyboardHelper.prepareInlineMenuOptions(groups, {
-          labelKey: 'name',
-          valueKey: 'id',
-          emoji: ['groupStyle', 'emoji'],
-        })
-      }
-
-      const menu = KeyboardHelper.createPaginatedMenu(this.normalizedOptions, { prefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT, page })
-      await ctx.editMessageText('Choose an item:', { reply_markup: menu })
+    this.trainingSelectMenu.configure({
+      callbackPrefix: CALLBACK_PREFIX.CLEINT_TRAINING_SELECT,
+      promptMessage: 'Виберіть тренування:',
+      onItemSelect: this.handleTrainingSelect,
     })
+    this.composer.use(this.groupSelectMenu.middleware())
+    this.composer.use(this.trainingSelectMenu.middleware())
   }
 
   private trainingScheduleHandler = async (ctx: BotContext) => {
-    const groups = await this.groupService.getAllActiveGroups()
-
-    if (!groups || groups.length === 0) {
-      return ctx.reply('Немає доступних aктивних груп для запису на тренування.')
-    }
-
-    this.normalizedOptions = KeyboardHelper.prepareInlineMenuOptions(groups, {
-      labelKey: 'name',
-      valueKey: 'id',
-      emoji: ['groupStyle', 'emoji'],
-    })
-    const menu = KeyboardHelper.createPaginatedMenu(this.normalizedOptions, { prefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT })
-    return ctx.reply('Вибаріть групу:', { reply_markup: menu })
+    this.groupSelectMenu.initMenu(ctx)
   }
 
   private activeSchedulesHandler = async (ctx: BotContext) => {
     await ctx.reply('Active schedules handler works')
   }
 
-  private groupSelectPaginationActionHandler = async (ctx: BotContext) => {}
+  private handleGroupSelect = async (ctx: BotContext, groupId: string) => {
+    ctx.answerCbQuery()
+    const { id, client, role } = UserHelper.getUser(ctx)
+    return this.trainingSelectMenu.initMenu(ctx, { groupId, clientId: client?.id, userId: id, role })
+  }
 
-  private groupSelectActionHandler = async (ctx: BotContext) => {};
+  private handleTrainingSelect = async (ctx: BotContext, trainingId: string) => {
+    const { id, client, role } = UserHelper.getUser(ctx)
+    const isUserClient = UserHelper.isClientRole(role)
+
+    if (isUserClient) {
+      if (!client || !client?.pass) {
+        return ctx.answerCbQuery(`Ой-ой! 🤸‍♀️ Поки що не бачу твого активного абонементу. Не сумуй, мерщій оновлюй його, щоб не пропустити улюблені заняття! 😉🔥`, { show_alert: true })
+      }
+      const response = await this.trainingSignupService.signUpForTrainingAsClientViaTelegram({
+        trainingId,
+        userProfileId: id,
+        passId: client.pass.id,
+      })
+
+      if (response.status === API.RESPONSE.ERROR_STRING) {
+        return ctx.answerCbQuery(response.message, { show_alert: true })
+      }
+      ctx.answerCbQuery()
+
+      switch (response.availableSlots) {
+        case 1:
+          return ctx.reply(
+            'Вітаю, запис успішний!🤗\n\nУ Вас залишився 1 доступний запис на тренування в межах даного абонемента🛎',
+          )
+        default:
+          return ctx.reply(response.message)
+      }
+    } else {
+    }
+  }
 }

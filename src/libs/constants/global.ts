@@ -4,7 +4,7 @@ export const APP = {
     IS_PUBLIC_KEY: 'isPublic',
   },
   PROVIDERS: {
-    DATE_TIME_SERVICE: 'DATE_TIME_SERVICE',
+    DATE_TIME_PROVIDER: 'DATE_TIME_PROVIDER',
   },
 } as const
 
@@ -12,6 +12,7 @@ export const DATE_FORMAT = {
   DATE_MAIN: 'yyyy-MM-dd',
   DATE_INPUT: 'dd.MM.yyyy',
   DB: 'yyyy-MM-dd HH:mm:ss',
+  TRAINING_DISPLAY: 'dd.MM.yyyy (HH:mm eeeeee)',
 } as const
 
 export const ENVIRONMENTS = {

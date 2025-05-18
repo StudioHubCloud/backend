@@ -1,6 +1,7 @@
 import { pgTable as table, uuid } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { userProfile } from './user-profile.schema'
+import { pass } from './pass.schema'
 
 export const client = table('client', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -11,4 +12,5 @@ export const client = table('client', {
 
 export const client_relations = relations(client, ({ one }) => ({
   user_profile: one(userProfile, { fields: [client.userProfileId], references: [userProfile.id] }),
+  pass: one(pass),
 }))

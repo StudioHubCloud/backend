@@ -1,10 +1,14 @@
-import { StudioSelectModel, UserProfileSelectModel } from '@app/infrastructure/database/models'
+import { ClientSelectModel, PassSelectModel, StudioSelectModel, UserProfileSelectModel } from '@app/infrastructure/database/models'
 import { ReplyKeyboardMarkup } from '@telegraf/types'
 import { UserProfileRoleEnum } from '../constants'
 
 export type TBotStore = {
-  user: UserProfileSelectModel | null
+  user: AuthUserProfile | null
   studio: StudioSelectModel | null
+}
+
+export type AuthUserProfile = UserProfileSelectModel & {
+  client: (ClientSelectModel & { pass: { id: string; groupId: string } | null }) | null
 }
 
 export type TNextFunction = () => Promise<void>
@@ -38,3 +42,9 @@ export interface ISceneNavigationMap {
 }
 
 export type TReplyMarkupKeyboard = { reply_markup: ReplyKeyboardMarkup }
+
+export interface ISelectInlineMenuConfig<T> {
+  callbackPrefix: string
+  onItemSelect: (ctx: T, itemId: string) => any
+  promptMessage?: string
+}

@@ -9,6 +9,7 @@ export const environmentsSchema = z.object({
   BOT_TOKEN_TEST: z.string(),
   MAINTAINER_CHAT_ID: z.string(),
   ADMIN_CHAT_ID: z.string(),
+  TIME_ZONE: z.string().default('Europe/Kyiv'),
   RAILWAY_PUBLIC_DOMAIN: z.string().default('localhost'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error', 'trace']).default('debug'),
   LOG_LEVEL_HTTP: z.enum(['debug', 'info', 'warn', 'error', 'trace']).default('debug'),
