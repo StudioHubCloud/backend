@@ -1,10 +1,14 @@
+### training filtering for clients based of pass start-end dates
+### scheduled trainings list for signout
+### pass info
+### confirm client by admin
+##  training filtering for guest based of now() + 2weeks
+
+### ask user to consent with studio rules before any action
+
 ### CRON for adding trainings to active groups
 ### Staff member invite link + rules
-### new client start wizzard ( name, DoB, phone)
-### Client main menu
-### Client training select keyboard
 ### Client pass info view
-### Client flow (signup for training)
 ### Client flow (signout from training)
 
 ### Guest - schedule for training flow

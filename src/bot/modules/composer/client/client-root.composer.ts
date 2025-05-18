@@ -1,9 +1,10 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { SchedulerComposer } from './scheduler/scheduler.composer'
 import { GuardComposer } from '../common/guard.composer'
+import { SchedulerComposer } from '../common/scheduler.composer'
 import { PATTERNS_CLIENT, PATTERNS_COMMON } from '@app/bot/static/patterns'
+import { RULES } from '@app/bot/static/messages'
 import { PassInfoComposer } from './pass-info/pass-info.composer'
 import { UserHelper } from '@app/bot/helpers'
 import { PinoLogger } from 'nestjs-pino'
@@ -48,7 +49,7 @@ export class ClientRootComposer {
   }
   
   private rulesHandler = async (ctx: BotContext) => {
-    return ctx.reply('Якщо потрібні якісь правила, можна їх сюди вставити')
+    return ctx.replyWithHTML(RULES)
   }
 
   middleware() {
