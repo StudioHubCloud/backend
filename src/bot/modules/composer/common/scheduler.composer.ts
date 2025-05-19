@@ -3,10 +3,9 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { PATTERNS_CLIENT, PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { API, CALLBACK_PREFIX } from '@app/libs'
-import { GroupSelectMenu, TrainingSelectMenu } from '@app/bot/modules/inline-menu'
+import { ActiveSchedulesMenu, GroupSelectMenu, TrainingSelectMenu } from '@app/bot/modules/inline-menu'
 import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
-import { GroupAgeRestrictionService } from '@app/domain/group-age-restriction'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 
@@ -18,7 +17,8 @@ export class SchedulerComposer {
     private readonly groupSelectMenu: GroupSelectMenu,
     private readonly trainingSelectMenu: TrainingSelectMenu,
     private readonly trainingSignupService: TrainingSignupService,
-    private readonly groupService: GroupService
+    private readonly activeSchedulesMenu: ActiveSchedulesMenu,
+    private readonly groupService: GroupService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -50,6 +50,7 @@ export class SchedulerComposer {
     })
     this.composer.use(this.groupSelectMenu.middleware())
     this.composer.use(this.trainingSelectMenu.middleware())
+    this.composer.use(this.activeSchedulesMenu.middleware())
   }
 
   private trainingScheduleHandler = async (ctx: BotContext) => {
@@ -57,7 +58,7 @@ export class SchedulerComposer {
   }
 
   private activeSchedulesHandler = async (ctx: BotContext) => {
-    await ctx.reply('Active schedules handler works')
+   this.activeSchedulesMenu.initMenu(ctx)
   }
 
   private handleGroupSelect = async (ctx: BotContext, groupId: string) => {
@@ -77,7 +78,10 @@ export class SchedulerComposer {
 
     if (isUserClient) {
       if (!client || !client?.pass) {
-        return ctx.answerCbQuery(`Ой-ой! 🤸‍♀️ Поки що не бачу твого активного абонементу. Не сумуй, мерщій оновлюй його, щоб не пропустити улюблені заняття! 😉🔥`, { show_alert: true })
+        return ctx.answerCbQuery(
+          `Ой-ой! 🤸‍♀️ Поки що не бачу твого активного абонементу. Не сумуй, мерщій оновлюй його, щоб не пропустити улюблені заняття! 😉🔥`,
+          { show_alert: true },
+        )
       }
       const response = await this.trainingSignupService.signUpForTrainingAsClientViaTelegram({
         trainingId,

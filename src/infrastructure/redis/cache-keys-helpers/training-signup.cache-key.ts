@@ -8,4 +8,8 @@ export class TrainingSignupCacheKey {
      static trainingAlreadyBooked(userProfileId: string, trainingId: string): string {
           return `${this.cache_key_prefix}:b:${userProfileId}:${trainingId}`
      }
+
+     static clientSignups(userProfileId: string): string {
+          return `${this.cache_key_prefix}:${userProfileId}`
+     }
 }
