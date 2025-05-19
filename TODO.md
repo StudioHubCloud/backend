@@ -1,8 +1,12 @@
-### training filtering for clients based of pass start-end dates
-### scheduled trainings list for signout
-### pass info
-### confirm client by admin
 ##  training filtering for guest based of now() + 2weeks
+
+### scheduled trainings list for signout
+
+### pass info
+
+### confirm client by admin
+
+
 
 ### ask user to consent with studio rules before any action
 

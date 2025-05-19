@@ -1,20 +1,13 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { StudioService } from '../studio'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import {
-  DatabaseService,
-  GroupScheduleSelectModel,
-  PassSelectModel,
-  training,
-  TrainingInsertModel,
-} from '@app/infrastructure/database'
+import { DatabaseService, GroupScheduleSelectModel, training, TrainingInsertModel } from '@app/infrastructure/database'
 import { PassService } from '../pass'
-import { DATE_FORMAT, UserProfileRoleEnum } from '@app/libs'
+import { UserProfileRoleEnum } from '@app/libs'
 import { RedisCacheService, TrainingCacheKey } from '@app/infrastructure/redis'
 
 @Injectable()
 export class TrainingService {
-
   constructor(
     @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
     private readonly databaseService: DatabaseService,
@@ -23,33 +16,8 @@ export class TrainingService {
     private readonly redisCacheService: RedisCacheService,
   ) {}
 
-  async addTrainingsForActiveGroups() {
-    const studios = await this.studioService.getAllStudiosWithActiveGroups({ allowTrainingInsertCron: true })
-    const interval = this.dateTimeService.getNextMonthDateInterval()
-    let trainingsToInsert: TrainingInsertModel[] = []
-
-    studios.forEach((studio) => {
-      studio.groups.forEach((group) => {
-        group.groupSchedules.forEach((schedule) => {
-          const trainingDates = this.dateTimeService.getEachDayOfIntervalForDayIndex(interval, schedule.groupScheduleDays.dayIndex)
-          trainingsToInsert = [
-            ...trainingsToInsert,
-            ...this.generateTrainingsRecords(trainingDates, group.id, schedule, group.staffMemberId),
-          ]
-        })
-      })
-    })
-
-    const result = await this.databaseService.drizzle
-      .insert(training)
-      .values(trainingsToInsert)
-      .onConflictDoNothing({ target: [training.date, training.groupId] })
-      .returning()
-    return result
-  }
-
   async getTrainingsListForSchedule(options: { groupId: string; clientId?: string; userId: string; role: UserProfileRoleEnum }) {
-    const { groupId, clientId, userId, role } = options
+    const { groupId, clientId, userId } = options
     const cacheKey = TrainingCacheKey.trainingsForSchedule(groupId, userId)
 
     const cachedTrainings = await this.redisCacheService.get<typeof trainings>(cacheKey)
@@ -57,11 +25,9 @@ export class TrainingService {
       return cachedTrainings
     }
 
-    let pass: PassSelectModel | null = null
-
-    if (role === UserProfileRoleEnum.CLIENT) {
-      console.log('RENDERS PASS')
-      pass = await this.passService.findActivePassByClientId(clientId)
+    const pass = await this.passService.findActivePassByClientId(clientId)
+    if (!pass) {
+      return []
     }
 
     const trainings = await this.databaseService.drizzle.query.training.findMany({
@@ -69,13 +35,14 @@ export class TrainingService {
         and(
           eq(training.groupId, groupId),
           eq(training.isCancelled, false),
-          gte(training.date, this.dateTimeService.formatDate({ dateFormat: DATE_FORMAT.DB })),
-          // lte(training.date, pass ? pass.endDate : ), // finish add 1 week for guest
+          gte(training.date, new Date().toISOString()),
+          lte(training.date, pass.endDate),
         ),
       with: {
         group: true,
         groupSchedule: true,
       },
+      orderBy: (training, { asc }) => asc(training.date),
     })
 
     if (trainings) {
@@ -112,6 +79,31 @@ export class TrainingService {
     return training
   }
 
+  async addTrainingsForActiveGroups() {
+    const studios = await this.studioService.getAllStudiosWithActiveGroups({ allowTrainingInsertCron: true })
+    const interval = this.dateTimeService.getNextMonthDateInterval()
+    let trainingsToInsert: TrainingInsertModel[] = []
+
+    studios.forEach((studio) => {
+      studio.groups.forEach((group) => {
+        group.groupSchedules.forEach((schedule) => {
+          const trainingDates = this.dateTimeService.getEachDayOfIntervalForDayIndex(interval, schedule.groupScheduleDays.dayIndex)
+          trainingsToInsert = [
+            ...trainingsToInsert,
+            ...this.generateTrainingsRecords(trainingDates, group.id, schedule, group.staffMemberId),
+          ]
+        })
+      })
+    })
+
+    const result = await this.databaseService.drizzle
+      .insert(training)
+      .values(trainingsToInsert)
+      .onConflictDoNothing({ target: [training.date, training.groupId] })
+      .returning()
+    return result
+  }
+
   private generateTrainingsRecords(
     trainingDates: Date[],
     groupId: string,
@@ -122,7 +114,7 @@ export class TrainingService {
 
     trainingDates.forEach((date) => {
       const trainingRecord = {
-        date: this.dateTimeService.toISOStringWithTz(this.dateTimeService.addTimeToDate(date, schedule.time)),
+        date: this.dateTimeService.getUtcStringTz(this.dateTimeService.addTimeToDate(date, schedule.time)),
         groupId: groupId,
         groupScheduleId: schedule.id,
         trainerId: trainerId,

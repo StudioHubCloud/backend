@@ -183,6 +183,13 @@
       "when": 1747524845338,
       "tag": "0025_add-trial-status-to-training-schedule",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1747619963626,
+      "tag": "0026_change-training-type",
+      "breakpoints": true
     }
   ]
 }

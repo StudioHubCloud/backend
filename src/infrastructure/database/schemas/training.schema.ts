@@ -9,7 +9,7 @@ export const training = table(
   'training',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    date: timestamp('date', { mode: 'string' }).notNull(),
+    date: timestamp('date', { mode: 'string', withTimezone: true }).notNull(),
     isCancelled: boolean('is_cancelled').notNull().default(false),
     groupId: uuid('group_id')
       .references(() => group.id, { onDelete: 'cascade' })

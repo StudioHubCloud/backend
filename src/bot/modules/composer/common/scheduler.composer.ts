@@ -6,6 +6,9 @@ import { API, CALLBACK_PREFIX } from '@app/libs'
 import { GroupSelectMenu, TrainingSelectMenu } from '@app/bot/modules/inline-menu'
 import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
+import { GroupAgeRestrictionService } from '@app/domain/group-age-restriction'
+import { GroupService } from '@app/domain/group'
+import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 @Injectable()
 export class SchedulerComposer {
@@ -15,6 +18,7 @@ export class SchedulerComposer {
     private readonly groupSelectMenu: GroupSelectMenu,
     private readonly trainingSelectMenu: TrainingSelectMenu,
     private readonly trainingSignupService: TrainingSignupService,
+    private readonly groupService: GroupService
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -59,6 +63,11 @@ export class SchedulerComposer {
   private handleGroupSelect = async (ctx: BotContext, groupId: string) => {
     ctx.answerCbQuery()
     const { id, client, role } = UserHelper.getUser(ctx)
+    const group = await this.groupService.getGroupById(groupId)
+    await ctx.reply(`Ви обрали групу: ${group.name}`)
+    if (group.groupAgeRestrictions) {
+      await ctx.reply(MessageHelper.getAgeRestrictionMessage(group.groupAgeRestrictions.minAge, group.groupAgeRestrictions.maxAge))
+    }
     return this.trainingSelectMenu.initMenu(ctx, { groupId, clientId: client?.id, userId: id, role })
   }
 
@@ -79,17 +88,17 @@ export class SchedulerComposer {
       if (response.status === API.RESPONSE.ERROR_STRING) {
         return ctx.answerCbQuery(response.message, { show_alert: true })
       }
-      ctx.answerCbQuery()
 
       switch (response.availableSlots) {
         case 1:
-          return ctx.reply(
+          return ctx.answerCbQuery(
             'Вітаю, запис успішний!🤗\n\nУ Вас залишився 1 доступний запис на тренування в межах даного абонемента🛎',
           )
         default:
-          return ctx.reply(response.message)
+          return ctx.answerCbQuery(response.message)
       }
     } else {
+      ctx.answerCbQuery()
     }
   }
 }
