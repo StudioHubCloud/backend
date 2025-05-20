@@ -1,9 +1,7 @@
 import { Injectable } from '@nestjs/common'
-import { deunionize } from 'telegraf'
 import { PinoLogger } from 'nestjs-pino'
-import { validate } from 'uuid'
 
-import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
+import { UserHelper } from '@app/bot/helpers'
 import { BotContext } from '@app/bot/bot.context'
 import { StudioService } from '@app/domain/studio'
 import { UserProfileService } from '@app/domain/user-profile'
@@ -93,5 +91,4 @@ export class MiddlewareService {
     UserHelper.setUser(ctx, { ...createdUser, client: null })
     return await next()
   }
-
 }

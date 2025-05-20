@@ -12,14 +12,19 @@ import { GuardComposer } from './common/guard.composer'
 @Injectable()
 export class ComposerService {
   private readonly roleComposerMap: Record<UserProfileRoleEnum, MiddlewareFn<BotContext>>
+  private readonly guardComposerMiddleware: MiddlewareFn<BotContext>
 
   constructor(
     private readonly guestRootComposer: GuestRootComposer,
     private readonly clientRootComposer: ClientRootComposer,
     private readonly staffRootComposer: StaffRootComposer,
-    private readonly guardConposer: GuardComposer,
+    private readonly guardComposer: GuardComposer,
     private readonly logger: PinoLogger,
   ) {
+    this.logger.setContext(ComposerService.name)
+    
+    this.guardComposerMiddleware = this.guardComposer.middleware()
+
     this.roleComposerMap = {
       guest: this.guestRootComposer.middleware(),
       client: this.clientRootComposer.middleware(),
@@ -47,6 +52,6 @@ export class ComposerService {
   }
 
   useGuardComposer = (ctx: BotContext, next: TNextFunction) => {
-    return this.guardConposer.middleware()(ctx, next)
+    return this.guardComposerMiddleware(ctx, next)
   }
 }
