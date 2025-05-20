@@ -33,7 +33,8 @@ export class BotService {
 
     this.bot.use(this.stageService.stage.middleware()) 
 
-    this.bot.use(this.composerService.initRootComposerMiddleware)
+    this.bot.use(this.composerService.useGuardComposer)
+    this.bot.use(this.composerService.useRootComposer)
 
     this.initExitGuard()
 
@@ -49,7 +50,6 @@ export class BotService {
     this.bot.use(this.middlewareService.timerMiddleware)
     this.bot.use(this.middlewareService.loggingMiddleware)
     this.bot.use(this.middlewareService.authMiddleware)
-    this.bot.use(this.middlewareService.newUserRegistrationMiddleware)
   }
 
   private initExitGuard() {

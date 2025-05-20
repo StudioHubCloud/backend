@@ -7,8 +7,9 @@ export const PATTERNS_COMMON = {
   EXIT: '🚪 Вийти',
   START: '🏠 Головне меню',
   RULES: '‼️ПРАВИЛА ТА УМОВИ‼️',
-  REGISTER_AS_GUEST: '👤 Зареєструватись як гість',
-  REGISTER_AS_CLIENT: '👤 Зареєструватись як клієнт',
+  REGISTER_AS_GUEST: '👤 Продовжити як гість',
+  REGISTER_AS_CLIENT: '🧚‍♀️ Зареєструватись як клієнт',
+  REGISTER_AS_TRAINER: '👨‍🏫 Зареєструватись як тренер',
   SCHEDULE: '📝 Записатись на тренування',
 } as const
 

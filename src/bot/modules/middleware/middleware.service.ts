@@ -3,18 +3,20 @@ import { deunionize } from 'telegraf'
 import { PinoLogger } from 'nestjs-pino'
 import { validate } from 'uuid'
 
-import { UserHelper } from '@app/bot/helpers'
+import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
 import { BotContext } from '@app/bot/bot.context'
 import { StudioService } from '@app/domain/studio'
 import { UserProfileService } from '@app/domain/user-profile'
 import { type TNextFunction, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { BotHelper } from '@app/bot/helpers/bot.helper'
+import { TypedConfigService } from '@app/infrastructure/config'
 
 @Injectable()
 export class MiddlewareService {
   constructor(
     private readonly logger: PinoLogger,
     private readonly studioService: StudioService,
+    private readonly configService: TypedConfigService,
     private readonly userProfileService: UserProfileService,
   ) {
     this.logger.setContext(MiddlewareService.name)
@@ -57,35 +59,15 @@ export class MiddlewareService {
 
     const user = await this.userProfileService.findTelegramAuthenticatedUser(from.id.toString())
 
-    //@ts-ignore
     UserHelper.setUser(ctx, user)
-
-    await next()
-  }
-
-  newUserRegistrationMiddleware = async (ctx: BotContext, next: TNextFunction) => {
-    const user = UserHelper.getUserUnsafe(ctx)
 
     if (user) {
       return await next()
     }
 
-    const from = BotHelper.getFrom(ctx)
-
-    if (!from || from.is_bot) {
-      this.logger.error('Unsupported update type or bot detected')
-      return ctx.reply('Unsupported update type')
-    }
-
     const { first_name, last_name, id } = from
 
-    const payload = deunionize(ctx.message)?.text?.split(' ')[1]
-    const [role, studioId] = payload ? payload.split('_') : []
-
-    if (!studioId || !validate(studioId)) {
-      this.logger.error('Invalid or absent invite link')
-      return ctx.reply('Invalid or absent invite link')
-    }
+    const studioId = this.configService.get('STUDIO_ID')
 
     const studio = await this.studioService.getStudioById(studioId)
 
@@ -94,12 +76,12 @@ export class MiddlewareService {
       return ctx.reply('Invalid invite link')
     }
 
-    const [createdUser] = await this.userProfileService.createUserProfile({
+    const createdUser = await this.userProfileService.createUserProfile({
       telegramId: id.toString(),
       firstName: first_name,
       lastName: last_name,
       fullName: `${first_name}${last_name ? ` ${last_name}` : ''}`,
-      role: (role as UserProfileRoleEnum) ?? UserProfileRoleEnum.GUEST,
+      role: UserProfileRoleEnum.GUEST,
       status: UserProfileStatusEnum.UNVERIVIED,
       studioId,
     })
@@ -108,7 +90,8 @@ export class MiddlewareService {
       this.logger.error('Failed to create user profile')
       return ctx.reply('Failed to create user profile')
     }
-    UserHelper.setUser(ctx, {...createdUser, client: null})
-    await next()
+    UserHelper.setUser(ctx, { ...createdUser, client: null })
+    return await next()
   }
+
 }

@@ -146,18 +146,6 @@ export class KeyboardHelper {
     return KeyboardsMap[role]
   }
 
-  static getRoleBasedRegisterRequestKeyboard(role: UserProfileRoleEnum, options: { completed?: boolean } = {}) {
-    const { completed } = options
-
-    const KeyboardsMap = {
-      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.registerAsClient(),
-      [UserProfileRoleEnum.GUEST]: completed ? GuestKeyboards.mainMenu() : GuestKeyboards.registerAsGuest(),
-      //,
-      [UserProfileRoleEnum.TRAINER]: GuestKeyboards.mainMenu(),
-    }
-    return KeyboardsMap[role]
-  }
-
   private static isObject(value: any): value is object {
     return typeof value === 'object' && value !== null
   }

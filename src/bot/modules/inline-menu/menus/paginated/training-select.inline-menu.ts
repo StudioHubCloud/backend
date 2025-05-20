@@ -1,11 +1,11 @@
 import { Injectable } from '@nestjs/common'
 import { TrainingService } from '@app/domain/training'
 import { DATE_FORMAT, TNormalizedOption, UserProfileRoleEnum } from '@app/libs'
-import { BaseSelectInlineMenu } from './base.inline-menu'
+import { BaseSelectInlineMenu } from './base.paginated-menu'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 
 @Injectable()
-export class TrainingSelectMenu extends BaseSelectInlineMenu<{ groupId: string; userId: string, clientId?: string, role: UserProfileRoleEnum }> {
+export class TrainingSelectInlineMenu extends BaseSelectInlineMenu<{ groupId: string; userId: string, clientId?: string, role: UserProfileRoleEnum }> {
   constructor(
     private readonly trainingService: TrainingService,
     @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,

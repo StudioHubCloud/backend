@@ -77,8 +77,13 @@ export class UserProfileService {
   }
 
   async createUserProfile(data: UserProfileInsertModel, tx?: Transaction) {
+    const cacheKey = UserProfileCacheKey.telegramAuthUser(this.studioId, data.telegramId)
     const dbProvider = tx || this.databaseService.drizzle
-    return dbProvider.insert(userProfile).values(data).returning()
+    const [createdUser] = await dbProvider.insert(userProfile).values(data).returning()
+    if (createdUser) {
+      this.redisCacheService.set(cacheKey, createdUser)
+    }
+    return createdUser
   }
 
   async updateUserProfile(id: string, data: Partial<UserProfileInsertModel>, tx?: Transaction) {

@@ -13,6 +13,7 @@ import { RedisCacheService } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { REGISTER_SCENE_CURSOR_MAP, REGISTER_SCENE_NAVIGATION_MAP } from './register.navigation-map'
 import { IRegisterSceneState, RegisterSceneHelpers } from './register.scene-helpers'
+import { KEYBARODS_COMMON, KEYBOARDS_GUEST } from '@app/bot/static/keyboards'
 
 @Injectable()
 export class RegisterScene extends Scenes.WizardScene<BotContext> {
@@ -41,10 +42,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     })
 
     this.hears(PATTERNS_COMMON.EXIT, async (ctx) => {
-      ctx.replyWithHTML(
-        MESSAGES_SCENE.REGISTER.EXIT,
-        KeyboardHelper.getRoleBasedRegisterRequestKeyboard(this.USER_ROLE, { completed: false }),
-      )
+      ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.EXIT, KeyboardHelper.createReplyMarkupKeyboard(KEYBARODS_COMMON.REGISTER_AS))
       return ctx.scene.leave()
     })
   }
@@ -167,13 +165,14 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
         },
       )
     }
+    const keyboard = isGuest
+      ? KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_GUEST.MAIN_MENU)
+      : KeyboardHelper.createReplyMarkupKeyboard(KEYBARODS_COMMON.REGISTER_AS)
+
     await Promise.all([
       this.redisCacheService.reset(),
-      ctx.replyWithHTML(
-        MESSAGES_SCENE.REGISTER[isGuest ? 'COMPLETE_GUEST' : 'COMPLETE'],
-        KeyboardHelper.getRoleBasedRegisterRequestKeyboard(role, { completed: true }),
-      ),
-      !isGuest ? sendMessageToAdmin(): null,
+      ctx.replyWithHTML(MESSAGES_SCENE.REGISTER[isGuest ? 'COMPLETE_GUEST' : 'COMPLETE'], keyboard),
+      !isGuest ? sendMessageToAdmin() : null,
     ])
 
     return ctx.scene.leave()

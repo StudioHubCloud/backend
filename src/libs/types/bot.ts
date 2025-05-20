@@ -8,7 +8,7 @@ export type TBotStore = {
 }
 
 export type AuthUserProfile = UserProfileSelectModel & {
-  client: (ClientSelectModel & { pass: { id: string; groupId: string } | null }) | null
+  client: (ClientSelectModel & { pass: { id: string; groupId: string | null } | null }) | null
 }
 
 export type TNextFunction = () => Promise<void>

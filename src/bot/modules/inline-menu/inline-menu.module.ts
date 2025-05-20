@@ -1,22 +1,23 @@
-import {  Module } from '@nestjs/common'
-import { GroupSelectMenu } from './menus/group-select.menu'
-import { TrainingSelectMenu } from './menus/training-select.menu'
-import { ActiveSchedulesMenu } from './menus/active-schedules.menu'
+import { Module } from '@nestjs/common'
+
+import { ActiveSchedulesInlineMenu } from './menus/active-schedules.inline-menu'
 import { GroupModule, TrainingModule, TrainingSignupModule } from '@app/domain'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
+import { GroupSelectInlineMenu } from './menus/paginated/group-select.inline-menu'
+import { TrainingSelectInlineMenu } from './menus/paginated/training-select.inline-menu'
 
 @Module({
   imports: [GroupModule, TrainingModule, TrainingSignupModule],
   providers: [
-    GroupSelectMenu,
-    ActiveSchedulesMenu,
-    TrainingSelectMenu,
+    GroupSelectInlineMenu,
+    ActiveSchedulesInlineMenu,
+    TrainingSelectInlineMenu,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,
     },
   ],
-  exports: [GroupSelectMenu, TrainingSelectMenu, ActiveSchedulesMenu],
+  exports: [GroupSelectInlineMenu, TrainingSelectInlineMenu, ActiveSchedulesInlineMenu],
 })
 export class InlineMenuModule {}

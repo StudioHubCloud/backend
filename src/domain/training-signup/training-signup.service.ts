@@ -190,11 +190,11 @@ export class TrainingSignupService {
       },
     })
 
-    console.log(signup, 'signup')
 
     if (!signup) {
       return { status: API.RESPONSE.ERROR_STRING, message: 'Запис не знайдено' }
     }
+    
     if (signup.status !== TrainingSignupStatusEnum.ACTIVE) {
       return { status: API.RESPONSE.ERROR_STRING, message: 'Запис не активний' }
     }

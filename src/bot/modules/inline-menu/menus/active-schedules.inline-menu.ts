@@ -7,7 +7,7 @@ import { format } from 'date-fns'
 import { Composer } from 'telegraf'
 
 @Injectable()
-export class ActiveSchedulesMenu {
+export class ActiveSchedulesInlineMenu {
   protected readonly composer = new Composer<BotContext>()
 
   constructor(private readonly trainingSignupService: TrainingSignupService) {
@@ -27,7 +27,7 @@ export class ActiveSchedulesMenu {
 
     const keyboard = activeSignups.map((signup) => [
       {
-        text: `➖ ${signup.group.groupStyle.title} (${format(signup.training.date, 'dd.MM.yyyy hh:mm')})`,
+        text: `➖ ${signup.group.groupStyle.title} (${format(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
         callback_data: `sign-out:${signup.id}`,
       },
     ])
@@ -58,7 +58,7 @@ export class ActiveSchedulesMenu {
 
       const keyboard = activeSignups.map((signup) => [
         {
-          text: `➖ ${signup.group.groupStyle.title} (${format(signup.training.date, 'dd.MM.yyyy hh:mm')})`,
+          text: `➖ ${signup.group.groupStyle.title} (${format(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
           callback_data: `sign-out:${signup.id}`,
         },
       ])

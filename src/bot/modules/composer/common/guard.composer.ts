@@ -1,5 +1,5 @@
 import { BotContext } from '@app/bot/bot.context'
-import { UnverifiedGuard } from '@app/bot/guards'
+import { IsBlockedGuard, UnverifiedGuard } from '@app/bot/guards'
 import { UserHelper } from '@app/bot/helpers'
 import { PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { SCENES, TNextFunction } from '@app/libs'
@@ -12,13 +12,16 @@ export class GuardComposer {
   constructor() {
     this.composer = new Composer<BotContext>()
 
-    this.initPublicListeners()
+    this.composer.use(IsBlockedGuard)
+
+    this.initUnverifiedListeners()
+
     this.composer.use(UnverifiedGuard)
   }
 
-  private initPublicListeners() {
+  private initUnverifiedListeners() {
 
-    this.composer.hears([PATTERNS_COMMON.REGISTER_AS_CLIENT, PATTERNS_COMMON.REGISTER_AS_GUEST], async (ctx: BotContext, next: TNextFunction) => {
+    this.composer.hears([PATTERNS_COMMON.REGISTER_AS_CLIENT, PATTERNS_COMMON.REGISTER_AS_GUEST, PATTERNS_COMMON.REGISTER_AS_TRAINER], async (ctx: BotContext, next: TNextFunction) => {
       const isUnverified = UserHelper.isUnverifiedStatus(ctx)
       if (!isUnverified) {
         return await next()

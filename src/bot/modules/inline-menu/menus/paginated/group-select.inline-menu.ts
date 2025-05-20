@@ -2,11 +2,10 @@ import { Injectable } from '@nestjs/common'
 import { KeyboardHelper } from '@app/bot/helpers'
 import { GroupService } from '@app/domain/group'
 import { TNormalizedOption } from '@app/libs'
-import { BaseSelectInlineMenu } from './base.inline-menu'
-import { BotContext } from '@app/bot/bot.context'
+import { BaseSelectInlineMenu } from './base.paginated-menu'
 
 @Injectable()
-export class GroupSelectMenu extends BaseSelectInlineMenu<{}> {
+export class GroupSelectInlineMenu extends BaseSelectInlineMenu<{}> {
   constructor(private readonly groupService: GroupService) {
     super()
   }

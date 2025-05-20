@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { PATTERNS_CLIENT, PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { API, CALLBACK_PREFIX } from '@app/libs'
-import { ActiveSchedulesMenu, GroupSelectMenu, TrainingSelectMenu } from '@app/bot/modules/inline-menu'
+import { TrainingSelectInlineMenu, GroupSelectInlineMenu, ActiveSchedulesInlineMenu } from '@app/bot/modules/inline-menu'
 import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
@@ -14,10 +14,10 @@ export class SchedulerComposer {
   private readonly composer: Composer<BotContext>
 
   constructor(
-    private readonly groupSelectMenu: GroupSelectMenu,
-    private readonly trainingSelectMenu: TrainingSelectMenu,
+    private readonly groupSelectMenu: GroupSelectInlineMenu,
+    private readonly trainingSelectMenu: TrainingSelectInlineMenu,
     private readonly trainingSignupService: TrainingSignupService,
-    private readonly activeSchedulesMenu: ActiveSchedulesMenu,
+    private readonly activeSchedulesMenu: ActiveSchedulesInlineMenu,
     private readonly groupService: GroupService,
   ) {
     this.composer = new Composer<BotContext>()
@@ -58,7 +58,7 @@ export class SchedulerComposer {
   }
 
   private activeSchedulesHandler = async (ctx: BotContext) => {
-   this.activeSchedulesMenu.initMenu(ctx)
+    this.activeSchedulesMenu.initMenu(ctx)
   }
 
   private handleGroupSelect = async (ctx: BotContext, groupId: string) => {

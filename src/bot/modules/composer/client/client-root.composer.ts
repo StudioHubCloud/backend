@@ -1,7 +1,6 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { GuardComposer } from '../common/guard.composer'
 import { SchedulerComposer } from '../common/scheduler.composer'
 import { PATTERNS_CLIENT, PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { RULES } from '@app/bot/static/messages'
@@ -17,12 +16,10 @@ export class ClientRootComposer {
     private readonly logger: PinoLogger,
     private readonly schedulerComposer: SchedulerComposer,
     private readonly passInfoComposer: PassInfoComposer,
-    private readonly guardComposer: GuardComposer
   ) {
     this.composer = new Composer<BotContext>()
     this.logger.setContext(ClientRootComposer.name)
 
-    this.composer.use(this.guardComposer.middleware())
     
     this.initComposerHandlers()
     this.initExternalComposers()
