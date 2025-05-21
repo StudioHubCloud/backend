@@ -13,6 +13,7 @@ import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
 import { PinoLogger } from 'nestjs-pino'
 import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
+import { eq } from 'drizzle-orm'
 
 @Injectable()
 export class TrainingSignupService {
@@ -135,7 +136,10 @@ export class TrainingSignupService {
         ])
       })
 
-      this.redisCacheService.delete(TrainingSignupCacheKey.clientSignupsInGroup(userProfileId, training.groupId))
+      await Promise.all([
+        this.redisCacheService.delete(TrainingSignupCacheKey.clientSignupsInGroup(userProfileId, training.groupId)),
+        this.redisCacheService.delete(TrainingSignupCacheKey.clientSignups(userProfileId)),
+      ])
 
       return {
         status: API.RESPONSE.SUCCESS_STRING,
@@ -165,7 +169,58 @@ export class TrainingSignupService {
     return { status: API.RESPONSE.SUCCESS_STRING, message: 'Запис успішний' }
   }
 
-  async checkIfHasTrialSignup(userProfileId: string): Promise<boolean> {
+  async signOutFromTrainingAsClientViaTelegram(trainingSignupId: string): Promise<TCustomApiResponse> {
+    try {
+      const signup = await this.databaseService.drizzle.query.trainingSignup.findFirst({
+        where: (ts, { eq }) => eq(ts.id, trainingSignupId),
+        with: {
+          training: true,
+          user_profile: true,
+          pass: true,
+          group: {
+            columns: {
+              id: true,
+            },
+          },
+        },
+      })
+
+      if (!signup) {
+        return { status: API.RESPONSE.ERROR_STRING, message: 'Запис не знайдено' }
+      }
+
+      if (signup.status !== TrainingSignupStatusEnum.ACTIVE) {
+        return { status: API.RESPONSE.ERROR_STRING, message: 'Запис не активний' }
+      }
+      if (signup.type === TrainingSignupTypeEnum.TRIAL || !signup.pass) {
+        return { status: API.RESPONSE.ERROR_STRING, message: 'Виписка з пробного запису недоступна' }
+      }
+
+      await this.databaseService.drizzle.transaction(async (tx) => {
+        return Promise.all([
+          this.passService.updatePass(signup.pass!.id, { availableSlots: signup.pass!.availableSlots + 1 }, tx),
+          this.signOutFromTraining({ id: signup.id }, tx),
+        ])
+      })
+
+      if (signup.userProfileId) {
+        await Promise.all([
+          this.redisCacheService.delete(TrainingSignupCacheKey.clientSignupsInGroup(signup.userProfileId, signup.groupId)),
+          this.redisCacheService.delete(TrainingSignupCacheKey.clientSignups(signup.userProfileId)),
+        ])
+      }
+
+      return { status: API.RESPONSE.SUCCESS_STRING, message: 'Виписка з тренування успішна' }
+    } catch (error) {
+      this.logger.error(`Error signing out from training %s: %j`, trainingSignupId, error.stack)
+      return {
+        status: API.RESPONSE.ERROR_STRING,
+        message: 'Виникла помилка при виписці з тренування 😔',
+      }
+    }
+  }
+
+  private async checkIfHasTrialSignup(userProfileId: string): Promise<boolean> {
     const [signups] = await this.findTrainingSignupsByCondition({
       userProfileId,
       status: TrainingSignupStatusEnum.ACTIVE,
@@ -173,50 +228,6 @@ export class TrainingSignupService {
     })
 
     return !!signups
-  }
-
-  async signOutFromTrainingAsClientViaTelegram(trainingSignupId: string): Promise<TCustomApiResponse> {
-    const signup = await this.databaseService.drizzle.query.trainingSignup.findFirst({
-      where: (ts, { eq }) => eq(ts.id, trainingSignupId),
-      with: {
-        training: true,
-        user_profile: true,
-        pass: true,
-        group: {
-          columns: {
-            id: true,
-          }
-        }
-      },
-    })
-
-
-    if (!signup) {
-      return { status: API.RESPONSE.ERROR_STRING, message: 'Запис не знайдено' }
-    }
-    
-    if (signup.status !== TrainingSignupStatusEnum.ACTIVE) {
-      return { status: API.RESPONSE.ERROR_STRING, message: 'Запис не активний' }
-    }
-    if (signup.type === TrainingSignupTypeEnum.TRIAL || !signup.pass) {
-      return { status: API.RESPONSE.ERROR_STRING, message: 'Виписка з пробного запису недоступна' }
-    }
-
-    // const [updatedPass] = await this.databaseService.drizzle.transaction(async (tx) => {
-    //     return Promise.all([
-    //       this.passService.updatePass(signup.pass.id, { availableSlots: signup.pass.availableSlots + 1 }, tx),
-    //       this.signUpForTraining(
-    //         {
-    //           ...values,
-    //           groupId: signup.group.id,
-    //           type: TrainingSignupTypeEnum.MAIN,
-    //         },
-    //         tx,
-    //       ),
-    //     ])
-    //   })
-
-    return { status: API.RESPONSE.SUCCESS_STRING, message: 'Виписка з тренування успішна' }
   }
 
   private async checkIfAlreadySignedUpForTraining(userProfileId: string, trainingId: string) {
@@ -243,5 +254,10 @@ export class TrainingSignupService {
       .insert(trainingSignup)
       .values({ ...values, status: TrainingSignupStatusEnum.ACTIVE })
       .returning()
+  }
+
+  private async signOutFromTraining(values: { id: string }, tx?: Transaction) {
+    const dbProvider = tx || this.databaseService.drizzle
+    return dbProvider.delete(trainingSignup).where(eq(trainingSignup.id, values.id)).returning()
   }
 }

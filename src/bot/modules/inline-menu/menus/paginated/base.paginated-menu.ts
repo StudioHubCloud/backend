@@ -33,6 +33,10 @@ export abstract class BaseSelectInlineMenu<T extends Record<string, any>> {
       prefix: this.config.callbackPrefix,
     })
 
+    if (!this.options.length) {
+      return ctx.reply(this.config.noOptionsMessage || 'No options available')
+    }
+
     return ctx.reply(this.config.promptMessage || 'Choose an item:', { reply_markup: menu })
   }
 

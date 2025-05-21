@@ -27,24 +27,14 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
         cursor: REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER,
         message: MESSAGES_SCENE.REGISTER.PROVIDE_PHONE,
         keyboard: CommonSceneKeyboards.backWithExit(),
-      },
-      prev: {
-        cursor: REGISTER_SCENE_CURSOR_MAP.ENTER_HANDLER,
-        message: MESSAGES_SCENE.REGISTER.PROVIDE_NAME,
-        keyboard: CommonSceneKeyboards.exit(),
-      },
+      }
     },
     [UserProfileRoleEnum.GUEST]: {
       next: {
         cursor: REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER,
         message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,
         keyboard: CommonSceneKeyboards.backWithExit(),
-      },
-      prev: {
-        cursor: REGISTER_SCENE_CURSOR_MAP.ENTER_HANDLER,
-        message: MESSAGES_SCENE.REGISTER.PROVIDE_NAME,
-        keyboard: CommonSceneKeyboards.exit(),
-      },
+      }
     },
   },
   [REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER]: {
@@ -56,8 +46,8 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER,
-        message: MESSAGES_SCENE.REGISTER.PROVIDE_PHONE,
-        keyboard: CommonSceneKeyboards.backWithExit(),
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_NAME,
+        keyboard: CommonSceneKeyboards.exit(),
       },
     },
     [UserProfileRoleEnum.TRAINER]: {
@@ -68,8 +58,8 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER,
-        message: MESSAGES_SCENE.REGISTER.PROVIDE_PHONE,
-        keyboard: CommonSceneKeyboards.backWithExit(),
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_NAME,
+        keyboard: CommonSceneKeyboards.exit(),
       },
     },
   },
@@ -82,7 +72,7 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER,
-        message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_PHONE,
         keyboard: CommonSceneKeyboards.backWithExit(),
       },
     },
@@ -94,8 +84,8 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER,
-        message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,
-        keyboard: CommonSceneKeyboards.backWithExit(),
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_NAME,
+        keyboard: CommonSceneKeyboards.exit(),
       },
     },
   },
@@ -103,8 +93,15 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
     default: {
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER,
-        message: ({ data, role }) => RegisterSceneHelpers.prepareInfoText(data, { role }),
-        keyboard: CommonSceneKeyboards.confirm(),
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,
+        keyboard: CommonSceneKeyboards.backWithExit(),
+      },
+    },
+    [UserProfileRoleEnum.TRAINER]: {
+      prev: {
+        cursor: REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER,
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_PHONE,
+        keyboard: CommonSceneKeyboards.backWithExit(),
       },
     },
   },

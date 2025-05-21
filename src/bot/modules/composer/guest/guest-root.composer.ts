@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardHelper } from '@app/bot/helpers'
+import { GuestKeyboards } from '../../keyboard/storage'
 
 @Injectable()
 export class GuestRootComposer {
@@ -11,7 +11,7 @@ export class GuestRootComposer {
     this.composer = new Composer<BotContext>()
 
     this.composer.start(async (ctx) => {
-      return ctx.reply('Welcome from Guest!', KeyboardHelper.removeReplyMarkupKeyboard())
+      return ctx.reply('Welcome from Guest!', GuestKeyboards.mainMenu())
     })
   }
 

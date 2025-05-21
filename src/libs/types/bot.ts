@@ -47,4 +47,5 @@ export interface ISelectInlineMenuConfig<T> {
   callbackPrefix: string
   onItemSelect: (ctx: T, itemId: string) => any
   promptMessage?: string
+  noOptionsMessage?: string
 }

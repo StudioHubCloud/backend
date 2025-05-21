@@ -40,12 +40,14 @@ export class SchedulerComposer {
     this.groupSelectMenu.configure({
       callbackPrefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT,
       promptMessage: 'Виберіть групу:',
+      noOptionsMessage: 'На жаль, немає доступних груп для запису.',
       onItemSelect: this.handleGroupSelect,
     })
 
     this.trainingSelectMenu.configure({
       callbackPrefix: CALLBACK_PREFIX.CLEINT_TRAINING_SELECT,
       promptMessage: 'Виберіть тренування:',
+      noOptionsMessage: 'В межах Вашого абонементу немає доступних тренувань для запису в цій групі.',
       onItemSelect: this.handleTrainingSelect,
     })
     this.composer.use(this.groupSelectMenu.middleware())

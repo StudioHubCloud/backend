@@ -41,12 +41,16 @@ export class ActiveSchedulesInlineMenu {
 
   private initMenuActions() {
     const regexp = new RegExp(`^sign-out:(.*)$`)
+
     this.composer.action(regexp, async (ctx) => {
       const signupId = ctx.match[1]
       const { id } = UserHelper.getUser(ctx)
 
       const response = await this.trainingSignupService.signOutFromTrainingAsClientViaTelegram(signupId)
+      console.log(response, 'response')
+      
       const activeSignups = await this.trainingSignupService.getClientSignups(id)
+      console.log('activeSignups', activeSignups)
 
       if (response.status === API.RESPONSE.ERROR_STRING) {
         return ctx.answerCbQuery(response.message, { show_alert: true })
@@ -62,11 +66,6 @@ export class ActiveSchedulesInlineMenu {
           callback_data: `sign-out:${signup.id}`,
         },
       ])
-      ctx.editMessageText('Ваші активні записи:', {
-        reply_markup: {
-          inline_keyboard: keyboard,
-        },
-      })
       await ctx.answerCbQuery(response.message, { show_alert: true })
       return ctx.editMessageText('Ваші активні записи:', {
         reply_markup: {
