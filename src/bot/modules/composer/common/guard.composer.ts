@@ -3,8 +3,9 @@ import { Composer } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
 import { IsBlockedGuard, UnverifiedGuard } from '@app/bot/guards'
 import { UserHelper } from '@app/bot/helpers'
+import { SCENES, TNextFunction } from '@app/bot/libs'
 import { PATTERNS_COMMON } from '@app/bot/static/patterns'
-import { SCENES, TNextFunction, UserProfileRoleEnum } from '@app/libs'
+import { UserProfileRoleEnum } from '@app/libs'
 
 @Injectable()
 export class GuardComposer {

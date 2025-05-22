@@ -1,6 +1,6 @@
-import { ClientSelectModel, PassSelectModel, StudioSelectModel, UserProfileSelectModel } from '@app/infrastructure/database/models'
+import { ClientSelectModel, StudioSelectModel, UserProfileSelectModel } from '@app/infrastructure/database/models'
+import { UserProfileRoleEnum } from '@app/libs'
 import { ReplyKeyboardMarkup } from '@telegraf/types'
-import { UserProfileRoleEnum } from '../constants'
 
 export type TBotStore = {
   user: AuthUserProfile | null

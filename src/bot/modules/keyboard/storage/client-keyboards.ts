@@ -1,6 +1,6 @@
 import { KeyboardHelper } from '@app/bot/helpers';
 import { KEYBOARDS_CLIENT } from '@app/bot/static/keyboards';
-import { TReplyMarkupKeyboard } from '@app/libs';
+import { TReplyMarkupKeyboard } from '@app/bot/libs';
 
 export class ClientKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {

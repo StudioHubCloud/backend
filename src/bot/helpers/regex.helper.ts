@@ -1,4 +1,4 @@
-import { CALLBACK_DATA } from '@app/libs'
+import { CALLBACK_DATA } from '@app/bot/libs'
 import { BotContext } from '../bot.context';
 
 export class RegexHelper {

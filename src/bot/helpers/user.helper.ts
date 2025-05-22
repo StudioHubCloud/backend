@@ -1,4 +1,5 @@
-import { AuthUserProfile, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { AuthUserProfile } from '@app/bot/libs'
 import { BotContext } from '../bot.context'
 
 export class UserHelper {

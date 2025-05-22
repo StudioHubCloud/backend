@@ -1,7 +1,8 @@
 import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { CALLBACK_PREFIX, DATE_FORMAT, SCENES, TNextFunction, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { DATE_FORMAT, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { SCENES, CALLBACK_PREFIX, TNextFunction } from '@app/bot/libs'
 import { SceneHelper, BotHelper, UserHelper, KeyboardHelper, TextHelper, RegexHelper } from '@app/bot/helpers'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { SceneNavigation } from '../scene.navigation'
@@ -12,7 +13,7 @@ import { RedisCacheService } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { REGISTER_SCENE_CURSOR_MAP, REGISTER_SCENE_NAVIGATION_MAP } from './register.navigation-map'
 import { IRegisterSceneState, RegisterSceneHelpers } from './register.scene-helpers'
-import { KEYBARODS_COMMON, KEYBOARDS_GUEST } from '@app/bot/static/keyboards'
+import { KEYBARODS_COMMON } from '@app/bot/static/keyboards'
 import { GuestKeyboards } from '@app/bot/modules/keyboard/storage'
 
 @Injectable()

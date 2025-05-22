@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { KeyboardHelper } from '@app/bot/helpers'
 import { GroupService } from '@app/domain/group'
-import { TNormalizedOption } from '@app/libs'
+import { TNormalizedOption } from '@app/bot/libs'
 import { BaseSelectInlineMenu } from './base.paginated-menu'
 
 @Injectable()

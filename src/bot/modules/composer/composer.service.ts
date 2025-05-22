@@ -4,7 +4,8 @@ import { Injectable } from '@nestjs/common'
 import { GuestRootComposer } from './guest/guest-root.composer'
 import { StaffRootComposer } from './staff/staff-root.composer'
 import { ClientRootComposer } from './client/client-root.composer'
-import { TNextFunction, UserProfileRoleEnum } from '@app/libs'
+import { UserProfileRoleEnum } from '@app/libs'
+import { TNextFunction } from '@app/bot/libs'
 import { PinoLogger } from 'nestjs-pino'
 import { UserHelper } from '@app/bot/helpers'
 import { GuardComposer } from './common/guard.composer'
@@ -22,7 +23,7 @@ export class ComposerService {
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(ComposerService.name)
-    
+
     this.guardComposerMiddleware = this.guardComposer.middleware()
 
     this.roleComposerMap = {

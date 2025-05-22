@@ -1,7 +1,7 @@
 import { Composer } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
 import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
-import { ISelectInlineMenuConfig, TNormalizedOption } from '@app/libs'
+import { ISelectInlineMenuConfig, TNormalizedOption } from '@app/bot/libs'
 
 export abstract class BaseSelectInlineMenu<T extends Record<string, any>> {
   protected readonly composer = new Composer<BotContext>()

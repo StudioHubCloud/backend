@@ -1,6 +1,7 @@
 import { CommonSceneKeyboards } from '@app/bot/modules/keyboard/storage'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
-import { ISceneNavigationMap, UserProfileRoleEnum } from '@app/libs'
+import { UserProfileRoleEnum } from '@app/libs'
+import { ISceneNavigationMap } from '@app/bot/libs'
 import { RegisterSceneHelpers } from './register.scene-helpers'
 
 export const REGISTER_SCENE_CURSOR_MAP = {
@@ -27,14 +28,14 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
         cursor: REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER,
         message: MESSAGES_SCENE.REGISTER.PROVIDE_PHONE,
         keyboard: CommonSceneKeyboards.backWithExit(),
-      }
+      },
     },
     [UserProfileRoleEnum.GUEST]: {
       next: {
         cursor: REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER,
         message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,
         keyboard: CommonSceneKeyboards.backWithExit(),
-      }
+      },
     },
   },
   [REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER]: {

@@ -5,7 +5,8 @@ import {
   ReplyKeyboardMarkup,
   ReplyKeyboardRemove,
 } from '@telegraf/types'
-import { AutocompletableString, CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, UserProfileRoleEnum } from '@app/libs'
+import { AutocompletableString, UserProfileRoleEnum } from '@app/libs'
+import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions } from '@app/bot/libs'
 import { ClientKeyboards, GuestKeyboards } from '../modules/keyboard/storage'
 
 export class KeyboardHelper {
