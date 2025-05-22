@@ -1,5 +1,5 @@
 import { BotContext } from '@app/bot/bot.context'
-import { TextHelper, UserHelper } from '@app/bot/helpers'
+import { PassHelper, TextHelper, UserHelper } from '@app/bot/helpers'
 import { PATTERNS_CLIENT } from '@app/bot/static/patterns'
 import { PassService } from '@app/domain/pass'
 import { Injectable } from '@nestjs/common'
@@ -30,15 +30,17 @@ export class PassInfoComposer {
     }
     console.log(pass, 'pass')
 
-    //different text icon and status text
+    const { icon, label } = PassHelper.getPassDisplayStatus(pass.status)
 
-    const text = `${TextHelper.bold('Інформація про абонемент:')}\n
-🟢 ${TextHelper.bold('Статус:')} ${pass.status}\n
-📅 ${TextHelper.bold('Період дії:')} ${pass.startDate.substring(0, 10)} - ${pass.endDate.substring(0, 10)}
-💰 ${TextHelper.bold('Вартість абонементу:')} ₴${pass.price / 100}
-📝 ${TextHelper.bold('Кількість записів (Усього):')} ${pass.length}\n
-🗓️ ${TextHelper.bold('Кількість доступних днів:')} ${pass.length} днів
-✔️ ${TextHelper.bold('Кількість доступних записів:')} ${pass.availableSlots}
+    const text = `${TextHelper.bold('Деталі абонементу:')}\n
+${icon} ${TextHelper.bold('Статус:')} ${label}
+✔️ ${TextHelper.bold('Залишилось занять:')} ${pass.availableSlots}\n
+📅 ${TextHelper.bold('Початок дії:')} ${pass.startDate.substring(0, 10)}
+📅 ${TextHelper.bold('Закінчення дії:')} ${pass.endDate.substring(0, 10)}
+💰 ${TextHelper.bold('Вартість:')} ${PassHelper.toDisplayPrice(pass.price)}
+🎫 ${TextHelper.bold('Кількість занять:')} ${pass.length} (всього)
+${pass.pausedFromDate ? `⏸️ ${TextHelper.bold('Призупинено:')} з ${pass.pausedFromDate.substring(0, 10)} до ${pass.pausedToDate?.substring(0, 10)}` : ''}
+${pass.expiredFromDate ? `❌ ${TextHelper.bold('Термін дії минув:')} ${pass.expiredFromDate.substring(0, 10)}` : ''}
 `
     await ctx.replyWithHTML(text)
   }

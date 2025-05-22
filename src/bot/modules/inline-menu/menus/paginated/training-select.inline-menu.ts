@@ -29,7 +29,7 @@ export class TrainingSelectInlineMenu extends BaseSelectInlineMenu<{
     return trainings.map((training) => {
       const date = this.dateTimeService.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)
       return {
-        label: date,
+        label: `➕ ${date}`,
         value: training.id,
       }
     })
