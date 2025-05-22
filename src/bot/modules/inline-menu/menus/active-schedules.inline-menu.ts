@@ -47,10 +47,8 @@ export class ActiveSchedulesInlineMenu {
       const { id } = UserHelper.getUser(ctx)
 
       const response = await this.trainingSignupService.signOutFromTrainingAsClientViaTelegram(signupId)
-      console.log(response, 'response')
       
       const activeSignups = await this.trainingSignupService.getClientSignups(id)
-      console.log('activeSignups', activeSignups)
 
       if (response.status === API.RESPONSE.ERROR_STRING) {
         return ctx.answerCbQuery(response.message, { show_alert: true })
