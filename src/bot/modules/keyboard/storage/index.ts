@@ -1,3 +1,5 @@
 export { ClientKeyboards } from './client-keyboards'
 export { GuestKeyboards } from './guest-keyboards'
+export { AdminKeyboards } from './admin-keyboards'
+export { TrainerKeyboards } from './trainer-keyboards'
 export { CommonSceneKeyboards } from './scene-keyboards'

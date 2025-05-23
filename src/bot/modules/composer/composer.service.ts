@@ -2,8 +2,9 @@ import { MiddlewareFn } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
 import { Injectable } from '@nestjs/common'
 import { GuestRootComposer } from './guest/guest-root.composer'
-import { StaffRootComposer } from './staff/staff-root.composer'
 import { ClientRootComposer } from './client/client-root.composer'
+import { AdminRootComposer } from './admin/admin-root.composer'
+import { TrainerRootComposer } from './trainer/trainer-root.composer'
 import { UserProfileRoleEnum } from '@app/libs'
 import { TNextFunction } from '@app/bot/libs'
 import { PinoLogger } from 'nestjs-pino'
@@ -18,7 +19,8 @@ export class ComposerService {
   constructor(
     private readonly guestRootComposer: GuestRootComposer,
     private readonly clientRootComposer: ClientRootComposer,
-    private readonly staffRootComposer: StaffRootComposer,
+    private readonly adminRootComposer: AdminRootComposer,
+    private readonly trainerRootComposer: TrainerRootComposer,
     private readonly guardComposer: GuardComposer,
     private readonly logger: PinoLogger,
   ) {
@@ -29,8 +31,8 @@ export class ComposerService {
     this.roleComposerMap = {
       guest: this.guestRootComposer.middleware(),
       client: this.clientRootComposer.middleware(),
-      trainer: this.staffRootComposer.middleware(),
-      admin: this.staffRootComposer.middleware(),
+      trainer: this.trainerRootComposer.middleware(),
+      admin: this.adminRootComposer.middleware(),
     }
   }
 

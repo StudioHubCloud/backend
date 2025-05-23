@@ -7,7 +7,7 @@ import {
 } from '@telegraf/types'
 import { AutocompletableString, UserProfileRoleEnum } from '@app/libs'
 import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions } from '@app/bot/libs'
-import { ClientKeyboards, GuestKeyboards } from '../modules/keyboard/storage'
+import { AdminKeyboards, ClientKeyboards, GuestKeyboards, TrainerKeyboards } from '../modules/keyboard/storage'
 
 export class KeyboardHelper {
   constructor() {}
@@ -140,9 +140,8 @@ export class KeyboardHelper {
     const KeyboardsMap = {
       [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu(),
       [UserProfileRoleEnum.GUEST]: GuestKeyboards.mainMenu(),
-      //
-      [UserProfileRoleEnum.ADMIN]: ClientKeyboards.mainMenu(),
-      [UserProfileRoleEnum.TRAINER]: ClientKeyboards.mainMenu(),
+      [UserProfileRoleEnum.ADMIN]: AdminKeyboards.mainMenu(),
+      [UserProfileRoleEnum.TRAINER]: TrainerKeyboards.mainMenu(),
     }
     return KeyboardsMap[role]
   }

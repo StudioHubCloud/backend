@@ -4,8 +4,8 @@ import { ActiveSchedulesInlineMenu } from './menus/active-schedules.inline-menu'
 import { GroupModule, TrainingModule, TrainingSignupModule } from '@app/domain'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
-import { GroupSelectInlineMenu } from './menus/paginated/group-select.inline-menu'
-import { TrainingSelectInlineMenu } from './menus/paginated/training-select.inline-menu'
+import { GroupSelectInlineMenu } from './paginated-menus/group-select.inline-menu'
+import { TrainingSelectInlineMenu } from './paginated-menus/training-select.inline-menu'
 
 @Module({
   imports: [GroupModule, TrainingModule, TrainingSignupModule],

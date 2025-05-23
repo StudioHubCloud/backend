@@ -22,7 +22,7 @@ export const PATTERNS_CLIENT = {
 
 export const PATTERNS_GUEST = {} as const
 
-export const PATTERNS_STAFF = {
+export const PATTERNS_ADMIN = {
   REQUESTS: '🔸 Запити на верифікацію',
   STAFF: '👨‍🏫 Персонал',
   GROUPS: '👥 Групи',

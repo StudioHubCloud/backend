@@ -6,7 +6,4 @@ export class GuestKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_GUEST.MAIN_MENU)
   }
-  static registerAsGuest(): TReplyMarkupKeyboard {
-    return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_GUEST.REGISTER_AS_GUEST)
-  }
 }
