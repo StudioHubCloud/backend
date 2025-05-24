@@ -45,7 +45,7 @@ export class VerificationInlineMenu {
       const buttons = result[role]
       if (buttons.length > 0) {
         const keyboard = KeyboardHelper.createInlineKeyboard(buttons)
-        const message = 'Активні запити на підтвердження' + UserHelper.isClientRole(role) ? ' клієнтів' : ' тренерів'
+        const message = `Активні запити на підтвердження ${UserHelper.isClientRole(role) ? 'клієнтів' : 'тренерів'}`
         await ctx.reply(message, keyboard)
       }
     })

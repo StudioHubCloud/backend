@@ -15,6 +15,10 @@ export { training, training_relations } from './training.schema'
 export { userProfile, user_profile_relations } from './user-profile.schema'
 export { groupAgeRestriction, group_age_restriction_relations } from './group-age-restriction.schema'
 export { groupAgeRestrictionException, group_age_restriction_exception_relations } from './group-age-restriction-exeption.schema'
+export { passTemplate, pass_template_relations } from './pass-template.schema'
+export { passTemplateAgeRestriction, pass_template_age_restriction_relations } from './pass-template-age-restriction.schema'
+export { passTemplateAgeRestrictionException, pass_template_age_restriction_exception_relations } from './pass-template-age-restriction-exeption.schema'
+
 
 export {
   PassStatusPgEnum,
@@ -25,4 +29,5 @@ export {
   GroupStatusPgEnum,
   UserProfileRolePgEnum,
   UserProfileStatusPgEnum,
+  PassTemplateTypePgEnum
 } from '../database.enums'

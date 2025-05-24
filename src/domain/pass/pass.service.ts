@@ -20,6 +20,9 @@ export class PassService {
     const { throwError = true } = options
     const passFound = await this.databaseService.drizzle.query.pass.findFirst({
       where: (pass, { and, eq }) => and(...Object.entries(conditions).map(([key, value]) => eq(pass[key], value))),
+      with: {
+        passTemplate: true
+      }
     })
 
     if (!passFound && throwError) {

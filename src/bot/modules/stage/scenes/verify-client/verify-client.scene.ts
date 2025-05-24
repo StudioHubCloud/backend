@@ -10,7 +10,7 @@ import { AdminKeyboards } from '@app/bot/modules/keyboard/storage'
 
 @Injectable()
 export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
-  private readonly verifyClientScene = new SceneHelper<{}>()
+  private readonly verifyClientScene = new SceneHelper<{userProfileId: string}>()
 
   constructor(@DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider) {
     super(
@@ -24,6 +24,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
     this.enter(async (ctx: BotContext, next: TNextFunction) => {
       ctx.reply('Верифікація клієнта')
+      console.log(ctx.scene.state)
       return ctx.scene.leave()
       return await next()
     })

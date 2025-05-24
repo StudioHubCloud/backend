@@ -49,3 +49,8 @@ export enum GroupStatusEnum {
   ACTIVE = 'active',
   INACTIVE = 'inactive',
 }
+
+export enum PassTemplateTypeEnum {
+  GROUP = 'group',
+  INDIVIDUAL = 'individual',
+}

@@ -94,8 +94,12 @@ export class UserProfileService {
 
   async getVerificationRequestedUsers() {
     return await this.databaseService.drizzle.query.userProfile.findMany({
-      where: (userProfile, { eq, and }) =>
-        and(eq(userProfile.studioId, this.studioId), eq(userProfile.status, UserProfileStatusEnum.VERIFICATION_REQUESTED)),
+      where: (userProfile, { eq, and, or }) =>
+        and(
+          eq(userProfile.studioId, this.studioId),
+          eq(userProfile.status, UserProfileStatusEnum.VERIFICATION_REQUESTED),
+          or(eq(userProfile.role, UserProfileRoleEnum.CLIENT), eq(userProfile.role, UserProfileRoleEnum.TRAINER)),
+        ),
     })
   }
 

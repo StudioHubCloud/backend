@@ -1,5 +1,6 @@
 import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { CALLBACK_PREFIX, TReplyInlineKeyboard } from '@app/bot/libs'
+import { KEYBARODS_COMMON } from '@app/bot/static/keyboards'
 import { PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { UserProfileRoleEnum } from '@app/libs'
 
@@ -23,5 +24,9 @@ export class CommonKeyboards {
         },
       ],
     ])
+  }
+
+  static registerAs() {
+    return KeyboardHelper.createReplyMarkupKeyboard(KEYBARODS_COMMON.REGISTER_AS)
   }
 }

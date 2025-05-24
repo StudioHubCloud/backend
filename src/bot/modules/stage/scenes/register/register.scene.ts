@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { DATE_FORMAT, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { IRegisterSceneState, SCENES, TNextFunction } from '@app/bot/libs'
-import { SceneHelper, BotHelper, UserHelper, KeyboardHelper, TextHelper } from '@app/bot/helpers'
+import { SceneHelper, BotHelper, UserHelper, TextHelper } from '@app/bot/helpers'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { SceneNavigation } from '../scene.navigation'
 import { PATTERNS_COMMON } from '@app/bot/static/patterns'
@@ -12,7 +12,6 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { RedisCacheService } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { REGISTER_SCENE_CURSOR_MAP, REGISTER_SCENE_NAVIGATION_MAP } from './register.navigation-map'
-import { KEYBARODS_COMMON } from '@app/bot/static/keyboards'
 import { CommonKeyboards, GuestKeyboards } from '@app/bot/modules/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 
@@ -43,7 +42,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     })
 
     this.hears(PATTERNS_COMMON.EXIT, async (ctx) => {
-      await ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.EXIT, KeyboardHelper.createReplyMarkupKeyboard(KEYBARODS_COMMON.REGISTER_AS))
+      await ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.EXIT, CommonKeyboards.registerAs())
       return ctx.scene.leave()
     })
   }
@@ -157,9 +156,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
         },
       )
     }
-    const keyboard = isGuest
-      ? GuestKeyboards.mainMenu()
-      : KeyboardHelper.createReplyMarkupKeyboard(KEYBARODS_COMMON.REGISTER_AS)
+    const keyboard = isGuest ? GuestKeyboards.mainMenu() : CommonKeyboards.registerAs()
 
     await Promise.all([
       this.redisCacheService.reset(),

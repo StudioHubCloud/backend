@@ -13,3 +13,4 @@ export const TrainingSignupStatusPgEnum = pgEnum('training_signup_status_enum', 
 export const TrainingSignupTypePgEnum = pgEnum('training_signup_type_enum', enumToPgEnum(ENUMS.TrainingSignupTypeEnum))
 export const UserProfileRolePgEnum = pgEnum('userprofile_role_enum', enumToPgEnum(ENUMS.UserProfileRoleEnum))
 export const UserProfileStatusPgEnum = pgEnum('userprofile_status_enum', enumToPgEnum(ENUMS.UserProfileStatusEnum))
+export const PassTemplateTypePgEnum = pgEnum('pass_template_type_enum', enumToPgEnum(ENUMS.PassTemplateTypeEnum))

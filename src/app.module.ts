@@ -5,6 +5,7 @@ import {
   ClientModule,
   UserProfileModule,
   TrainingModule,
+  PassTemplateModule,
   GroupAgeRestrictionExeptionModule,
   GroupAgeRestrictionModule,
 } from '@app/domain'
@@ -27,6 +28,7 @@ import { BotModule } from 'src/bot/bot.module'
     CronModule,
     GroupAgeRestrictionModule,
     GroupAgeRestrictionExeptionModule,
+    PassTemplateModule,
   ],
   providers: [],
 })

@@ -28,7 +28,6 @@ export class PassInfoComposer {
     if (!pass) {
       return ctx.reply('У вас немає активного абонементу')
     }
-    console.log(pass, 'pass')
 
     const { icon, label } = PassHelper.getPassDisplayStatus(pass.status)
 
@@ -37,8 +36,8 @@ ${icon} ${TextHelper.bold('Статус:')} ${label}
 ✔️ ${TextHelper.bold('Залишилось занять:')} ${pass.availableSlots}\n
 📅 ${TextHelper.bold('Початок дії:')} ${pass.startDate.substring(0, 10)}
 📅 ${TextHelper.bold('Закінчення дії:')} ${pass.endDate.substring(0, 10)}
-💰 ${TextHelper.bold('Вартість:')} ${PassHelper.toDisplayPrice(pass.price)}
-🎫 ${TextHelper.bold('Кількість занять:')} ${pass.length} (всього)
+💰 ${TextHelper.bold('Вартість:')} ${PassHelper.toDisplayPrice(pass.passTemplate.price)}
+🎫 ${TextHelper.bold('Кількість занять:')} ${pass.passTemplate.length} (всього)
 ${pass.pausedFromDate ? `⏸️ ${TextHelper.bold('Призупинено:')} з ${pass.pausedFromDate.substring(0, 10)} до ${pass.pausedToDate?.substring(0, 10)}` : ''}
 ${pass.expiredFromDate ? `❌ ${TextHelper.bold('Термін дії минув:')} ${pass.expiredFromDate.substring(0, 10)}` : ''}
 `

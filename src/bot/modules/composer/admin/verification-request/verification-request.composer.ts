@@ -1,12 +1,12 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { PATTERNS_ADMIN } from '@app/bot/static/patterns'
 import { VerificationInlineMenu } from '@app/bot/modules/inline-menu'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
 import { UserProfileService } from '@app/domain/user-profile'
-import { GuestKeyboards } from '@app/bot/modules/keyboard/storage'
+import { CommonKeyboards } from '@app/bot/modules/keyboard/storage'
 import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
 
@@ -80,11 +80,11 @@ export class VerificationRequestComposer {
   //todo: add are you sure?
   private rejectUserVerifyAction = async (ctx: BotContext) => {
     await this.handleUserProfileAction(ctx, async ({ id, telegramId }) => {
-      // await this.userProfileService.rejectVerificationRequest(id)
-      // await Promise.all([
-      //   ctx.telegram.sendMessage(telegramId, `Ваша заявка на підтвердження була відхилена.`, GuestKeyboards.mainMenu()),
-      //   ctx.reply('Ви відхилили запит на реєстрацію'),
-      // ])
+      await this.userProfileService.rejectVerificationRequest(id)
+      await Promise.all([
+        ctx.telegram.sendMessage(telegramId, `Ваша заявка на підтвердження була відхилена.`, CommonKeyboards.registerAs()),
+        ctx.reply('Ви відхилили запит на реєстрацію'),
+      ])
       await ctx.deleteMessage()
     })
   }
@@ -92,11 +92,11 @@ export class VerificationRequestComposer {
   //todo: add are you sure?
   private blockUserAction = async (ctx: BotContext) => {
     await this.handleUserProfileAction(ctx, async ({ id, telegramId }) => {
-      // await this.userProfileService.rejectVerificationRequestAndBlockUser(id)
-      // await Promise.all([
-      //   ctx.telegram.sendMessage(telegramId, `Доступ до боту було обмежено`, KeyboardHelper.removeReplyMarkupKeyboard()),
-      //   ctx.reply('Ви заблокували користувача'),
-      // ])
+      await this.userProfileService.rejectVerificationRequestAndBlockUser(id)
+      await Promise.all([
+        ctx.telegram.sendMessage(telegramId, `Доступ до боту було обмежено`, KeyboardHelper.removeReplyMarkupKeyboard()),
+        ctx.reply('Ви заблокували користувача'),
+      ])
       await ctx.deleteMessage()
     })
   }
