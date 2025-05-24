@@ -1,4 +1,5 @@
 import { UserProfileSelectModel } from '@app/infrastructure/database'
+import { UserProfileRoleEnum } from '@app/libs'
 
 export class UserProfileCacheKey {
   private static readonly cache_key_prefix = 'user-profile'

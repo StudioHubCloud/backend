@@ -6,7 +6,7 @@ import {
   ReplyKeyboardRemove,
 } from '@telegraf/types'
 import { AutocompletableString, UserProfileRoleEnum } from '@app/libs'
-import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions } from '@app/bot/libs'
+import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, TReplyInlineKeyboard } from '@app/bot/libs'
 import { AdminKeyboards, ClientKeyboards, GuestKeyboards, TrainerKeyboards } from '../modules/keyboard/storage'
 
 export class KeyboardHelper {
@@ -20,7 +20,7 @@ export class KeyboardHelper {
     }
   }
 
-  static createInlineKeyboard(buttons: InlineKeyboardButton[][]): { reply_markup: InlineKeyboardMarkup } {
+  static createInlineKeyboard(buttons: InlineKeyboardButton[][]): TReplyInlineKeyboard {
     return {
       reply_markup: {
         inline_keyboard: buttons,

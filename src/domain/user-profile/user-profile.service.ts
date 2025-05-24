@@ -9,6 +9,7 @@ import {
 } from '@app/infrastructure/database'
 import { RedisCacheService, UserProfileCacheKey } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
+import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 
 @Injectable()
 export class UserProfileService {
@@ -89,5 +90,22 @@ export class UserProfileService {
   async updateUserProfile(id: string, data: Partial<UserProfileInsertModel>, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
     return dbProvider.update(userProfile).set(data).where(eq(userProfile.id, id)).returning()
+  }
+
+  async getVerificationRequestedUsers() {
+    return await this.databaseService.drizzle.query.userProfile.findMany({
+      where: (userProfile, { eq, and }) =>
+        and(eq(userProfile.studioId, this.studioId), eq(userProfile.status, UserProfileStatusEnum.VERIFICATION_REQUESTED)),
+    })
+  }
+
+  async rejectVerificationRequest(id: string) {
+    await this.updateUserProfile(id, { status: UserProfileStatusEnum.UNVERIVIED, role: UserProfileRoleEnum.GUEST })
+    this.redisCacheService.reset()
+  }
+
+  async rejectVerificationRequestAndBlockUser(id: string) {
+    await this.updateUserProfile(id, { status: UserProfileStatusEnum.BLOCKED, role: UserProfileRoleEnum.GUEST })
+    this.redisCacheService.reset()
   }
 }

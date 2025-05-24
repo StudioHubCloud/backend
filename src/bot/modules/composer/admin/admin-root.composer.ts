@@ -5,7 +5,7 @@ import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
 import { ClientManageComposer } from './client-manage/client-manage.composer'
 import { StaffManageComposer } from './staff-manage/staff-manage.composer'
 import { GroupManageComposer } from './group-manage/group-manage.composer'
-import { RequestVerificationComposer } from './request-verification/request-verification.composer'
+import { VerificationRequestComposer } from './verification-request/verification-request.composer'
 
 @Injectable()
 export class AdminRootComposer {
@@ -15,14 +15,16 @@ export class AdminRootComposer {
     private readonly clientManageComposer: ClientManageComposer,
     private readonly staffManageComposer: StaffManageComposer,
     private readonly groupManageComposer: GroupManageComposer,
-    private readonly requestVerificationComposer: RequestVerificationComposer,
+    private readonly requestVerificationComposer: VerificationRequestComposer,
   ) {
     this.composer = new Composer<BotContext>()
 
     this.composer.start(async (ctx) => {
       const role = UserHelper.getUserRole(ctx)
-      ctx.reply('Welcome to the admin panel!', KeyboardHelper.getRoleBasedMainMenuKeyboard(role))
+      return ctx.reply('Вітаю в панелі адміністратора!', KeyboardHelper.getRoleBasedMainMenuKeyboard(role))
     })
+
+    this.initExternalComposers()
   }
 
   middleware() {

@@ -1,10 +1,10 @@
+import { format } from 'date-fns'
+import { Composer } from 'telegraf'
+import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { API } from '@app/libs'
-import { Injectable } from '@nestjs/common'
-import { format } from 'date-fns'
-import { Composer } from 'telegraf'
 
 @Injectable()
 export class ActiveSchedulesInlineMenu {

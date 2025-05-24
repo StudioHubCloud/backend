@@ -2,7 +2,7 @@ import { CommonSceneKeyboards } from '@app/bot/modules/keyboard/storage'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { UserProfileRoleEnum } from '@app/libs'
 import { ISceneNavigationMap } from '@app/bot/libs'
-import { RegisterSceneHelpers } from './register.scene-helpers'
+import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 export const REGISTER_SCENE_CURSOR_MAP = {
   ENTER_HANDLER: 0,
@@ -54,7 +54,7 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
     [UserProfileRoleEnum.TRAINER]: {
       next: {
         cursor: REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER,
-        message: ({ data, role }) => RegisterSceneHelpers.prepareInfoText(data, { role }),
+        message: ({ data, role }) => MessageHelper.getVerifyRequestMessage(data, { role }),
         keyboard: CommonSceneKeyboards.backWithExit(),
       },
       prev: {
@@ -68,7 +68,7 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
     default: {
       next: {
         cursor: REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER,
-        message: ({ data, role }) => RegisterSceneHelpers.prepareInfoText(data, { role }),
+        message: ({ data, role }) => MessageHelper.getVerifyRequestMessage(data, { role }),
         keyboard: CommonSceneKeyboards.confirm(),
       },
       prev: {
@@ -80,7 +80,7 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
     [UserProfileRoleEnum.GUEST]: {
       next: {
         cursor: REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER,
-        message: ({ data, role }) => RegisterSceneHelpers.prepareInfoText(data, { role }),
+        message: ({ data, role }) => MessageHelper.getVerifyRequestMessage(data, { role }),
         keyboard: CommonSceneKeyboards.confirm(),
       },
       prev: {

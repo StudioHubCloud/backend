@@ -1,6 +1,6 @@
 import { ClientSelectModel, StudioSelectModel, UserProfileSelectModel } from '@app/infrastructure/database/models'
 import { UserProfileRoleEnum } from '@app/libs'
-import { ReplyKeyboardMarkup } from '@telegraf/types'
+import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 
 export type TBotStore = {
   user: AuthUserProfile | null
@@ -42,6 +42,7 @@ export interface ISceneNavigationMap {
 }
 
 export type TReplyMarkupKeyboard = { reply_markup: ReplyKeyboardMarkup }
+export type TReplyInlineKeyboard = { reply_markup: InlineKeyboardMarkup }
 
 export interface ISelectInlineMenuConfig<T> {
   callbackPrefix: string
@@ -49,3 +50,11 @@ export interface ISelectInlineMenuConfig<T> {
   promptMessage?: string
   noOptionsMessage?: string
 }
+
+export interface IRegisterSceneState {
+  firstName: string
+  lastName?: string
+  phone?: string
+  date_of_birth?: string
+}
+

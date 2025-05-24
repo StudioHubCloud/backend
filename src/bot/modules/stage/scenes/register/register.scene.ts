@@ -2,8 +2,8 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { DATE_FORMAT, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
-import { SCENES, CALLBACK_PREFIX, TNextFunction } from '@app/bot/libs'
-import { SceneHelper, BotHelper, UserHelper, KeyboardHelper, TextHelper, RegexHelper } from '@app/bot/helpers'
+import { IRegisterSceneState, SCENES, TNextFunction } from '@app/bot/libs'
+import { SceneHelper, BotHelper, UserHelper, KeyboardHelper, TextHelper } from '@app/bot/helpers'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { SceneNavigation } from '../scene.navigation'
 import { PATTERNS_COMMON } from '@app/bot/static/patterns'
@@ -12,9 +12,9 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { RedisCacheService } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { REGISTER_SCENE_CURSOR_MAP, REGISTER_SCENE_NAVIGATION_MAP } from './register.navigation-map'
-import { IRegisterSceneState, RegisterSceneHelpers } from './register.scene-helpers'
 import { KEYBARODS_COMMON } from '@app/bot/static/keyboards'
-import { GuestKeyboards } from '@app/bot/modules/keyboard/storage'
+import { CommonKeyboards, GuestKeyboards } from '@app/bot/modules/keyboard/storage'
+import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 @Injectable()
 export class RegisterScene extends Scenes.WizardScene<BotContext> {
@@ -43,7 +43,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     })
 
     this.hears(PATTERNS_COMMON.EXIT, async (ctx) => {
-      ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.EXIT, KeyboardHelper.createReplyMarkupKeyboard(KEYBARODS_COMMON.REGISTER_AS))
+      await ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.EXIT, KeyboardHelper.createReplyMarkupKeyboard(KEYBARODS_COMMON.REGISTER_AS))
       return ctx.scene.leave()
     })
   }
@@ -150,17 +150,10 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     const sendMessageToAdmin = async () => {
       await ctx.telegram.sendMessage(
         this.configService.get('ADMIN_CHAT_ID'),
-        RegisterSceneHelpers.prepareInfoText(state, { completed: true, role: this.REQUESTED_ROLE }),
+        MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
         {
           parse_mode: 'HTML',
-          ...KeyboardHelper.createInlineKeyboard([
-            [
-              {
-                text: PATTERNS_COMMON.VERIFY,
-                callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.VERIFY_USER, id, this.REQUESTED_ROLE),
-              },
-            ],
-          ]),
+          ...CommonKeyboards.verifyActions(id, this.REQUESTED_ROLE),
         },
       )
     }

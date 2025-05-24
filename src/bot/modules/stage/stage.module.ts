@@ -10,6 +10,8 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
   providers: [
     StageService,
     Stage.RegisterScene,
+    Stage.VerifyClientScene,
+    Stage.VerifyTrainerScene,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,

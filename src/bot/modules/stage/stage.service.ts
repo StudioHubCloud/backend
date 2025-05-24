@@ -9,7 +9,9 @@ export class StageService {
 
   constructor(
     public readonly registerScene: Stage.RegisterScene,
+    public readonly verifyClientScene: Stage.VerifyClientScene,
+    public readonly verifyTrainerScene: Stage.VerifyTrainerScene,
   ) {
-    this.stage = new Scenes.Stage<BotContext>([registerScene])
+    this.stage = new Scenes.Stage<BotContext>([registerScene, verifyClientScene, verifyTrainerScene])
   }
 }
