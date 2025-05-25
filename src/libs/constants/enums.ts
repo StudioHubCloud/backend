@@ -54,3 +54,11 @@ export enum PassTemplateTypeEnum {
   GROUP = 'group',
   INDIVIDUAL = 'individual',
 }
+
+export enum StudioPriceTypeEnum {
+  TRIAL = 'trial',
+  ONE_TIME_GROUP = 'one_time_group',
+  ONE_TIME_INDIVIDUAL = 'one_time_individual',
+  DUO = 'duo',
+  TRIO= 'trio',
+}

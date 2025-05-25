@@ -1,1 +1,0 @@
-ALTER TABLE "training_signup" DROP COLUMN "calculated_price";

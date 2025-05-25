@@ -9,7 +9,7 @@ import { passTemplateAgeRestrictionException } from './pass-template-age-restric
 export const passTemplate = table(
   'pass_template',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     name: varchar('name').notNull(),
     price: integer('price').notNull(),
     length: smallint('length').notNull(),

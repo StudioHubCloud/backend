@@ -1,0 +1,1 @@
+ALTER TABLE "pass_template" ALTER COLUMN "id" SET DEFAULT gen_random_uuid();

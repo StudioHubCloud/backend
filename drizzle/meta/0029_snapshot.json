@@ -1,6 +1,6 @@
 {
-  "id": "6c69b6cc-8d4a-4afa-960a-f992141619db",
-  "prevId": "a5d87900-ccd5-4625-9fbf-21b7c597d2b9",
+  "id": "511e6fe4-4250-4190-a68c-8ff71c7ed8a9",
+  "prevId": "040201d8-d698-4b4c-8301-541f24c77727",
   "version": "7",
   "dialect": "postgresql",
   "tables": {
@@ -901,17 +901,12 @@
           "notNull": true,
           "default": "gen_random_uuid()"
         },
-        "price": {
-          "name": "price",
-          "type": "integer",
-          "primaryKey": false,
-          "notNull": true
-        },
-        "length": {
-          "name": "length",
+        "available_slots": {
+          "name": "available_slots",
           "type": "smallint",
           "primaryKey": false,
-          "notNull": true
+          "notNull": true,
+          "default": 0
         },
         "start_date": {
           "name": "start_date",
@@ -950,14 +945,8 @@
           "primaryKey": false,
           "notNull": true
         },
-        "group_id": {
-          "name": "group_id",
-          "type": "uuid",
-          "primaryKey": false,
-          "notNull": false
-        },
-        "studio_id": {
-          "name": "studio_id",
+        "pass_template_id": {
+          "name": "pass_template_id",
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
@@ -967,6 +956,18 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": true
+        },
+        "studio_id": {
+          "name": "studio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "group_id": {
+          "name": "group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
         }
       },
       "indexes": {
@@ -1059,17 +1060,30 @@
         }
       },
       "foreignKeys": {
-        "pass_group_id_group_id_fk": {
-          "name": "pass_group_id_group_id_fk",
+        "pass_pass_template_id_pass_template_id_fk": {
+          "name": "pass_pass_template_id_pass_template_id_fk",
           "tableFrom": "pass",
-          "tableTo": "group",
+          "tableTo": "pass_template",
           "columnsFrom": [
-            "group_id"
+            "pass_template_id"
           ],
           "columnsTo": [
             "id"
           ],
-          "onDelete": "set null",
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pass_client_id_client_id_fk": {
+          "name": "pass_client_id_client_id_fk",
+          "tableFrom": "pass",
+          "tableTo": "client",
+          "columnsFrom": [
+            "client_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
           "onUpdate": "no action"
         },
         "pass_studio_id_studio_id_fk": {
@@ -1085,12 +1099,252 @@
           "onDelete": "cascade",
           "onUpdate": "no action"
         },
-        "pass_client_id_client_id_fk": {
-          "name": "pass_client_id_client_id_fk",
+        "pass_group_id_group_id_fk": {
+          "name": "pass_group_id_group_id_fk",
           "tableFrom": "pass",
-          "tableTo": "client",
+          "tableTo": "group",
           "columnsFrom": [
-            "client_id"
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "set null",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pass_template": {
+      "name": "pass_template",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true,
+          "default": "gen_random_uuid()"
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "integer",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "length": {
+          "name": "length",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "pass_template_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "studio_id": {
+          "name": "studio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "pass_template_studio_id_name_index": {
+          "name": "pass_template_studio_id_name_index",
+          "columns": [
+            {
+              "expression": "studio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pass_template_studio_id_studio_id_fk": {
+          "name": "pass_template_studio_id_studio_id_fk",
+          "tableFrom": "pass_template",
+          "tableTo": "studio",
+          "columnsFrom": [
+            "studio_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pass_template_age_restriction": {
+      "name": "pass_template_age_restriction",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "min_age": {
+          "name": "min_age",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "max_age": {
+          "name": "max_age",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "allowed_threshold": {
+          "name": "allowed_threshold",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "pass_template_id": {
+          "name": "pass_template_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "pass_template_age_restriction_pass_template_id_index": {
+          "name": "pass_template_age_restriction_pass_template_id_index",
+          "columns": [
+            {
+              "expression": "pass_template_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": false,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pass_template_age_restriction_pass_template_id_pass_template_id_fk": {
+          "name": "pass_template_age_restriction_pass_template_id_pass_template_id_fk",
+          "tableFrom": "pass_template_age_restriction",
+          "tableTo": "pass_template",
+          "columnsFrom": [
+            "pass_template_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.pass_template_age_restriction_exception": {
+      "name": "pass_template_age_restriction_exception",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "serial",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "user_profile_id": {
+          "name": "user_profile_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "pass_template_id": {
+          "name": "pass_template_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "pass_template_age_restriction_exception_user_profile_id_pass_template_id_index": {
+          "name": "pass_template_age_restriction_exception_user_profile_id_pass_template_id_index",
+          "columns": [
+            {
+              "expression": "user_profile_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "pass_template_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "pass_template_age_restriction_exception_user_profile_id_user_profile_id_fk": {
+          "name": "pass_template_age_restriction_exception_user_profile_id_user_profile_id_fk",
+          "tableFrom": "pass_template_age_restriction_exception",
+          "tableTo": "user_profile",
+          "columnsFrom": [
+            "user_profile_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
+        "pass_template_age_restriction_exception_pass_template_id_pass_template_id_fk": {
+          "name": "pass_template_age_restriction_exception_pass_template_id_pass_template_id_fk",
+          "tableFrom": "pass_template_age_restriction_exception",
+          "tableTo": "pass_template",
+          "columnsFrom": [
+            "pass_template_id"
           ],
           "columnsTo": [
             "id"
@@ -1221,6 +1475,107 @@
           "tableTo": "customer",
           "columnsFrom": [
             "customer_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        }
+      },
+      "compositePrimaryKeys": {},
+      "uniqueConstraints": {},
+      "policies": {},
+      "checkConstraints": {},
+      "isRLSEnabled": false
+    },
+    "public.studio_price": {
+      "name": "studio_price",
+      "schema": "",
+      "columns": {
+        "id": {
+          "name": "id",
+          "type": "uuid",
+          "primaryKey": true,
+          "notNull": true
+        },
+        "studio_id": {
+          "name": "studio_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": false
+        },
+        "name": {
+          "name": "name",
+          "type": "varchar",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "price": {
+          "name": "price",
+          "type": "smallint",
+          "primaryKey": false,
+          "notNull": true
+        },
+        "type": {
+          "name": "type",
+          "type": "studio_price_type_enum",
+          "typeSchema": "public",
+          "primaryKey": false,
+          "notNull": true
+        }
+      },
+      "indexes": {
+        "studio_price_studio_id_name_index": {
+          "name": "studio_price_studio_id_name_index",
+          "columns": [
+            {
+              "expression": "studio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "name",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        },
+        "studio_price_studio_id_type_index": {
+          "name": "studio_price_studio_id_type_index",
+          "columns": [
+            {
+              "expression": "studio_id",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            },
+            {
+              "expression": "type",
+              "isExpression": false,
+              "asc": true,
+              "nulls": "last"
+            }
+          ],
+          "isUnique": true,
+          "concurrently": false,
+          "method": "btree",
+          "with": {}
+        }
+      },
+      "foreignKeys": {
+        "studio_price_studio_id_studio_id_fk": {
+          "name": "studio_price_studio_id_studio_id_fk",
+          "tableFrom": "studio_price",
+          "tableTo": "studio",
+          "columnsFrom": [
+            "studio_id"
           ],
           "columnsTo": [
             "id"
@@ -1458,7 +1813,7 @@
         },
         "date": {
           "name": "date",
-          "type": "timestamp",
+          "type": "timestamp with time zone",
           "primaryKey": false,
           "notNull": true
         },
@@ -1661,6 +2016,12 @@
           "type": "uuid",
           "primaryKey": false,
           "notNull": false
+        },
+        "group_id": {
+          "name": "group_id",
+          "type": "uuid",
+          "primaryKey": false,
+          "notNull": true
         },
         "training_id": {
           "name": "training_id",
@@ -1866,6 +2227,19 @@
           "onDelete": "set null",
           "onUpdate": "no action"
         },
+        "training_signup_group_id_group_id_fk": {
+          "name": "training_signup_group_id_group_id_fk",
+          "tableFrom": "training_signup",
+          "tableTo": "group",
+          "columnsFrom": [
+            "group_id"
+          ],
+          "columnsTo": [
+            "id"
+          ],
+          "onDelete": "cascade",
+          "onUpdate": "no action"
+        },
         "training_signup_training_id_training_id_fk": {
           "name": "training_signup_training_id_training_id_fk",
           "tableFrom": "training_signup",
@@ -1947,6 +2321,13 @@
           "typeSchema": "public",
           "primaryKey": false,
           "notNull": true
+        },
+        "trial_discount": {
+          "name": "trial_discount",
+          "type": "boolean",
+          "primaryKey": false,
+          "notNull": true,
+          "default": true
         },
         "studio_id": {
           "name": "studio_id",
@@ -2051,6 +2432,25 @@
         "expired"
       ]
     },
+    "public.pass_template_type_enum": {
+      "name": "pass_template_type_enum",
+      "schema": "public",
+      "values": [
+        "group",
+        "individual"
+      ]
+    },
+    "public.studio_price_type_enum": {
+      "name": "studio_price_type_enum",
+      "schema": "public",
+      "values": [
+        "trial",
+        "one_time_group",
+        "one_time_individual",
+        "duo",
+        "trio"
+      ]
+    },
     "public.subscribtion_status_enum": {
       "name": "subscribtion_status_enum",
       "schema": "public",
@@ -2086,7 +2486,7 @@
       "values": [
         "main",
         "reserve",
-        "personal"
+        "trial"
       ]
     },
     "public.userprofile_role_enum": {

@@ -4,6 +4,7 @@ import { group } from './group.schema'
 import { groupStyle } from './group-style.schema'
 import { customer } from './customer.schema'
 import { pass } from './pass.schema'
+import { studioPrice } from './studio-price.schema'
 
 export const studio = table('studio', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -24,4 +25,5 @@ export const studio_relations = relations(studio, ({ one, many }) => ({
   groups: many(group),
   passes: many(pass),
   groupStyles: many(groupStyle),
+  studioPrices: many(studioPrice)
 }))

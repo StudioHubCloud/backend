@@ -1,4 +1,4 @@
-import { index, date, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { index, date, pgTable as table, uniqueIndex, uuid, varchar, boolean } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { staffMember } from './staff-member.schema'
 import { client } from './client.schema'
@@ -17,6 +17,7 @@ export const userProfile = table(
     dateOfBirth: date('date_of_birth', { mode: 'string' }),
     role: UserProfileRolePgEnum().notNull().notNull(),
     status: UserProfileStatusPgEnum().notNull(),
+    trial_discount: boolean('trial_discount').notNull().default(true),
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),

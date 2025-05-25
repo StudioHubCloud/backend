@@ -1,1 +1,0 @@
-ALTER TABLE "group" ALTER COLUMN "status" SET DEFAULT 'inactive';

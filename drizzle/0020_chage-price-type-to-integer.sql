@@ -1,1 +1,0 @@
-ALTER TABLE "pass" ALTER COLUMN "price" SET DATA TYPE integer;

@@ -18,6 +18,7 @@ export { groupAgeRestrictionException, group_age_restriction_exception_relations
 export { passTemplate, pass_template_relations } from './pass-template.schema'
 export { passTemplateAgeRestriction, pass_template_age_restriction_relations } from './pass-template-age-restriction.schema'
 export { passTemplateAgeRestrictionException, pass_template_age_restriction_exception_relations } from './pass-template-age-restriction-exeption.schema'
+export { studioPrice, studio_price_relations } from './studio-price.schema'
 
 
 export {
@@ -29,5 +30,6 @@ export {
   GroupStatusPgEnum,
   UserProfileRolePgEnum,
   UserProfileStatusPgEnum,
-  PassTemplateTypePgEnum
+  PassTemplateTypePgEnum,
+  StudioPriceTypePgEnum,
 } from '../database.enums'

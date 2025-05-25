@@ -1,1 +1,0 @@
-ALTER TABLE "group_schedule" ALTER COLUMN "time" SET DATA TYPE varchar;
