@@ -1,12 +1,12 @@
-import { Injectable } from '@nestjs/common'
+import { Injectable, Scope } from '@nestjs/common'
 import { TrainingService } from '@app/domain/training'
 import { DATE_FORMAT, UserProfileRoleEnum } from '@app/libs'
 import { TNormalizedOption } from '@app/bot/libs'
-import { BaseSelectInlineMenu } from './base.paginated-menu'
+import { BasePaginatedSelectInlineMenu } from './base.paginated-menu'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 
-@Injectable()
-export class TrainingSelectInlineMenu extends BaseSelectInlineMenu<{
+@Injectable({scope: Scope.TRANSIENT})
+export class TrainingSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
   groupId: string
   userId: string
   clientId?: string

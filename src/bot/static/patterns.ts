@@ -18,7 +18,7 @@ export const PATTERNS_COMMON = {
 
 export const PATTERNS_CLIENT = {
   ACTIVE_SCHEDULES: '✅ Мої активні записи',
-  PASS_INFO: '📙 Інформація про абонемент',
+  PASS_INFO: '🎫 Інформація про абонемент',
   PAYMENT: '💳 Оплатити абонемент (реквізити)',
   REGISTER_FINISH: '✅ Завершити реєстрацію',
 } as const
@@ -28,13 +28,13 @@ export const PATTERNS_GUEST = {} as const
 export const PATTERNS_ADMIN = {
   REQUESTS: '🔸 Запити на верифікацію',
   STAFF: '👨‍🏫 Персонал',
-  GROUPS: '👥 Групи',
-  CLIENTS: '👤 Клієнти',
+  GROUPS: '👯‍♀️ Групи',
+  CLIENTS: '💃 Клієнти',
 } as const
 
 export const PATTERNS_SCENE = {
   VERIFY_CLIENT: {
-    GROUP_PASS_TYPE: '👯‍♀️ Груповий абонемент',
-    INDIVIDUAL_PASS_TYPE: '💃 Індивідуальний абонемент',
+    GROUP_PASS_TYPE: '👥 Груповий абонемент',
+    INDIVIDUAL_PASS_TYPE: '👤 Індивідуальний абонемент',
   }
 } as const

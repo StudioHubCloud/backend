@@ -1,9 +1,9 @@
+import { BadRequestException, Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { DatabaseService, pass, PassInsertModel, PassSelectModel, Transaction } from '@app/infrastructure/database'
 import { PassCacheKey, RedisCacheService } from '@app/infrastructure/redis'
 import { PassStatusEnum } from '@app/libs'
-import { BadRequestException, Injectable } from '@nestjs/common'
 
 @Injectable()
 export class PassService {
@@ -22,16 +22,15 @@ export class PassService {
     return createdPass
   }
 
-  async findPassByConditions(conditions: Partial<PassSelectModel>, options: { throwError?: boolean } = {}) {
-    const { throwError = true } = options
+  async findPassByConditions(conditions: Partial<PassSelectModel>) {
     const passFound = await this.databaseService.drizzle.query.pass.findFirst({
       where: (pass, { and, eq }) => and(...Object.entries(conditions).map(([key, value]) => eq(pass[key], value))),
       with: {
-        passTemplate: true
-      }
+        passTemplate: true,
+      },
     })
 
-    if (!passFound && throwError) {
+    if (!passFound) {
       throw new BadRequestException('Користувач не має абонементу')
     }
 
@@ -59,7 +58,8 @@ export class PassService {
 
   async updatePass(id: string, data: Partial<PassInsertModel>, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
-    const [updatedPass] = await dbProvider.update(pass).set(data).where(eq(pass.id, id)).returning()
+    const [updateResult] = await dbProvider.update(pass).set(data).where(eq(pass.id, id)).returning()
+    const updatedPass = await this.findPassByConditions({ id: updateResult.id })
     await this.redisCacheService.set(PassCacheKey.passByClientId(updatedPass.clientId, this.studioId), updatedPass)
     return updatedPass
   }

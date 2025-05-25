@@ -4,7 +4,7 @@ import { BotContext } from '@app/bot/bot.context'
 import { PATTERNS_CLIENT, PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { API } from '@app/libs'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
-import { TrainingSelectInlineMenu, GroupSelectInlineMenu, ActiveSchedulesInlineMenu } from '@app/bot/modules/inline-menu'
+import { TrainingSelectPaginatedMenu, GroupSelectPaginatedMenu, ActiveSchedulesInlineMenu } from '@app/bot/modules/inline-menu'
 import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
@@ -15,8 +15,8 @@ export class SchedulerComposer {
   private readonly composer: Composer<BotContext>
 
   constructor(
-    private readonly groupSelectMenu: GroupSelectInlineMenu,
-    private readonly trainingSelectMenu: TrainingSelectInlineMenu,
+    private readonly groupSelectMenu: GroupSelectPaginatedMenu,
+    private readonly trainingSelectMenu: TrainingSelectPaginatedMenu,
     private readonly trainingSignupService: TrainingSignupService,
     private readonly activeSchedulesMenu: ActiveSchedulesInlineMenu,
     private readonly groupService: GroupService,
@@ -38,21 +38,22 @@ export class SchedulerComposer {
   }
 
   private configureMenus() {
-    this.groupSelectMenu.configure({
-      callbackPrefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT,
-      promptMessage: 'Виберіть групу:',
-      noOptionsMessage: 'На жаль, немає доступних груп для запису.',
-      onItemSelect: this.handleGroupSelect,
-    })
-
-    this.trainingSelectMenu.configure({
-      callbackPrefix: CALLBACK_PREFIX.CLEINT_TRAINING_SELECT,
-      promptMessage: 'Виберіть тренування:',
-      noOptionsMessage: 'В межах Вашого абонементу немає доступних тренувань для запису в цій групі.',
-      onItemSelect: this.handleTrainingSelect,
-    })
-    this.composer.use(this.groupSelectMenu.middleware())
-    this.composer.use(this.trainingSelectMenu.middleware())
+    this.composer.use(
+      this.groupSelectMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT,
+        promptMessage: 'Виберіть групу:',
+        noOptionsMessage: 'На жаль, немає доступних груп для запису.',
+        onItemSelect: this.handleGroupSelect,
+      }),
+    )
+    this.composer.use(
+      this.trainingSelectMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.CLEINT_TRAINING_SELECT,
+        promptMessage: 'Виберіть тренування:',
+        noOptionsMessage: 'В межах Вашого абонементу немає доступних тренувань для запису в цій групі.',
+        onItemSelect: this.handleTrainingSelect,
+      }),
+    )
     this.composer.use(this.activeSchedulesMenu.middleware())
   }
 
@@ -72,7 +73,11 @@ export class SchedulerComposer {
     if (group.groupAgeRestrictions) {
       await ctx.reply(MessageHelper.getAgeRestrictionMessage(group.groupAgeRestrictions.minAge, group.groupAgeRestrictions.maxAge))
     }
-    return this.trainingSelectMenu.initMenu(ctx, { groupId, clientId: client?.id, userId: id, role })
+    return this.trainingSelectMenu.initMenu(
+      ctx,
+
+      { groupId, clientId: client?.id, userId: id, role },
+    )
   }
 
   private handleTrainingSelect = async (ctx: BotContext, trainingId: string) => {

@@ -18,6 +18,7 @@ export const CALLBACK_PREFIX = {
   REJECT_USER_VERIFY: '_rejectuserverify',
   BLOCK_USER: '_blockuser',
   CLIENT_GROUP_SELECT: '_groupselectclient',
+  STAFF_GROUP_SELECT: '_groupselectstaff',
   CLEINT_TRAINING_SELECT: '_trainingselectclient',
   VERIFY_SCENE_PASS_TEMPLATE_PREVIEW: '_verifyScene_ptpreview',
   VERIFY_SCENE_PASS_TEMPLATE_SELECT: '_verifyScene_ptselect',

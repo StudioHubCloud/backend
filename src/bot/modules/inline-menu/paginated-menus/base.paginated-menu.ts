@@ -3,26 +3,18 @@ import { BotContext } from '@app/bot/bot.context'
 import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { ISelectInlineMenuConfig, TNormalizedOption } from '@app/bot/libs'
 
-export abstract class BaseSelectInlineMenu<T extends Record<string, any>> {
+export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any>> {
   protected readonly composer = new Composer<BotContext>()
 
   protected config: ISelectInlineMenuConfig<BotContext>
   protected options: TNormalizedOption[] = []
   protected paginationRegex: RegExp
   protected selectItemRegex: RegExp
-  protected sessionParams: T;
+  protected sessionParams: T
 
-  middleware() {
+  middleware(config: ISelectInlineMenuConfig<BotContext>) {
+    this.configure(config)
     return this.composer.middleware()
-  }
-
-  configure(config: ISelectInlineMenuConfig<BotContext>) {
-    this.config = config
-
-    this.paginationRegex = RegexHelper.createMenuPaginationActionRegex(config.callbackPrefix)
-    this.selectItemRegex = RegexHelper.createMenuSelectItemRegex(config.callbackPrefix)
-
-    this.initComposerHandlers()
   }
 
   async initMenu(ctx: BotContext, sessionParams: T = {} as T) {
@@ -38,6 +30,15 @@ export abstract class BaseSelectInlineMenu<T extends Record<string, any>> {
     }
 
     return ctx.reply(this.config.promptMessage || 'Choose an item:', { reply_markup: menu })
+  }
+
+  private configure(config: ISelectInlineMenuConfig<BotContext>) {
+    this.config = config
+
+    this.paginationRegex = RegexHelper.createMenuPaginationActionRegex(config.callbackPrefix)
+    this.selectItemRegex = RegexHelper.createMenuSelectItemRegex(config.callbackPrefix)
+
+    this.initComposerHandlers()
   }
 
   private initComposerHandlers() {

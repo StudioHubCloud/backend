@@ -35,7 +35,7 @@ export class MessageHelper {
       : '👶 Вікові обмеження відсутні'
 
     return (
-      `✅ Інформація про абонемент "${TextHelper.italic(name)}":\n\n` +
+      `🎫 Інформація про абонемент "${TextHelper.italic(name)}":\n\n` +
       `💰 Ціна: ${TextHelper.bold(PassHelper.toDisplayPrice(price))}\n` +
       `🎫 Кількість: ${TextHelper.bold(`${length} тренувань`)}\n` +
       `${ageRestrictionInfo}`
