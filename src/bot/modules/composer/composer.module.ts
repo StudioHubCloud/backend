@@ -7,10 +7,31 @@ import GuestComposers from './guest'
 import CommonComposers from './common'
 import { ComposerService } from './composer.service'
 import { InlineMenuModule } from '../inline-menu/inline-menu.module'
+import { APP } from '@app/libs'
+import { DateTimeProvider } from '@app/infrastructure/providers'
 
 @Module({
-  imports: [GroupModule, TrainingModule, InlineMenuModule, TrainingSignupModule, GroupScheduleModule, PassModule, UserProfileModule],
-  providers: [ComposerService, ...GuestComposers, ...ClientComposers, ...AdminComposers, ...TrainerComposers, ...CommonComposers],
+  imports: [
+    GroupModule,
+    TrainingModule,
+    InlineMenuModule,
+    TrainingSignupModule,
+    GroupScheduleModule,
+    PassModule,
+    UserProfileModule,
+  ],
+  providers: [
+    ComposerService,
+    {
+      provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
+      useClass: DateTimeProvider,
+    },
+    ...GuestComposers,
+    ...ClientComposers,
+    ...AdminComposers,
+    ...TrainerComposers,
+    ...CommonComposers,
+  ],
   exports: [ComposerService],
 })
 export class ComposerModule {}

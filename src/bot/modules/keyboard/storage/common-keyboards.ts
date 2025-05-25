@@ -10,17 +10,17 @@ export class CommonKeyboards {
       [
         {
           text: PATTERNS_COMMON.VERIFY,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.VERIFY_USER, id, role),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.VERIFY_YES, id, role),
         },
       ],
       [
         {
           text: PATTERNS_COMMON.REJECT,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.REJECT_USER_VERIFY, id, role),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.VERIFY_NO, id, role),
         },
         {
           text: PATTERNS_COMMON.BLOCK,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.BLOCK_USER, id, role),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.BLOCK, id, role),
         },
       ],
     ])

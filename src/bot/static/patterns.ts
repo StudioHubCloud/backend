@@ -27,6 +27,8 @@ export const PATTERNS_GUEST = {} as const
 
 export const PATTERNS_ADMIN = {
   REQUESTS: '🔸 Запити на верифікацію',
+  BACK_TO_MAIN_MENU: '🔙 Назад до меню адміністратора',
+  GROUP_TRAININGS: '📝 Інформація про тренування',
   STAFF: '👨‍🏫 Персонал',
   GROUPS: '👯‍♀️ Групи',
   CLIENTS: '💃 Клієнти',

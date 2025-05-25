@@ -1,4 +1,16 @@
-import { ClientSelectModel, StudioSelectModel, UserProfileSelectModel } from '@app/infrastructure/database/models'
+import {
+  ClientSelectModel,
+  GroupAgeRestrictionSelectModel,
+  GroupSelectModel,
+  GroupStyleSelectModel,
+  StudioSelectModel,
+  UserProfileSelectModel,
+  GroupAgeRestrictionExceptionSelectModel,
+  TrainingSelectModel,
+  GroupScheduleSelectModel,
+  GroupStyleVariantSelectModel,
+  TrainingSignupSelectModel,
+} from '@app/infrastructure/database/models'
 import { UserProfileRoleEnum } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 
@@ -58,3 +70,18 @@ export interface IRegisterSceneState {
   date_of_birth?: string
 }
 
+export interface GetGroupByIdResponse extends GroupSelectModel {
+  groupStyle: GroupStyleSelectModel
+  groupAgeRestrictions: GroupAgeRestrictionSelectModel | null
+  groupAgeRestrictionExeptions?: GroupAgeRestrictionExceptionSelectModel[] | null
+}
+
+export interface GetTrainingByIdResponse extends TrainingSelectModel {
+  group: Pick<GroupSelectModel, 'status'>
+  trainingSignups: (TrainingSignupSelectModel & { userProfile: UserProfileSelectModel | null })[]
+  groupSchedule:
+    | (GroupScheduleSelectModel & {
+        groupStyleVariant: GroupStyleVariantSelectModel | null
+      })
+    | null
+}

@@ -2,7 +2,7 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { addDays } from 'date-fns'
 import { BotContext } from '@app/bot/bot.context'
-import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
+import { CALLBACK_PREFIX, PASS_CONFIG, SCENES } from '@app/bot/libs'
 import { SceneHelper, BotHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
 import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
 import { PATTERNS_COMMON, PATTERNS_SCENE } from '@app/bot/static/patterns'
@@ -45,7 +45,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
     this.currentDate = this.dateTimeService.formatDate({ dateFormat: DATE_FORMAT.DATE_INPUT })
     this.currentAnd30DaysDate = this.dateTimeService.formatDate({
       dateFormat: DATE_FORMAT.DATE_INPUT,
-      date: addDays(new Date(), 30),
+      date: addDays(new Date(), PASS_CONFIG.DURATION_IN_DAYS),
     })
 
     await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, VerifyClientSceneKeyboards.passType())
@@ -82,8 +82,8 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
         VerifyClientSceneKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates),
       )
     } else {
-      const previewTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.VERIFY_SCENE_PASS_TEMPLATE_PREVIEW, data)
-      const selectTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.VERIFY_SCENE_PASS_TEMPLATE_SELECT, data)
+      const previewTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_PREVIEW, data)
+      const selectTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_SELECT, data)
       if (previewTemplateActionMatch) {
         ctx.answerCbQuery()
         const [id] = previewTemplateActionMatch

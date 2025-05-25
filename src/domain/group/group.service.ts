@@ -1,3 +1,4 @@
+import { GetGroupByIdResponse } from '@app/bot/libs'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { DatabaseService, GroupSelectModel } from '@app/infrastructure/database'
 import { RedisCacheService, GroupCacheKey } from '@app/infrastructure/redis'
@@ -37,7 +38,7 @@ export class GroupService {
     return this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID') })
   }
 
-  async getGroupById(groupId: string) {
+  async getGroupById(groupId: string): Promise<GetGroupByIdResponse> {
 
     const cacheKey = GroupCacheKey.groupById(groupId)
 

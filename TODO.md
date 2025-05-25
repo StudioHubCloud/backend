@@ -1,25 +1,16 @@
-##  training filtering for guest based of now() + 2weeks
-
-### scheduled trainings list for signout
-
-### pass info
-
-### confirm client by admin
-
-
-
 ### ask user to consent with studio rules before any action
 
-### CRON for adding trainings to active groups
-### Staff member invite link + rules
-### Client pass info view
-### Client flow (signout from training)
+## cancel training restrictions (either forbid if there are schedules or delete(cancel) schedules)
+## add additional prompt inline menu on destructive actions
+## refactor schedule for trainings flow to use inline menu-like style ( admin group manage as a reference )
 
+
+
+### CRON for adding trainings to active groups
 ### Guest - schedule for training flow
 ### Guest - add buttons to send activation request as a client
-
 ### Admin - confirm guest schedule for training
-### Admin - confirm guest request for activation as a client
+
 
 
 BACKLOG

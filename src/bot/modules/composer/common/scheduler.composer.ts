@@ -40,7 +40,7 @@ export class SchedulerComposer {
   private configureMenus() {
     this.composer.use(
       this.groupSelectMenu.middleware({
-        callbackPrefix: CALLBACK_PREFIX.CLIENT_GROUP_SELECT,
+        callbackPrefix: CALLBACK_PREFIX.CLIENT.GROUP.SELECT,
         promptMessage: 'Виберіть групу:',
         noOptionsMessage: 'На жаль, немає доступних груп для запису.',
         onItemSelect: this.handleGroupSelect,
@@ -48,7 +48,7 @@ export class SchedulerComposer {
     )
     this.composer.use(
       this.trainingSelectMenu.middleware({
-        callbackPrefix: CALLBACK_PREFIX.CLEINT_TRAINING_SELECT,
+        callbackPrefix: CALLBACK_PREFIX.CLIENT.TRAINING.SELECT,
         promptMessage: 'Виберіть тренування:',
         noOptionsMessage: 'В межах Вашого абонементу немає доступних тренувань для запису в цій групі.',
         onItemSelect: this.handleTrainingSelect,
@@ -104,10 +104,10 @@ export class SchedulerComposer {
       switch (response.availableSlots) {
         case 1:
           return ctx.answerCbQuery(
-            'Вітаю, запис успішний!🤗\n\nУ Вас залишився 1 доступний запис на тренування в межах даного абонемента🛎',
+            'Вітаю, запис успішний!🤗\n\nУ Вас залишився 1 доступний запис на тренування в межах даного абонемента🛎', {show_alert: true}
           )
         default:
-          return ctx.answerCbQuery(response.message)
+          return ctx.answerCbQuery(response.message, {show_alert: true})
       }
     } else {
       ctx.answerCbQuery()

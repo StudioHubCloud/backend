@@ -1,10 +1,12 @@
 import { Injectable, NotFoundException } from '@nestjs/common'
+import { eq } from 'drizzle-orm'
 import { StudioService } from '../studio'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { DatabaseService, GroupScheduleSelectModel, training, TrainingInsertModel } from '@app/infrastructure/database'
 import { PassService } from '../pass'
-import { UserProfileRoleEnum } from '@app/libs'
+import { API, UserProfileRoleEnum } from '@app/libs'
 import { RedisCacheService, TrainingCacheKey } from '@app/infrastructure/redis'
+import { GetTrainingByIdResponse } from '@app/bot/libs'
 
 @Injectable()
 export class TrainingService {
@@ -15,6 +17,53 @@ export class TrainingService {
     private readonly passService: PassService,
     private readonly redisCacheService: RedisCacheService,
   ) {}
+
+  async getTrainingListForManage({ groupId }: { groupId: string }) {
+    const cacheKey = TrainingCacheKey.trainingsForManage(groupId)
+
+    const cachedTrainings = await this.redisCacheService.get<typeof trainings>(cacheKey)
+    if (cachedTrainings) {
+      return cachedTrainings
+    }
+
+    const trainings = await this.databaseService.drizzle.query.training.findMany({
+      where: (training, { eq, and, gte }) => and(eq(training.groupId, groupId), gte(training.date, new Date().toISOString())),
+      limit: API.DEFAULT_LIMIT,
+      with: {
+        group: true,
+        groupSchedule: true,
+      },
+      orderBy: (training, { asc }) => asc(training.date),
+    })
+
+    if (trainings) {
+      this.redisCacheService.set(cacheKey, trainings)
+    }
+
+    return trainings
+  }
+
+  async cancelTrainingById(trainingId: string) {
+    await this.getTrainingById(trainingId)
+    const [result] = await this.databaseService.drizzle
+      .update(training)
+      .set({ isCancelled: true })
+      .where(eq(training.id, trainingId))
+      .returning()
+    await this.redisCacheService.reset()
+    return result
+  }
+
+  async activateTrainingById(trainingId: string) {
+    await this.getTrainingById(trainingId)
+    const [result] = await this.databaseService.drizzle
+      .update(training)
+      .set({ isCancelled: false })
+      .where(eq(training.id, trainingId))
+      .returning()
+    await this.redisCacheService.reset()
+    return result
+  }
 
   async getTrainingsListForSchedule(options: { groupId: string; clientId?: string; userId: string; role: UserProfileRoleEnum }) {
     const { groupId, clientId, userId } = options
@@ -52,7 +101,7 @@ export class TrainingService {
     return trainings
   }
 
-  async getTrainingById(trainingId: string) {
+  async getTrainingById(trainingId: string): Promise<GetTrainingByIdResponse> {
     const cacheKey = TrainingCacheKey.trainingById(trainingId)
 
     const cachedTraining = await this.redisCacheService.get<typeof training>(cacheKey)
@@ -66,6 +115,16 @@ export class TrainingService {
         group: {
           columns: {
             status: true,
+          },
+        },
+        groupSchedule: {
+          with: {
+            groupStyleVariant: true,
+          },
+        },
+        trainingSignups: {
+          with: {
+            userProfile: true,
           },
         },
       },
@@ -101,6 +160,8 @@ export class TrainingService {
       .values(trainingsToInsert)
       .onConflictDoNothing({ target: [training.date, training.groupId] })
       .returning()
+
+    await this.redisCacheService.reset()
     return result
   }
 

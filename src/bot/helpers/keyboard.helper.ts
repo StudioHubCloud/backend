@@ -38,7 +38,7 @@ export class KeyboardHelper {
     const paginatedData = data.slice(startIndex, endIndex)
 
     const dataButtons = paginatedData.map(({ label, value }) => [
-      { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` }, //potentialy refactor this to use a function
+      { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` }
     ])
     const paginationRow = data.length > perPage ? this.createPaginationRow(prefix, { page, totalPages }) : []
 

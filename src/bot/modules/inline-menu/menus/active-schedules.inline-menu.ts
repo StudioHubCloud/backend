@@ -5,12 +5,16 @@ import { BotContext } from '@app/bot/bot.context'
 import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { API } from '@app/libs'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 
 @Injectable()
 export class ActiveSchedulesInlineMenu {
   protected readonly composer = new Composer<BotContext>()
 
-  constructor(private readonly trainingSignupService: TrainingSignupService) {
+  constructor(
+    private readonly trainingSignupService: TrainingSignupService,
+    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+  ) {
     this.initMenuActions()
   }
 
@@ -27,12 +31,11 @@ export class ActiveSchedulesInlineMenu {
 
     const keyboard = activeSignups.map((signup) => [
       {
-        text: `➖ ${signup.group.groupStyle.title} (${format(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
+        text: `➖ ${signup.group.groupStyle.title} (${this.dateTimeService.formatDateStringInTz(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
         callback_data: `sign-out:${signup.id}`,
       },
     ])
-    await ctx.reply('В цьому меню активних записів можна виписатись з тренування ⬇️⬇️')
-    return ctx.reply('Ваші активні записи:', {
+    return ctx.reply('⬇️ В цьому меню активних записів можна виписатись з тренування ⬇️', {
       reply_markup: {
         inline_keyboard: keyboard,
       },
@@ -47,7 +50,7 @@ export class ActiveSchedulesInlineMenu {
       const { id } = UserHelper.getUser(ctx)
 
       const response = await this.trainingSignupService.signOutFromTrainingAsClientViaTelegram(signupId)
-      
+
       const activeSignups = await this.trainingSignupService.getClientSignups(id)
 
       if (response.status === API.RESPONSE.ERROR_STRING) {
@@ -57,10 +60,10 @@ export class ActiveSchedulesInlineMenu {
       if (!activeSignups.length) {
         return ctx.editMessageText('У вас немає активних записів на тренування')
       }
-
+      
       const keyboard = activeSignups.map((signup) => [
         {
-          text: `➖ ${signup.group.groupStyle.title} (${format(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
+          text: `➖ ${signup.group.groupStyle.title} (${this.dateTimeService.formatDateStringInTz(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
           callback_data: `sign-out:${signup.id}`,
         },
       ])

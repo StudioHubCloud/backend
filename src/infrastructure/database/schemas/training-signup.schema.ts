@@ -34,7 +34,7 @@ export const trainingSignup = table(
 )
 
 export const training_signup_relations = relations(trainingSignup, ({ one }) => ({
-  user_profile: one(userProfile, { fields: [trainingSignup.userProfileId], references: [userProfile.id] }),
+  userProfile: one(userProfile, { fields: [trainingSignup.userProfileId], references: [userProfile.id] }),
   training: one(training, { fields: [trainingSignup.trainingId], references: [training.id] }),
   group: one(group, { fields: [trainingSignup.groupId], references: [group.id] }),
   pass: one(pass, { fields: [trainingSignup.passId], references: [pass.id] }),

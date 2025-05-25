@@ -12,7 +12,7 @@ import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
 import { PinoLogger } from 'nestjs-pino'
-import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
+import { RedisCacheService, TrainingCacheKey, TrainingSignupCacheKey } from '@app/infrastructure/redis'
 import { eq } from 'drizzle-orm'
 
 @Injectable()
@@ -136,10 +136,7 @@ export class TrainingSignupService {
         ])
       })
 
-      await Promise.all([
-        this.redisCacheService.delete(TrainingSignupCacheKey.clientSignupsInGroup(userProfileId, training.groupId)),
-        this.redisCacheService.delete(TrainingSignupCacheKey.clientSignups(userProfileId)),
-      ])
+       await this.redisCacheService.reset()
 
       return {
         status: API.RESPONSE.SUCCESS_STRING,
@@ -175,7 +172,7 @@ export class TrainingSignupService {
         where: (ts, { eq }) => eq(ts.id, trainingSignupId),
         with: {
           training: true,
-          user_profile: true,
+          userProfile: true,
           pass: true,
           group: {
             columns: {
@@ -203,12 +200,7 @@ export class TrainingSignupService {
         ])
       })
 
-      if (signup.userProfileId) {
-        await Promise.all([
-          this.redisCacheService.delete(TrainingSignupCacheKey.clientSignupsInGroup(signup.userProfileId, signup.groupId)),
-          this.redisCacheService.delete(TrainingSignupCacheKey.clientSignups(signup.userProfileId)),
-        ])
-      }
+      await this.redisCacheService.reset()
 
       return { status: API.RESPONSE.SUCCESS_STRING, message: 'Виписка з тренування успішна' }
     } catch (error) {
@@ -218,6 +210,30 @@ export class TrainingSignupService {
         message: 'Виникла помилка при виписці з тренування 😔',
       }
     }
+  }
+
+  async getTrainingActiveSignups(trainingId: string){
+    const cacheKey = TrainingSignupCacheKey.trainingActiveSignups(trainingId)
+    const cachedSignups = await this.redisCacheService.get<typeof result>(cacheKey)
+    if (cachedSignups) {
+      return cachedSignups
+    }
+
+    const result = await this.databaseService.drizzle.query.trainingSignup.findMany({
+      where: (ts, { eq, and, or }) =>
+        and(
+          eq(ts.trainingId, trainingId),
+          eq(ts.status, TrainingSignupStatusEnum.ACTIVE),
+          or(eq(ts.type, TrainingSignupTypeEnum.MAIN), eq(ts.type, TrainingSignupTypeEnum.TRIAL)),
+        ),
+      with: {
+        userProfile: true,
+      }
+    })
+    if (result) {
+      this.redisCacheService.set(cacheKey, result)
+    }
+    return result
   }
 
   private async checkIfHasTrialSignup(userProfileId: string): Promise<boolean> {

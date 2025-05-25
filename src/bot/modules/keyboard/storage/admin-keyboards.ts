@@ -1,9 +1,66 @@
-import { KeyboardHelper } from '@app/bot/helpers'
+import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
-import { TReplyMarkupKeyboard } from '@app/bot/libs'
+import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 
 export class AdminKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_ADMIN.MAIN_MENU)
+  }
+
+  static groupManageMenu(groupId: string): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: '🤸‍♂️ Тренування',
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS, groupId),
+        },
+      ],
+      [
+        {
+          text: '⬅️ Назад до списку груп',
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT, groupId),
+        },
+      ],
+    ])
+  }
+
+  static backForTrainingManage(trainingId: string): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: '⬅️ Назад до тренування',
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE, trainingId),
+        },
+      ],
+    ])
+  }
+
+  static trainingManageMenu(training: GetTrainingByIdResponse): TReplyInlineKeyboard {
+    const { id: trainingId, groupId, isCancelled } = training
+
+    const cancelButton = {
+      text: '🚫 Відмінити тренування',
+      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.CANCEL, trainingId),
+    }
+    const makeActiveButton = {
+      text: '✅ Активувати тренування',
+      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE, trainingId),
+    }
+
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: '📜 Активні записи',
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS, trainingId),
+        },
+      ],
+      [isCancelled ? makeActiveButton : cancelButton],
+      [
+        {
+          text: '⬅️ Назад до списку тренувань',
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT, groupId),
+        },
+      ],
+    ])
   }
 }

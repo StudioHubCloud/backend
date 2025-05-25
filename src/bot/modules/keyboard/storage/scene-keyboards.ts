@@ -41,7 +41,7 @@ export class VerifyClientSceneKeyboards {
       [
         {
           text: PATTERNS_COMMON.SELECT,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.VERIFY_SCENE_PASS_TEMPLATE_SELECT, value),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_SELECT, value),
         },
       ],
     ])
@@ -52,7 +52,7 @@ export class VerifyClientSceneKeyboards {
       data.map((item) => [
         {
           text: item.name,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.VERIFY_SCENE_PASS_TEMPLATE_PREVIEW, item.id),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_PREVIEW, item.id),
         },
       ]),
     )

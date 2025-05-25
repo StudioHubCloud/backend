@@ -1,4 +1,6 @@
-import { UserProfileStatusEnum } from '@app/libs'
+export const PASS_CONFIG = {
+  DURATION_IN_DAYS: 30,
+}
 
 export const SCENES = {
   REGISTER: 'register',
@@ -14,12 +16,40 @@ export const CALLBACK_DATA = {
 } as const
 
 export const CALLBACK_PREFIX = {
-  VERIFY_USER: '_verifyuser',
-  REJECT_USER_VERIFY: '_rejectuserverify',
-  BLOCK_USER: '_blockuser',
-  CLIENT_GROUP_SELECT: '_groupselectclient',
-  STAFF_GROUP_SELECT: '_groupselectstaff',
-  CLEINT_TRAINING_SELECT: '_trainingselectclient',
-  VERIFY_SCENE_PASS_TEMPLATE_PREVIEW: '_verifyScene_ptpreview',
-  VERIFY_SCENE_PASS_TEMPLATE_SELECT: '_verifyScene_ptselect',
+  STAFF: {
+    GROUP: {
+      MENU: 'grp.menu.st',
+      TRAININGS: 'grp.trng.st',
+      TRAININGS_SELECT: 'grp.trng.sel.st',
+      BACK_TO_TRAININGS_SELECT: 'grp.trng.sel.back.st',
+      SELECT: 'grp.sel.st',
+      BACK_TO_SELECT: 'grp.sel.back.st',
+    },
+    TRAINING: {
+      SIGNUPS: 'trng.sup.st',
+      SELECT: 'trng.sel.st',
+      CANCEL: 'trng.cancel.st',
+      ACTIVATE: 'trng.activ.st',
+      BACK_TO_MANAGE: 'trng.mng.back.st',
+    },
+    USER: {
+      VERIFY_YES: 'usr.yver.st',
+      VERIFY_NO: 'usr.nver.st',
+      BLOCK: 'usr.block.st',
+    },
+  },
+  CLIENT: {
+    TRAINING: {
+      SELECT: 'trng.sel.cl',
+    },
+    GROUP: {
+      SELECT: 'grp.sel.cl',
+    },
+  },
+  SCENES: {
+    VERIFY_CLIENT: {
+      PASS_TEMPLATE_PREVIEW: 'sc.vercl.pt.prvw',
+      PASS_TEMPLATE_SELECT: 'c.vercl.pt.sel',
+    },
+  },
 } as const

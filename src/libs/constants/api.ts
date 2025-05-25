@@ -3,5 +3,6 @@ export const API = {
   RESPONSE: {
     SUCCESS_STRING: 'OK',
     ERROR_STRING: 'ERROR',
-  }
+  },
+  DEFAULT_LIMIT: 12
 } as const

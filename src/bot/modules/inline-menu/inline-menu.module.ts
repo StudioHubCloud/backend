@@ -7,6 +7,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
 import { GroupSelectPaginatedMenu } from './paginated-menus/group-select.paginated-menu'
 import { TrainingSelectPaginatedMenu } from './paginated-menus/training-select.paginated-menu'
 import { VerificationInlineMenu } from './menus/verification-requests.inline-menu'
+import { TrainingSelectAdminPaginatedMenu } from './paginated-menus/training-select-admin.paginated-menu'
 
 @Module({
   imports: [GroupModule, TrainingModule, TrainingSignupModule, UserProfileModule, PassTemplateModule],
@@ -14,12 +15,19 @@ import { VerificationInlineMenu } from './menus/verification-requests.inline-men
     GroupSelectPaginatedMenu,
     ActiveSchedulesInlineMenu,
     TrainingSelectPaginatedMenu,
+    TrainingSelectAdminPaginatedMenu,
     VerificationInlineMenu,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,
     },
   ],
-  exports: [GroupSelectPaginatedMenu, TrainingSelectPaginatedMenu, ActiveSchedulesInlineMenu, VerificationInlineMenu],
+  exports: [
+    GroupSelectPaginatedMenu,
+    TrainingSelectPaginatedMenu,
+    ActiveSchedulesInlineMenu,
+    VerificationInlineMenu,
+    TrainingSelectAdminPaginatedMenu,
+  ],
 })
 export class InlineMenuModule {}

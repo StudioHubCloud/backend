@@ -1,16 +1,30 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
 import { PATTERNS_ADMIN } from '@app/bot/static/patterns'
-import { GroupSelectPaginatedMenu } from '@app/bot/modules/inline-menu'
+import { GroupSelectPaginatedMenu, TrainingSelectAdminPaginatedMenu } from '@app/bot/modules/inline-menu'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
+import { AdminKeyboards } from '@app/bot/modules/keyboard/storage'
+import { GroupService } from '@app/domain/group'
+import { MessageHelper } from '@app/bot/helpers/message.helper'
+import { RegexHelper } from '@app/bot/helpers'
+import { TrainingService } from '@app/domain/training'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+import { TrainingSelectModel } from '@app/infrastructure/database'
+import { TrainingSignupService } from '@app/domain/training-signup'
 
 @Injectable()
 export class GroupManageComposer {
   private readonly composer: Composer<BotContext>
 
-  constructor(private readonly groupSelectMenu: GroupSelectPaginatedMenu) {
+  constructor(
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
+    private readonly groupSelectPaginatedMenu: GroupSelectPaginatedMenu,
+    private readonly trainingSelectAdminPaginatedMenu: TrainingSelectAdminPaginatedMenu,
+    private readonly groupService: GroupService,
+    private readonly trainingService: TrainingService,
+    private readonly trainingSignupService: TrainingSignupService,
+  ) {
     this.composer = new Composer<BotContext>()
 
     this.useMenusMiddleware()
@@ -24,29 +38,111 @@ export class GroupManageComposer {
 
   private useMenusMiddleware() {
     this.composer.use(
-      this.groupSelectMenu.middleware({
-        callbackPrefix: CALLBACK_PREFIX.STAFF_GROUP_SELECT,
+      this.groupSelectPaginatedMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.STAFF.GROUP.SELECT,
         promptMessage: 'Виберіть групу:',
         noOptionsMessage: 'На жаль, немає активих груп для управління.',
-        onItemSelect: this.handleGroupSelect,
+        onItemSelect: this.handleGroupPaginatedSelect,
+      }),
+    )
+    this.composer.use(
+      this.trainingSelectAdminPaginatedMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.STAFF.GROUP.TRAININGS_SELECT,
+        noOptionsMessage: 'На жаль, немає доступних тренувань',
+        onItemSelect: this.handleTrainingPaginatedSelect,
       }),
     )
   }
 
-  initExternalComposers() {
-    // This method can be used to initialize any external composers if needed
-  }
-
   initComposerHandlers() {
-    this.composer.hears(PATTERNS_ADMIN.GROUPS, this.groupManagehandler)
+    this.composer.hears(PATTERNS_ADMIN.GROUPS, async (ctx: BotContext) => {
+      return this.groupSelectPaginatedMenu.initMenu(ctx)
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS), async (ctx: BotContext) => {
+      ctx.answerCbQuery()
+      return this.renderTrainingSelectMenu(ctx, { shouldEdit: false })
+    })
+
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT),
+      async (ctx: BotContext) => {
+        ctx.answerCbQuery()
+        return this.groupSelectPaginatedMenu.initMenu(ctx, {}, { shouldEdit: true })
+      },
+    )
+
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT),
+      async (ctx: BotContext) => {
+        ctx.answerCbQuery()
+        return this.renderTrainingSelectMenu(ctx, { shouldEdit: true })
+      },
+    )
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.CANCEL), async (ctx: BotContext) => {
+      ctx.answerCbQuery()
+      const [_, trainingId] = ctx['match']
+      const response = await this.trainingService.cancelTrainingById(trainingId)
+      return this.renderTraininManageMenu(ctx, response)
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE), async (ctx: BotContext) => {
+      return this.handleTrainingPaginatedSelect(ctx, ctx['match'][1])
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE), async (ctx: BotContext) => {
+      ctx.answerCbQuery()
+      const [_, trainingId] = ctx['match']
+      const response = await this.trainingService.activateTrainingById(trainingId)
+      return this.renderTraininManageMenu(ctx, response)
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS), async (ctx: BotContext) => {
+      ctx.answerCbQuery()
+      const [_, trainingId] = ctx['match']
+      const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
+      return ctx.editMessageText(MessageHelper.constructActiveSignupsMessage(activeSignUps), {
+        parse_mode: 'HTML',
+        ...AdminKeyboards.backForTrainingManage(trainingId),
+      })
+    })
   }
 
-  private groupManagehandler = async (ctx: BotContext) => {
-    await ctx.reply('Вітаю в розділі управління групами!')
-    return this.groupSelectMenu.initMenu(ctx)
+  private renderTrainingSelectMenu = async (ctx: BotContext, { shouldEdit }: { shouldEdit: boolean }) => {
+    const [_, groupId] = ctx['match']
+    const group = await this.groupService.getGroupById(groupId)
+    return this.trainingSelectAdminPaginatedMenu.initMenu(ctx, { group }, { shouldEdit })
   }
 
-  private handleGroupSelect = async (ctx: BotContext, groupId: string) => {
-    return ctx.reply(`Ви обрали групу з ID: ${groupId}. Тепер ви можете керувати цією групою.`)
+  private renderTraininManageMenu = async (ctx: BotContext, updatedTraining: TrainingSelectModel) => {
+    const [training, group] = await Promise.all([
+      this.trainingService.getTrainingById(updatedTraining.id),
+      this.groupService.getGroupById(updatedTraining.groupId),
+    ])
+    return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
+      parse_mode: 'HTML',
+      ...AdminKeyboards.trainingManageMenu(training),
+    })
+  }
+  
+
+  private handleGroupPaginatedSelect = async (ctx: BotContext, groupId: string) => {
+    ctx.answerCbQuery()
+    const group = await this.groupService.getGroupById(groupId)
+    return ctx.editMessageText(MessageHelper.constructGroupSelectMessage(group), {
+      parse_mode: 'HTML',
+      ...AdminKeyboards.groupManageMenu(groupId),
+    })
+  }
+
+  private handleTrainingPaginatedSelect = async (ctx: BotContext, trainingId: string) => {
+    await ctx.answerCbQuery()
+    const training = await this.trainingService.getTrainingById(trainingId)
+    const group = await this.groupService.getGroupById(training.groupId)
+    return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
+      parse_mode: 'HTML',
+      ...AdminKeyboards.trainingManageMenu(training),
+    })
   }
 }

@@ -15,7 +15,7 @@ export const groupSchedule = table(
     groupScheduleDayId: smallint('group_schedule_day_id')
       .references(() => groupScheduleDay.id, { onDelete: 'restrict' })
       .notNull(),
-    groupStyleVariantsId: uuid('group_style_variant_id').references(() => groupStyleVariant.id, { onDelete: 'set null' }),
+    groupStyleVariantId: uuid('group_style_variant_id').references(() => groupStyleVariant.id, { onDelete: 'set null' }),
   },
   (table) => [uniqueIndex().on(table.groupId, table.time, table.groupScheduleDayId)],
 )
@@ -26,8 +26,8 @@ export const group_schedule_relations = relations(groupSchedule, ({ one }) => ({
     fields: [groupSchedule.groupScheduleDayId],
     references: [groupScheduleDay.id],
   }),
-  groupStyleVariants: one(groupStyleVariant, {
-    fields: [groupSchedule.groupStyleVariantsId],
+  groupStyleVariant: one(groupStyleVariant, {
+    fields: [groupSchedule.groupStyleVariantId],
     references: [groupStyleVariant.id],
   }),
 }))

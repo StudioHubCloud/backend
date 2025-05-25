@@ -17,7 +17,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     return this.composer.middleware()
   }
 
-  async initMenu(ctx: BotContext, sessionParams: T = {} as T) {
+  async initMenu(ctx: BotContext, sessionParams: T = {} as T, {shouldEdit = false} = {}) {
     this.sessionParams = sessionParams
     this.options = await this.loadOptions()
 
@@ -29,6 +29,9 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
       return ctx.reply(this.config.noOptionsMessage || 'No options available')
     }
 
+    if (shouldEdit && ctx.updateType === 'callback_query') {
+      return ctx.editMessageText(this.config.promptMessage || 'Choose an item:', { reply_markup: menu })
+    }
     return ctx.reply(this.config.promptMessage || 'Choose an item:', { reply_markup: menu })
   }
 

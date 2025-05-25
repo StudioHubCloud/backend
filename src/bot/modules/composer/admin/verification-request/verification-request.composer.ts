@@ -34,9 +34,9 @@ export class VerificationRequestComposer {
   }
 
   private initComposerActions() {
-    this.setupAction(CALLBACK_PREFIX.VERIFY_USER, this.verifyUserAction)
-    this.setupAction(CALLBACK_PREFIX.REJECT_USER_VERIFY, this.rejectUserVerifyAction)
-    this.setupAction(CALLBACK_PREFIX.BLOCK_USER, this.blockUserAction)
+    this.setupAction(CALLBACK_PREFIX.STAFF.USER.VERIFY_YES, this.verifyUserAction)
+    this.setupAction(CALLBACK_PREFIX.STAFF.USER.VERIFY_NO, this.rejectUserVerifyAction)
+    this.setupAction(CALLBACK_PREFIX.STAFF.USER.BLOCK, this.blockUserAction)
   }
 
   private initComposerHandlers() {
