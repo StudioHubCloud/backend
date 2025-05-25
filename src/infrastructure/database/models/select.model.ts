@@ -16,3 +16,6 @@ export type SubscribtionSelectModel = InferSelectModel<typeof schemas.subscribti
 export type TrainingSignupSelectModel = InferSelectModel<typeof schemas.trainingSignup>
 export type TrainingSelectModel = InferSelectModel<typeof schemas.training>
 export type UserProfileSelectModel = InferSelectModel<typeof schemas.userProfile>
+export type PassTemplateSelectModel = InferSelectModel<typeof schemas.passTemplate>
+export type PassTemplateAgeRestrictionSelectModel = InferSelectModel<typeof schemas.passTemplateAgeRestriction>
+export type PassTemplateAgeRestrictionExceptionSelectModel = InferSelectModel<typeof schemas.passTemplateAgeRestrictionException>

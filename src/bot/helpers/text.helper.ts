@@ -10,8 +10,7 @@ export class TextHelper {
     if (!match) {
       return null
     }
-    const [_, day, month, year1, year2] = match
-    console.log(year2, 'year2')
+    const [_, day, month, year1] = match
     return `${day}.${month}.${year1}`
   }
 
@@ -23,7 +22,7 @@ export class TextHelper {
     return text
   }
 
-  static bold(text?: string): string {
+  static bold(text?: string | number): string {
     return text ? `<b>${text}</b>` : ''
   }
 

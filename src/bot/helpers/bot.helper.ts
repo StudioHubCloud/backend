@@ -36,4 +36,14 @@ export class BotHelper {
     }
     return messageText
   }
+
+  static isTextUpdate(ctx: BotContext): boolean {
+    const update = deunionize(ctx.update)
+    return !!update.message
+  }
+
+  static isCallbackQueryUpdate(ctx: BotContext): boolean {
+    const update = deunionize(ctx.update)
+    return !!update.callback_query
+  }
 }

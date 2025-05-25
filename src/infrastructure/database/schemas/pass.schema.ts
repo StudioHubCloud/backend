@@ -18,7 +18,7 @@ export const pass = table(
     pausedToDate: timestamp('paused_to_date', { mode: 'string' }),
     expiredFromDate: timestamp('expired_from_date', { mode: 'string' }),
     status: PassStatusPgEnum().notNull(),
-    passTemplateid: uuid('pass_template_id')
+    passTemplateId: uuid('pass_template_id')
       .references(() => passTemplate.id, { onDelete: 'cascade' })
       .notNull(),
     clientId: uuid('client_id')
@@ -43,5 +43,5 @@ export const pass_relations = relations(pass, ({ many, one }) => ({
   group: one(group, { fields: [pass.groupId], references: [group.id] }),
   studio: one(studio, { fields: [pass.studioId], references: [studio.id] }),
   client: one(client, { fields: [pass.clientId], references: [client.id] }),
-  passTemplate: one(passTemplate, { fields: [pass.passTemplateid], references: [passTemplate.id] }),
+  passTemplate: one(passTemplate, { fields: [pass.passTemplateId], references: [passTemplate.id] }),
 }))

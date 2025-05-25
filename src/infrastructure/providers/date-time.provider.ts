@@ -1,6 +1,6 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, parse, endOfDay } from 'date-fns'
-import { formatInTimeZone, fromZonedTime , toZonedTime } from 'date-fns-tz'
+import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, parse, endOfDay, differenceInYears, addDays } from 'date-fns'
+import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz'
 import { uk } from 'date-fns/locale'
 import { APP, DATE_FORMAT, TDateFormats } from '@app/libs'
 import { TypedConfigService } from '@app/infrastructure/config'
@@ -15,7 +15,6 @@ export class DateTimeProvider {
   }
 
   toUtcString(dateString: string): string {
-    console.log(dateString, 'dateString')
     return `${dateString}Z`
   }
 
@@ -65,6 +64,12 @@ export class DateTimeProvider {
 
   getEachDayOfIntervalForDayIndex(options: { start: Date; end: Date }, dayIndex: number): Date[] {
     return eachDayOfInterval(options).filter((date) => date.getDay() === dayIndex)
+  }
+
+  getAgeFromBirthday(dateOfBirth: Date | string): number {
+    const birthDate = new Date(dateOfBirth)
+    const now = new Date()
+    return differenceInYears(now, birthDate)
   }
 }
 

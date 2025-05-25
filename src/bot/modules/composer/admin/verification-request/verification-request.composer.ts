@@ -65,13 +65,15 @@ export class VerificationRequestComposer {
   }
 
   private verifyUserAction = async (ctx: BotContext) => {
-    await this.handleUserProfileAction(ctx, async ({ id, role }) => {
-      if (role === UserProfileRoleEnum.CLIENT) {
-        ctx.scene.enter(SCENES.VERIFY_CLIENT, { userProfileId: id })
+    await this.handleUserProfileAction(ctx, async (userProfile) => {
+      if (userProfile.role === UserProfileRoleEnum.CLIENT) {
+        ctx.scene.enter(SCENES.VERIFY_CLIENT, { userProfile })
+        ctx.deleteMessage()
         return
       }
-      if (role === UserProfileRoleEnum.TRAINER) {
-        ctx.scene.enter(SCENES.VERIFY_TRAINER, { userProfileId: id })
+      if (userProfile.role === UserProfileRoleEnum.TRAINER) {
+        ctx.scene.enter(SCENES.VERIFY_TRAINER, { userProfile })
+        ctx.deleteMessage()
         return
       }
     })

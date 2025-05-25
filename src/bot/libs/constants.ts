@@ -14,9 +14,11 @@ export const CALLBACK_DATA = {
 } as const
 
 export const CALLBACK_PREFIX = {
-  VERIFY_USER: 'verifyuser',
-  REJECT_USER_VERIFY: 'rejectuserverify',
-  BLOCK_USER: 'blockuser',
-  CLIENT_GROUP_SELECT: 'groupselectclient',
-  CLEINT_TRAINING_SELECT: 'trainingselectclient',
+  VERIFY_USER: '_verifyuser',
+  REJECT_USER_VERIFY: '_rejectuserverify',
+  BLOCK_USER: '_blockuser',
+  CLIENT_GROUP_SELECT: '_groupselectclient',
+  CLEINT_TRAINING_SELECT: '_trainingselectclient',
+  VERIFY_SCENE_PASS_TEMPLATE_PREVIEW: '_verifyScene_ptpreview',
+  VERIFY_SCENE_PASS_TEMPLATE_SELECT: '_verifyScene_ptselect',
 } as const

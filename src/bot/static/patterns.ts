@@ -2,6 +2,7 @@ export const PATTERNS_COMMON = {
   YES: '✅ Так',
   CONFIRM: '✅ Підтвердити',
   VERIFY: '✅ Верифікувати',
+  SELECT: '✅ Обрати',
   REJECT: '🙅‍♀️ Відхилити',
   BLOCK: '🚫 Заблокувати',
   CANCEL: '❌ Ні',
@@ -29,4 +30,11 @@ export const PATTERNS_ADMIN = {
   STAFF: '👨‍🏫 Персонал',
   GROUPS: '👥 Групи',
   CLIENTS: '👤 Клієнти',
+} as const
+
+export const PATTERNS_SCENE = {
+  VERIFY_CLIENT: {
+    GROUP_PASS_TYPE: '👯‍♀️ Груповий абонемент',
+    INDIVIDUAL_PASS_TYPE: '💃 Індивідуальний абонемент',
+  }
 } as const

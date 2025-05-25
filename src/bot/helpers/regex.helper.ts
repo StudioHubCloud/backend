@@ -16,4 +16,10 @@ export class RegexHelper {
   static createButtonActionCallbackData(prefix: string, value: string, subvalue?: string) {
     return `${prefix}:${value}${subvalue ? `:${subvalue}` : ''}`
   }
+
+  static getMatchValue(input: RegExp | string, data: string) {
+    const regex = typeof input === 'string' ? this.createButtonActionRegex(input) : input
+    const match = data.match(regex)
+    return match ? [match[1], match[2]] : null
+  }
 }

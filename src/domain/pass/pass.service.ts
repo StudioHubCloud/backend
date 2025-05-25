@@ -16,6 +16,12 @@ export class PassService {
     this.studioId = this.configService.get('STUDIO_ID')
   }
 
+  async createNewPass(data: PassInsertModel, tx?: Transaction) {
+    const dbProvider = tx || this.databaseService.drizzle
+    const [createdPass] = await dbProvider.insert(pass).values(data).returning()
+    return createdPass
+  }
+
   async findPassByConditions(conditions: Partial<PassSelectModel>, options: { throwError?: boolean } = {}) {
     const { throwError = true } = options
     const passFound = await this.databaseService.drizzle.query.pass.findFirst({

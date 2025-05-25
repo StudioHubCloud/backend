@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 import {
   DatabaseService,
@@ -9,7 +9,10 @@ import {
 } from '@app/infrastructure/database'
 import { RedisCacheService, UserProfileCacheKey } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { PassStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { ClientService } from '../client/client.service'
+import { PassService } from '../pass/pass.service'
+import { IVerifyClientSceneState } from '@app/bot/modules/stage/scenes/verify-client/verify-client.scene-helper'
 
 @Injectable()
 export class UserProfileService {
@@ -18,6 +21,8 @@ export class UserProfileService {
     private readonly redisCacheService: RedisCacheService,
     private readonly databaseService: DatabaseService,
     private readonly configService: TypedConfigService,
+    private readonly clientService: ClientService,
+    private readonly passService: PassService,
   ) {
     this.studioId = this.configService.get('STUDIO_ID')
   }
@@ -89,7 +94,8 @@ export class UserProfileService {
 
   async updateUserProfile(id: string, data: Partial<UserProfileInsertModel>, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
-    return dbProvider.update(userProfile).set(data).where(eq(userProfile.id, id)).returning()
+    const [user] = await dbProvider.update(userProfile).set(data).where(eq(userProfile.id, id)).returning()
+    return user
   }
 
   async getVerificationRequestedUsers() {
@@ -111,5 +117,34 @@ export class UserProfileService {
   async rejectVerificationRequestAndBlockUser(id: string) {
     await this.updateUserProfile(id, { status: UserProfileStatusEnum.BLOCKED, role: UserProfileRoleEnum.GUEST })
     this.redisCacheService.reset()
+  }
+
+  async verifyClient(data: IVerifyClientSceneState) {
+    const { userProfile, endDate, passTemplate, startDate } = data
+    await this.databaseService.drizzle.transaction(async (tx) => {
+      const client = await this.clientService.createNewClient({ userProfileId: userProfile.id }, tx)
+      await Promise.all([
+        this.passService.createNewPass(
+          {
+            clientId: client.id,
+            endDate,
+            startDate,
+            passTemplateId: passTemplate.id,
+            status: PassStatusEnum.ACTIVE,
+            studioId: this.studioId,
+            availableSlots: passTemplate.length,
+          },
+          tx,
+        ),
+        this.updateUserProfile(
+          data.userProfile.id,
+          {
+            status: UserProfileStatusEnum.ACTIVE,
+          },
+          tx,
+        ),
+      ])
+    })
+    await this.redisCacheService.reset()
   }
 }

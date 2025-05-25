@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common'
 import { StageService } from './stage.service'
 import * as Stage from './scenes'
-import { UserProfileModule } from '@app/domain'
+import { PassTemplateModule, UserProfileModule } from '@app/domain'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 
 @Module({
-  imports: [UserProfileModule],
+  imports: [UserProfileModule, PassTemplateModule],
   providers: [
     StageService,
     Stage.RegisterScene,

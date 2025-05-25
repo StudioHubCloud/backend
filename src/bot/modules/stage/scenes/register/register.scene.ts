@@ -4,7 +4,7 @@ import { BotContext } from '@app/bot/bot.context'
 import { DATE_FORMAT, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { IRegisterSceneState, SCENES, TNextFunction } from '@app/bot/libs'
 import { SceneHelper, BotHelper, UserHelper, TextHelper } from '@app/bot/helpers'
-import { MESSAGES_SCENE } from '@app/bot/static/messages'
+import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
 import { SceneNavigation } from '../scene.navigation'
 import { PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { UserProfileService } from '@app/domain/user-profile'
@@ -101,7 +101,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     const date_of_birth = TextHelper.validateDOB(data)
 
     if (!date_of_birth) {
-      return ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.PROVIDE_DOB_ERROR)
+      return ctx.replyWithHTML(MESSAGES_COMMON.DATE_ERROR)
     }
 
     this.registerScene.setState(ctx, { date_of_birth })
