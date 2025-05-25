@@ -22,6 +22,13 @@
       "when": 1748131353756,
       "tag": "0029_add-studio-price-table",
       "breakpoints": true
+    },
+    {
+      "idx": 30,
+      "version": "7",
+      "when": 1748131532252,
+      "tag": "0030_fix-studio-price-id-column",
+      "breakpoints": true
     }
   ]
 }

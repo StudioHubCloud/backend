@@ -6,7 +6,7 @@ import { StudioPriceTypePgEnum } from '../database.enums'
 export const studioPrice = table(
   'studio_price',
   {
-    id: uuid('id').primaryKey(),
+    id: uuid('id').primaryKey().defaultRandom(),
     studioId: uuid('studio_id').references(() => studio.id, { onDelete: 'cascade' }),
     name: varchar('name').notNull(),
     price: smallint('price').notNull(),

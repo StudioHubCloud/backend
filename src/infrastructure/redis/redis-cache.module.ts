@@ -1,4 +1,4 @@
-import { RedisClientOptions } from 'redis'
+import { RedisOptions } from 'ioredis'
 import { CacheModule } from '@nestjs/cache-manager'
 import { redisStore } from 'cache-manager-ioredis-yet'
 import { Global, Module } from '@nestjs/common'
@@ -9,7 +9,7 @@ import { CACHE } from '@app/libs'
 @Global()
 @Module({
   imports: [
-    CacheModule.registerAsync<RedisClientOptions>({
+    CacheModule.registerAsync<RedisOptions>({
       isGlobal: true,
       inject: [TypedConfigService],
       useFactory: async (configService: TypedConfigService) => ({
