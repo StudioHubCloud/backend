@@ -146,22 +146,26 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       status: isGuest ? UserProfileStatusEnum.ACTIVE : UserProfileStatusEnum.VERIFICATION_REQUESTED,
     })
 
-    const sendMessageToAdmin = async () => {
-      await ctx.telegram.sendMessage(
-        this.configService.get('ADMIN_CHAT_ID'),
-        MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
-        {
-          parse_mode: 'HTML',
-          ...CommonKeyboards.verifyActions(id, this.REQUESTED_ROLE),
-        },
-      )
+    const sendMessageToStudioAdmins = async (ctx: BotContext) => {
+      const studioAdmins = await this.userProfileService.findStudioAdmins()
+      studioAdmins.forEach((admin) => {
+        ctx.telegram.sendMessage(
+          admin.telegramId,
+          MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
+          {
+            parse_mode: 'HTML',
+            ...CommonKeyboards.verifyActions(id, this.REQUESTED_ROLE),
+          },
+        )
+      })
     }
+
     const keyboard = isGuest ? GuestKeyboards.mainMenu() : CommonKeyboards.registerAs()
 
     await Promise.all([
       this.redisCacheService.reset(),
       ctx.replyWithHTML(MESSAGES_SCENE.REGISTER[isGuest ? 'COMPLETE_GUEST' : 'COMPLETE'], keyboard),
-      !isGuest ? sendMessageToAdmin() : null,
+      !isGuest ? sendMessageToStudioAdmins(ctx) : null,
     ])
 
     return ctx.scene.leave()

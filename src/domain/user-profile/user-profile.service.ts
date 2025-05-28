@@ -27,6 +27,17 @@ export class UserProfileService {
     this.studioId = this.configService.get('STUDIO_ID')
   }
 
+  async findStudioAdmins() {
+    return await this.databaseService.drizzle.query.userProfile.findMany({
+      where: (userProfile, { eq, and }) =>
+        and(
+          eq(userProfile.studioId, this.studioId),
+          eq(userProfile.role, UserProfileRoleEnum.ADMIN),
+          eq(userProfile.status, UserProfileStatusEnum.ACTIVE),
+        ),
+    })
+  }
+
   async findTelegramAuthenticatedUser(telegramId: string) {
     const cacheKey = UserProfileCacheKey.telegramAuthUser(this.studioId, telegramId)
     const authUserCashed = await this.redisCacheService.get<typeof authUserFound>(cacheKey)
