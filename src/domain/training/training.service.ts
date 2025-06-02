@@ -1,17 +1,20 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
-import { StudioService } from '../studio'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { DatabaseService, GroupScheduleSelectModel, training, TrainingInsertModel } from '@app/infrastructure/database'
-import { PassService } from '../pass'
-import { API, UserProfileRoleEnum } from '@app/libs'
+import { API, TrainingSignupStatusEnum, UserProfileRoleEnum } from '@app/libs'
 import { RedisCacheService, TrainingCacheKey } from '@app/infrastructure/redis'
 import { GetTrainingByIdResponse } from '@app/bot/libs'
+import { PassService } from '../pass'
+import { StudioService } from '../studio'
+import { TrainingSignupService } from '../training-signup'
 
 @Injectable()
 export class TrainingService {
   constructor(
     @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+    @Inject(forwardRef(() => TrainingSignupService))
+    private readonly trainingSignupService: TrainingSignupService,
     private readonly databaseService: DatabaseService,
     private readonly studioService: StudioService,
     private readonly passService: PassService,
@@ -32,6 +35,9 @@ export class TrainingService {
       with: {
         group: true,
         groupSchedule: true,
+        trainingSignups: {
+          where: (signup, { inArray }) => inArray(signup.status, [TrainingSignupStatusEnum.ACTIVE, TrainingSignupStatusEnum.CANCELED]),
+        }
       },
       orderBy: (training, { asc }) => asc(training.date),
     })
@@ -45,24 +51,34 @@ export class TrainingService {
 
   async cancelTrainingById(trainingId: string) {
     await this.getTrainingById(trainingId)
-    const [result] = await this.databaseService.drizzle
-      .update(training)
-      .set({ isCancelled: true })
-      .where(eq(training.id, trainingId))
-      .returning()
+
+    const [result] = await this.databaseService.drizzle.transaction(async (tx) => {
+      return await Promise.all([
+        this.databaseService.drizzle.update(training).set({ isCancelled: true }).where(eq(training.id, trainingId)).returning(),
+        this.trainingSignupService.cancelAllActiveTrainingSignupsForTraining(trainingId, tx),
+      ])
+    })
+
     await this.redisCacheService.reset()
-    return result
+
+    const cancelledSignUps = await this.trainingSignupService.getTrainingCancelledSignups(trainingId)
+    return {training: result[0], signups: cancelledSignUps}
   }
 
   async activateTrainingById(trainingId: string) {
     await this.getTrainingById(trainingId)
-    const [result] = await this.databaseService.drizzle
-      .update(training)
-      .set({ isCancelled: false })
-      .where(eq(training.id, trainingId))
-      .returning()
+
+    const [result] = await this.databaseService.drizzle.transaction(async (tx) => {
+      return await Promise.all([
+        this.databaseService.drizzle.update(training).set({ isCancelled: false }).where(eq(training.id, trainingId)).returning(),
+        this.trainingSignupService.activateAllCancelledTrainingSignupsForTraining(trainingId, tx),
+      ])
+    })
+
     await this.redisCacheService.reset()
-    return result
+
+    const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
+    return {training: result[0], signups: activeSignUps}
   }
 
   async getTrainingsListForSchedule(options: { groupId: string; clientId?: string; userId: string; role: UserProfileRoleEnum }) {

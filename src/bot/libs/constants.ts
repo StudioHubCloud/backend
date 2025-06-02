@@ -1,6 +1,6 @@
 export const PASS_CONFIG = {
   DURATION_IN_DAYS: 30,
-}
+} as const
 
 export const SCENES = {
   REGISTER: 'register',
@@ -26,7 +26,8 @@ export const CALLBACK_PREFIX = {
       BACK_TO_SELECT: 'grp.sel.back.st',
     },
     TRAINING: {
-      SIGNUPS: 'trng.sup.st',
+      SIGNUPS_ACTIVE: 'trng.supa.st',
+      SIGNUPS_CANCELED: 'trng.sgnc.st',
       SELECT: 'trng.sel.st',
       CANCEL: 'trng.cancel.st',
       ACTIVATE: 'trng.activ.st',

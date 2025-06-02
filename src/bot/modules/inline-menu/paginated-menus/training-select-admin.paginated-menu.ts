@@ -17,8 +17,14 @@ export class TrainingSelectAdminPaginatedMenu extends BasePaginatedSelectInlineM
     super()
   }
 
-  protected async loadOptions(): Promise<TNormalizedOption[]> {
+  protected async loadOptions(): Promise<TNormalizedOption[] | { message: string }> {
+
+    if (!this.sessionParams) {
+      return {message: 'Меню застаріле, ініціюйте його знову.'}
+    }
+
     const { group } = this.sessionParams
+
 
     if (!group) throw new NotFoundException('Missing group for training menu')
 
@@ -26,9 +32,12 @@ export class TrainingSelectAdminPaginatedMenu extends BasePaginatedSelectInlineM
     this.config.promptMessage = `Тренування групи: ${group.name}:`
 
     return trainings.map((training) => {
+      const emoji = training.isCancelled ? '🚫' : '🔸'
+      const countString = training.trainingSignups.length > 0 ? ` [${training.trainingSignups.length}]` : ''
+
       const date = this.dateTimeService.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)
       return {
-        label: `📍 ${date}`,
+        label: `${emoji} ${date}${countString}`,
         value: training.id,
       }
     })

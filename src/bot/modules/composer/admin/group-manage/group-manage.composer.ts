@@ -12,6 +12,7 @@ import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSelectModel } from '@app/infrastructure/database'
 import { TrainingSignupService } from '@app/domain/training-signup'
+import { TrainingSignupStatusEnum } from '@app/libs'
 
 @Injectable()
 export class GroupManageComposer {
@@ -83,30 +84,51 @@ export class GroupManageComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.CANCEL), async (ctx: BotContext) => {
       ctx.answerCbQuery()
       const [_, trainingId] = ctx['match']
-      const response = await this.trainingService.cancelTrainingById(trainingId)
-      return this.renderTraininManageMenu(ctx, response)
-    })
-
-    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE), async (ctx: BotContext) => {
-      return this.handleTrainingPaginatedSelect(ctx, ctx['match'][1])
+      const {training, signups} = await this.trainingService.cancelTrainingById(trainingId)
+      //send message to clients about cancellation
+      return this.renderTraininManageMenu(ctx, training)
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE), async (ctx: BotContext) => {
       ctx.answerCbQuery()
       const [_, trainingId] = ctx['match']
-      const response = await this.trainingService.activateTrainingById(trainingId)
-      return this.renderTraininManageMenu(ctx, response)
+      const {training, signups} = await this.trainingService.activateTrainingById(trainingId)
+      //send message to clients about activation
+      return this.renderTraininManageMenu(ctx, training)
     })
 
-    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS), async (ctx: BotContext) => {
-      ctx.answerCbQuery()
-      const [_, trainingId] = ctx['match']
-      const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
-      return ctx.editMessageText(MessageHelper.constructActiveSignupsMessage(activeSignUps), {
-        parse_mode: 'HTML',
-        ...AdminKeyboards.backForTrainingManage(trainingId),
-      })
-    })
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE),
+      async (ctx: BotContext) => {
+        return this.handleTrainingPaginatedSelect(ctx, ctx['match'][1])
+      },
+    )
+
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE),
+      async (ctx: BotContext) => {
+        ctx.answerCbQuery()
+        const [_, trainingId] = ctx['match']
+        const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
+        return ctx.editMessageText(MessageHelper.constructSignupListMessage(activeSignUps, TrainingSignupStatusEnum.ACTIVE), {
+          parse_mode: 'HTML',
+          ...AdminKeyboards.backForTrainingManage(trainingId),
+        })
+      },
+    )
+
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED),
+      async (ctx: BotContext) => {
+        ctx.answerCbQuery()
+        const [_, trainingId] = ctx['match']
+        const canceledSignups = await this.trainingSignupService.getTrainingCancelledSignups(trainingId)
+        return ctx.editMessageText(MessageHelper.constructSignupListMessage(canceledSignups, TrainingSignupStatusEnum.CANCELED), {
+          parse_mode: 'HTML',
+          ...AdminKeyboards.backForTrainingManage(trainingId),
+        })
+      },
+    )
   }
 
   private renderTrainingSelectMenu = async (ctx: BotContext, { shouldEdit }: { shouldEdit: boolean }) => {
@@ -125,7 +147,6 @@ export class GroupManageComposer {
       ...AdminKeyboards.trainingManageMenu(training),
     })
   }
-  
 
   private handleGroupPaginatedSelect = async (ctx: BotContext, groupId: string) => {
     ctx.answerCbQuery()

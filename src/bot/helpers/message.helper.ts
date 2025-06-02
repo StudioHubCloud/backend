@@ -75,17 +75,28 @@ export class MessageHelper {
       dateTimeService.formatDateStringInTz(training.date, 'EEEE').charAt(0).toUpperCase() +
       dateTimeService.formatDateStringInTz(training.date, 'EEEE').slice(1)
 
-    const statusString = training.isCancelled ? '🚫 Тренування Скасоване' : '✅ Тренування Активне'
-
-    const notReservedSignups = training.trainingSignups.filter(
-      (signup) => signup.type !== TrainingSignupTypeEnum.RESERVE && signup.status === TrainingSignupStatusEnum.ACTIVE, //todo potentialy add mor efilters here like status
+    const { activeSignUpsCount, cancelledSignupsCount } = training.trainingSignups.reduce(
+      (acc, signup) => {
+        if (signup.status === TrainingSignupStatusEnum.ACTIVE) {
+          acc.activeSignUpsCount += 1
+        } else if (signup.status === TrainingSignupStatusEnum.CANCELED) {
+          acc.cancelledSignupsCount += 1
+        }
+        return acc
+      },
+      { activeSignUpsCount: 0, cancelledSignupsCount: 0 },
     )
+
+    const statusString = training.isCancelled ? '🚫 Тренування Скасоване' : '✅ Тренування Активне'
+    const countString = training.isCancelled
+      ? `📍 Скасованих Записів: <b>${cancelledSignupsCount}</b>\n\n`
+      : `📍 Активних Записів: <b>${activeSignUpsCount}</b>\n\n`
 
     return (
       `<b>${statusString}</b>\n\n` +
       `${group.groupStyle.emoji ?? '⚪️'} Cтиль: <b>${group.groupStyle.title}</b>\n` +
       `${training.groupSchedule?.groupStyleVariant ? `🎇 Тип: <b>${training.groupSchedule.groupStyleVariant.title}</b>\n` : '\n'}` +
-      `📍 Записів: <b>${notReservedSignups.length}</b>\n\n` +
+      `${countString}` +
       `📅 Дата: <b>${formattedDate}</b>\n` +
       `🌝 День: <b>${formattedDay}</b>\n` +
       `🕓 Час: <b>${formattedTime}</b>\n` +
@@ -115,20 +126,33 @@ export class MessageHelper {
     return `${emoji} Вікові обмеження: ${TextHelper.bold(`${minAge}-${maxAge} років`)}`
   }
 
-  static constructActiveSignupsMessage(
+  static constructSignupListMessage(
     trainingSignup: (TrainingSignupSelectModel & { userProfile: UserProfileSelectModel | null })[],
+    status: TrainingSignupStatusEnum.ACTIVE | TrainingSignupStatusEnum.CANCELED,
   ): string {
+
+    const replyMessage = status === TrainingSignupStatusEnum.ACTIVE
+      ? 'Активні записи на тренування:'
+      : 'Скасовані записи на тренування:'
+
+    const noSignupMessage = status === TrainingSignupStatusEnum.ACTIVE
+      ? 'Немає активних записів на тренування'
+      : 'Немає скасованих записів на тренування'
+
     if (!trainingSignup.length) {
-      return 'Немає активних записів на тренування'
+      return noSignupMessage
     }
 
     const signups = trainingSignup.map((signup) => {
       const { type } = signup
-      const emoji = type === TrainingSignupTypeEnum.TRIAL ? '🆓' : type === TrainingSignupTypeEnum.RESERVE ? '⏳' : '✅'
-      const user = signup.userProfile ?`${signup.userProfile.firstName}${signup.userProfile.lastName ? ` ${signup.userProfile.lastName}` : ''}` : 'Невідомий користувач'
+  
+      const emoji = type === TrainingSignupTypeEnum.TRIAL ? '🆓' : type === TrainingSignupTypeEnum.RESERVE ? '⏳' : `🔘`
+      const user = signup.userProfile
+        ? `${signup.userProfile.firstName}${signup.userProfile.lastName ? ` ${signup.userProfile.lastName}` : ''}`
+        : 'Невідомий користувач'
       return `${emoji} ${TextHelper.bold(user)}`
     })
 
-    return `Активні записи на тренування:\n\n${signups.join('\n')}`
+    return `${replyMessage}\n\n${signups.join('\n')}`
   }
 }

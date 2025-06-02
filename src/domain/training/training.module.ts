@@ -1,13 +1,14 @@
-import { Module } from '@nestjs/common'
+import { forwardRef, Module } from '@nestjs/common'
 import { TrainingService } from './training.service'
 import { TrainingController } from './training.controller'
 import { StudioModule } from '../studio'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { PassModule } from '../pass'
+import { TrainingSignupModule } from '../training-signup'
 
 @Module({
-  imports: [StudioModule, PassModule],
+  imports: [StudioModule, PassModule, forwardRef(() => TrainingSignupModule)],
   controllers: [TrainingController],
   providers: [
     TrainingService,

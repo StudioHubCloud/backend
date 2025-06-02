@@ -47,13 +47,17 @@ export class AdminKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE, trainingId),
     }
 
+    const activeSignupsButton = {
+      text: '📜 Активні записи',
+      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE, trainingId),
+    }
+    const canceledSignupsButton = {
+      text: '📜 Скасовані записи',
+      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED, trainingId),
+    }
+
     return KeyboardHelper.createInlineKeyboard([
-      [
-        {
-          text: '📜 Активні записи',
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS, trainingId),
-        },
-      ],
+      [isCancelled ? canceledSignupsButton : activeSignupsButton],
       [isCancelled ? makeActiveButton : cancelButton],
       [
         {

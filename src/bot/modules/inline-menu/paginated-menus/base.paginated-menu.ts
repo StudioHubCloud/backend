@@ -17,9 +17,15 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     return this.composer.middleware()
   }
 
-  async initMenu(ctx: BotContext, sessionParams: T = {} as T, {shouldEdit = false} = {}) {
+  async initMenu(ctx: BotContext, sessionParams: T = {} as T, { shouldEdit = false } = {}) {
     this.sessionParams = sessionParams
-    this.options = await this.loadOptions()
+
+    const response = await this.loadOptions()
+    if (typeof response === 'object' && 'message' in response) {
+      return ctx.reply(response.message)
+    } else {
+      this.options = response
+    }
 
     const menu = KeyboardHelper.createPaginatedMenu(this.options, {
       prefix: this.config.callbackPrefix,
@@ -55,7 +61,12 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
       const page = parseInt(ctx.match[1])
 
       if (!this.options.length) {
-        this.options = await this.loadOptions()
+        const response = await this.loadOptions()
+        if (typeof response === 'object' && 'message' in response) {
+          return ctx.reply(response.message)
+        } else {
+          this.options = response
+        }
       }
 
       const menu = KeyboardHelper.createPaginatedMenu(this.options, {
@@ -67,5 +78,5 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     })
   }
 
-  protected abstract loadOptions(): Promise<TNormalizedOption[]>
+  protected abstract loadOptions(): Promise<TNormalizedOption[] | { message: string }>
 }

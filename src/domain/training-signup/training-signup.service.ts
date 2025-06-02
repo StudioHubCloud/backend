@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common'
+import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import {
   DatabaseService,
   trainingSignup,
@@ -13,15 +13,16 @@ import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
 import { PinoLogger } from 'nestjs-pino'
 import { RedisCacheService, TrainingCacheKey, TrainingSignupCacheKey } from '@app/infrastructure/redis'
-import { eq } from 'drizzle-orm'
+import { and, eq } from 'drizzle-orm'
 
 @Injectable()
 export class TrainingSignupService {
   constructor(
+    @Inject(forwardRef(() => TrainingService))
+    private readonly trainingService: TrainingService,
     private readonly logger: PinoLogger,
     private readonly databaseService: DatabaseService,
     private readonly passService: PassService,
-    private readonly trainingService: TrainingService,
     private readonly groupAgeRestrictionService: GroupAgeRestrictionService,
     private readonly redisCacheService: RedisCacheService,
   ) {}
@@ -136,7 +137,7 @@ export class TrainingSignupService {
         ])
       })
 
-       await this.redisCacheService.reset()
+      await this.redisCacheService.reset()
 
       return {
         status: API.RESPONSE.SUCCESS_STRING,
@@ -212,7 +213,7 @@ export class TrainingSignupService {
     }
   }
 
-  async getTrainingActiveSignups(trainingId: string){
+  async getTrainingActiveSignups(trainingId: string) {
     const cacheKey = TrainingSignupCacheKey.trainingActiveSignups(trainingId)
     const cachedSignups = await this.redisCacheService.get<typeof result>(cacheKey)
     if (cachedSignups) {
@@ -228,11 +229,67 @@ export class TrainingSignupService {
         ),
       with: {
         userProfile: true,
-      }
+      },
     })
     if (result) {
       this.redisCacheService.set(cacheKey, result)
     }
+    return result
+  }
+  async getTrainingCancelledSignups(trainingId: string) {
+    const cacheKey = TrainingSignupCacheKey.trainingCanceledSignups(trainingId)
+    const cachedSignups = await this.redisCacheService.get<typeof result>(cacheKey)
+    if (cachedSignups) {
+      return cachedSignups
+    }
+
+    const result = await this.databaseService.drizzle.query.trainingSignup.findMany({
+      where: (ts, { eq, and, or }) =>
+        and(
+          eq(ts.trainingId, trainingId),
+          eq(ts.status, TrainingSignupStatusEnum.CANCELED),
+          or(eq(ts.type, TrainingSignupTypeEnum.MAIN), eq(ts.type, TrainingSignupTypeEnum.TRIAL)),
+        ),
+      with: {
+        userProfile: true,
+      },
+    })
+    if (result) {
+      this.redisCacheService.set(cacheKey, result)
+    }
+    return result
+  }
+
+  async cancelAllActiveTrainingSignupsForTraining(trainingId: string, tx?: Transaction) {
+    const dbProvider = tx || this.databaseService.drizzle
+
+    const cacheKeyActive = TrainingSignupCacheKey.trainingActiveSignups(trainingId)
+    const cacheKeyCanceled = TrainingSignupCacheKey.trainingCanceledSignups(trainingId)
+    this.redisCacheService.delete(cacheKeyActive)
+    this.redisCacheService.delete(cacheKeyCanceled)
+
+    const result = await dbProvider
+      .update(trainingSignup)
+      .set({ status: TrainingSignupStatusEnum.CANCELED })
+      .where(and(eq(trainingSignup.trainingId, trainingId), eq(trainingSignup.status, TrainingSignupStatusEnum.ACTIVE)))
+      .returning()
+
+    return result
+  }
+
+  async activateAllCancelledTrainingSignupsForTraining(trainingId: string, tx?: Transaction) {
+    const dbProvider = tx || this.databaseService.drizzle
+
+    const cacheKeyActive = TrainingSignupCacheKey.trainingActiveSignups(trainingId)
+    const cacheKeyCanceled = TrainingSignupCacheKey.trainingCanceledSignups(trainingId)
+    this.redisCacheService.delete(cacheKeyActive)
+    this.redisCacheService.delete(cacheKeyCanceled)
+    
+    const result = await dbProvider
+      .update(trainingSignup)
+      .set({ status: TrainingSignupStatusEnum.ACTIVE })
+      .where(and(eq(trainingSignup.trainingId, trainingId), eq(trainingSignup.status, TrainingSignupStatusEnum.CANCELED)))
+      .returning()
     return result
   }
 
