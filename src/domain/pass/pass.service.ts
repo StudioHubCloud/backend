@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { and, eq, inArray, sql } from 'drizzle-orm'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { DatabaseService, pass, PassInsertModel, PassSelectModel, Transaction } from '@app/infrastructure/database'
 import { PassCacheKey, RedisCacheService } from '@app/infrastructure/redis'
@@ -62,5 +62,11 @@ export class PassService {
     const updatedPass = await this.findPassByConditions({ id: updateResult.id })
     await this.redisCacheService.set(PassCacheKey.passByClientId(updatedPass.clientId, this.studioId), updatedPass)
     return updatedPass
+  }
+
+  async updateAvailableSlotsForPasses(ids: string[], action: 'increment' | 'decrement', tx?: Transaction) {
+    const dbProvider = tx || this.databaseService.drizzle
+    const sqlAction = action === 'increment' ? sql`${pass.availableSlots} + 1` : sql`${pass.availableSlots} - 1`
+    return dbProvider.update(pass).set({ availableSlots: sqlAction }).where(inArray(pass.id, ids)).returning()
   }
 }

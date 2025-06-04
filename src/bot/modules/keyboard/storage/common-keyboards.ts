@@ -29,4 +29,15 @@ export class CommonKeyboards {
   static registerAs() {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBARODS_COMMON.REGISTER_AS)
   }
+
+  static consentToRules(): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: PATTERNS_COMMON.AGREE,
+          callback_data: CALLBACK_PREFIX.COMMON.AGREE_TO_RULES,
+        },
+      ],
+    ])
+  }
 }

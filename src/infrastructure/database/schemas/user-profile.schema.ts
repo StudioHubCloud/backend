@@ -15,6 +15,7 @@ export const userProfile = table(
     phoneNumber: varchar('phone_number'),
     telegramId: varchar('telegram_id').notNull(),
     dateOfBirth: date('date_of_birth', { mode: 'string' }),
+    consentToRules: boolean('consent_to_rules').notNull().default(false),
     role: UserProfileRolePgEnum().notNull().notNull(),
     status: UserProfileStatusPgEnum().notNull(),
     trial_discount: boolean('trial_discount').notNull().default(true),

@@ -9,6 +9,7 @@ import { RULES } from '@app/bot/static/messages'
 import { PassInfoComposer } from './pass-info/pass-info.composer'
 import { UserHelper } from '@app/bot/helpers'
 import { ClientKeyboards } from '@app/bot/modules/keyboard/storage'
+import { RulesGuardComposer } from '../common/rules-guard.composer'
 
 @Injectable()
 export class ClientRootComposer {
@@ -18,10 +19,12 @@ export class ClientRootComposer {
     private readonly schedulerComposer: SchedulerComposer,
     private readonly passInfoComposer: PassInfoComposer,
     private readonly paymentComposer: PaymentComposer,
+    private readonly rulesGuardComposer: RulesGuardComposer,
   ) {
     this.composer = new Composer<BotContext>()
     this.logger.setContext(ClientRootComposer.name)
 
+    this.composer.use(this.rulesGuardComposer.middleware())
     
     this.initComposerHandlers()
     this.initExternalComposers()
@@ -29,7 +32,6 @@ export class ClientRootComposer {
 
   private initComposerHandlers() {
     this.composer.start(this.startHandler)
-    this.composer.hears(PATTERNS_COMMON.RULES, this.rulesHandler)
   }
 
   private initExternalComposers() {
@@ -41,10 +43,6 @@ export class ClientRootComposer {
   private startHandler = async (ctx: BotContext) => {
     const user = UserHelper.getUser(ctx)
     return ctx.reply(`Вітаємо в особистому кабінеті ${user.firstName}❤️`, ClientKeyboards.mainMenu())
-  }
-
-  private rulesHandler = async (ctx: BotContext) => {
-    return ctx.replyWithHTML(RULES)
   }
 
   middleware() {

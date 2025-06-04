@@ -12,7 +12,7 @@ import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
 import { PinoLogger } from 'nestjs-pino'
-import { RedisCacheService, TrainingCacheKey, TrainingSignupCacheKey } from '@app/infrastructure/redis'
+import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
 import { and, eq } from 'drizzle-orm'
 
 @Injectable()
@@ -263,16 +263,15 @@ export class TrainingSignupService {
   async cancelAllActiveTrainingSignupsForTraining(trainingId: string, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
 
-    const cacheKeyActive = TrainingSignupCacheKey.trainingActiveSignups(trainingId)
-    const cacheKeyCanceled = TrainingSignupCacheKey.trainingCanceledSignups(trainingId)
-    this.redisCacheService.delete(cacheKeyActive)
-    this.redisCacheService.delete(cacheKeyCanceled)
-
     const result = await dbProvider
       .update(trainingSignup)
       .set({ status: TrainingSignupStatusEnum.CANCELED })
       .where(and(eq(trainingSignup.trainingId, trainingId), eq(trainingSignup.status, TrainingSignupStatusEnum.ACTIVE)))
       .returning()
+
+    const passIds = result.map((signup) => signup.passId).filter(Boolean) as string[]
+
+    await this.passService.updateAvailableSlotsForPasses(passIds, 'increment', tx)
 
     return result
   }
@@ -280,16 +279,16 @@ export class TrainingSignupService {
   async activateAllCancelledTrainingSignupsForTraining(trainingId: string, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
 
-    const cacheKeyActive = TrainingSignupCacheKey.trainingActiveSignups(trainingId)
-    const cacheKeyCanceled = TrainingSignupCacheKey.trainingCanceledSignups(trainingId)
-    this.redisCacheService.delete(cacheKeyActive)
-    this.redisCacheService.delete(cacheKeyCanceled)
-    
     const result = await dbProvider
       .update(trainingSignup)
       .set({ status: TrainingSignupStatusEnum.ACTIVE })
       .where(and(eq(trainingSignup.trainingId, trainingId), eq(trainingSignup.status, TrainingSignupStatusEnum.CANCELED)))
       .returning()
+
+    const passIds = result.map((signup) => signup.passId).filter(Boolean) as string[]
+
+    await this.passService.updateAvailableSlotsForPasses(passIds, 'decrement', tx)
+
     return result
   }
 

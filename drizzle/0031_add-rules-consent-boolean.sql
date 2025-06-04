@@ -1,0 +1,1 @@
+ALTER TABLE "user_profile" ADD COLUMN "consent_to_rules" boolean DEFAULT false NOT NULL;

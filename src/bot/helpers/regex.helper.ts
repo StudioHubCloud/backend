@@ -1,6 +1,10 @@
 import { CALLBACK_DATA } from '@app/bot/libs'
 
 export class RegexHelper {
+  static createSimpleRegex(prefix: string) {
+    return new RegExp(`^${prefix}$`) 
+  }
+
   static createMenuPaginationActionRegex(prefix: string) {
     return new RegExp(`^${prefix}:${CALLBACK_DATA.PAGINATION_KEY}:(.*)$`) //add named groups
   }

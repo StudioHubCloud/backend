@@ -53,4 +53,7 @@ export const CALLBACK_PREFIX = {
       PASS_TEMPLATE_SELECT: 'c.vercl.pt.sel',
     },
   },
+  COMMON: {
+    AGREE_TO_RULES: 'cmn.agree.to.rules',
+  }
 } as const

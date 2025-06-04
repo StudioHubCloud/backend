@@ -158,4 +158,14 @@ export class UserProfileService {
     })
     await this.redisCacheService.reset()
   }
+
+  async consentToRules(userId: string) {
+    const user = await this.getUserProfileById(userId)
+    if (user.consentToRules) {
+      return
+    }
+
+    await this.updateUserProfile(userId, { consentToRules: true })
+    await this.redisCacheService.reset()
+  }
 }

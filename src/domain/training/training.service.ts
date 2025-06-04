@@ -1,5 +1,5 @@
-import { forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common'
+import { and, eq, gte } from 'drizzle-orm'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { DatabaseService, GroupScheduleSelectModel, training, TrainingInsertModel } from '@app/infrastructure/database'
 import { API, TrainingSignupStatusEnum, UserProfileRoleEnum } from '@app/libs'
@@ -36,8 +36,9 @@ export class TrainingService {
         group: true,
         groupSchedule: true,
         trainingSignups: {
-          where: (signup, { inArray }) => inArray(signup.status, [TrainingSignupStatusEnum.ACTIVE, TrainingSignupStatusEnum.CANCELED]),
-        }
+          where: (signup, { inArray }) =>
+            inArray(signup.status, [TrainingSignupStatusEnum.ACTIVE, TrainingSignupStatusEnum.CANCELED]),
+        },
       },
       orderBy: (training, { asc }) => asc(training.date),
     })
@@ -50,11 +51,23 @@ export class TrainingService {
   }
 
   async cancelTrainingById(trainingId: string) {
-    await this.getTrainingById(trainingId)
+    const targetTraining = await this.getTrainingById(trainingId)
+
+    if (targetTraining.isCancelled) {
+      throw new BadRequestException(`Training with id: ${trainingId} is already cancelled`)
+    }
+
+    if (new Date(targetTraining.date) < new Date()) {
+      throw new BadRequestException(`Training with id: ${trainingId} is in the past and cannot be activated`)
+    }
 
     const [result] = await this.databaseService.drizzle.transaction(async (tx) => {
       return await Promise.all([
-        this.databaseService.drizzle.update(training).set({ isCancelled: true }).where(eq(training.id, trainingId)).returning(),
+        this.databaseService.drizzle
+          .update(training)
+          .set({ isCancelled: true })
+          .where(and(eq(training.id, trainingId), gte(training.date, new Date().toISOString())))
+          .returning(),
         this.trainingSignupService.cancelAllActiveTrainingSignupsForTraining(trainingId, tx),
       ])
     })
@@ -62,15 +75,26 @@ export class TrainingService {
     await this.redisCacheService.reset()
 
     const cancelledSignUps = await this.trainingSignupService.getTrainingCancelledSignups(trainingId)
-    return {training: result[0], signups: cancelledSignUps}
+    return { training: result[0], signups: cancelledSignUps }
   }
 
   async activateTrainingById(trainingId: string) {
-    await this.getTrainingById(trainingId)
+    const targetTraining = await this.getTrainingById(trainingId)
+
+    if (!targetTraining.isCancelled) {
+      throw new BadRequestException(`Training with id: ${trainingId} is not cancelled`)
+    }
+    if (new Date(targetTraining.date) < new Date()) {
+      throw new BadRequestException(`Training with id: ${trainingId} is in the past and cannot be activated`)
+    }
 
     const [result] = await this.databaseService.drizzle.transaction(async (tx) => {
       return await Promise.all([
-        this.databaseService.drizzle.update(training).set({ isCancelled: false }).where(eq(training.id, trainingId)).returning(),
+        this.databaseService.drizzle
+          .update(training)
+          .set({ isCancelled: false })
+          .where(and(eq(training.id, trainingId), gte(training.date, new Date().toISOString())))
+          .returning(),
         this.trainingSignupService.activateAllCancelledTrainingSignupsForTraining(trainingId, tx),
       ])
     })
@@ -78,7 +102,7 @@ export class TrainingService {
     await this.redisCacheService.reset()
 
     const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
-    return {training: result[0], signups: activeSignUps}
+    return { training: result[0], signups: activeSignUps }
   }
 
   async getTrainingsListForSchedule(options: { groupId: string; clientId?: string; userId: string; role: UserProfileRoleEnum }) {

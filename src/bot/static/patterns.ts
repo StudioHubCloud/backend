@@ -2,6 +2,7 @@ export const PATTERNS_COMMON = {
   YES: '✅ Так',
   CONFIRM: '✅ Підтвердити',
   VERIFY: '✅ Верифікувати',
+  AGREE: '✅ Погоджуюсь',
   SELECT: '✅ Обрати',
   REJECT: '🙅‍♀️ Відхилити',
   BLOCK: '🚫 Заблокувати',

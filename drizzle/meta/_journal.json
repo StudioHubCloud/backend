@@ -29,6 +29,13 @@
       "when": 1748131532252,
       "tag": "0030_fix-studio-price-id-column",
       "breakpoints": true
+    },
+    {
+      "idx": 31,
+      "version": "7",
+      "when": 1748992824451,
+      "tag": "0031_add-rules-consent-boolean",
+      "breakpoints": true
     }
   ]
 }
