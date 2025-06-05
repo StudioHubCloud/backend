@@ -1,8 +1,11 @@
 
-### send messsage to client if training was cancelled
-### send message to client if training was activated
-
 ### Implement 1 week grace period in pass activation
+
+### Proper training-signups status update after training
+
+### make sure we cant cancel trainings that are in progress or past
+
+
 
 ### client manage flow 
  - block
@@ -11,8 +14,6 @@
  - information
 
 ### Cron (3 days before pass expiration) reminder
-
-### group filtering 1 when client signs in for training (1 year withing its age restrictions)
 
 
 ## add additional prompt inline menu on destructive actions
@@ -33,5 +34,3 @@ BACKLOG
 
 Personal trainings manage / view
 Staff member salary count / display / reset
-
-Schedule / remove client from training

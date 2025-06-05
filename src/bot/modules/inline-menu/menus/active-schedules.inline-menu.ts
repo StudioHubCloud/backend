@@ -35,7 +35,7 @@ export class ActiveSchedulesInlineMenu {
         callback_data: `sign-out:${signup.id}`,
       },
     ])
-    return ctx.reply('⬇️ В цьому меню активних записів можна виписатись з тренування ⬇️', {
+    return ctx.reply('⬇️ В цьому меню активних записів можна виписатись з тренування', {
       reply_markup: {
         inline_keyboard: keyboard,
       },

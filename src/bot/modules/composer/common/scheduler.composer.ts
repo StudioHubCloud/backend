@@ -58,7 +58,7 @@ export class SchedulerComposer {
   }
 
   private trainingScheduleHandler = async (ctx: BotContext) => {
-    this.groupSelectMenu.initMenu(ctx)
+    this.groupSelectMenu.initMenu(ctx, {userId: UserHelper.getUser(ctx).id})
   }
 
   private activeSchedulesHandler = async (ctx: BotContext) => {
@@ -75,7 +75,6 @@ export class SchedulerComposer {
     }
     return this.trainingSelectMenu.initMenu(
       ctx,
-
       { groupId, clientId: client?.id, userId: id, role },
     )
   }

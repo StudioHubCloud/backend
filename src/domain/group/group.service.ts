@@ -4,13 +4,17 @@ import { DatabaseService, GroupSelectModel } from '@app/infrastructure/database'
 import { RedisCacheService, GroupCacheKey } from '@app/infrastructure/redis'
 import { GroupStatusEnum } from '@app/libs'
 import { Injectable, NotFoundException } from '@nestjs/common'
+import { UserProfileService } from '../user-profile'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 
 @Injectable()
 export class GroupService {
   constructor(
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly databaseService: DatabaseService,
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
+    private readonly userProfileService: UserProfileService,
   ) {}
 
   async getAllGroups(filters: Partial<GroupSelectModel> = {}) {
@@ -25,7 +29,15 @@ export class GroupService {
       where: (group, { and, eq }) => and(...Object.entries(filters).map(([key, value]) => eq(group[key], value))),
       with: {
         groupStyle: true,
+        groupAgeRestrictions: true,
       },
+    })
+
+    groupsFound.sort((a, b) => {
+      if (a.groupStyle?.sortGroupPriority && b.groupStyle?.sortGroupPriority) {
+        return a.groupStyle.sortGroupPriority - b.groupStyle.sortGroupPriority
+      }
+      return 0
     })
 
     if (groupsFound) {
@@ -34,12 +46,36 @@ export class GroupService {
     return groupsFound
   }
 
-  async getAllActiveGroups() {
-    return this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID') })
+  async getAllActiveGroupsWithAgeRestrictions({ userId }: { userId: string }) {
+    const [groups, userProfile] = await Promise.all([
+      this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID') }),
+      this.userProfileService.getUserProfileById(userId),
+    ])
+
+    const ageAppropriateGroups = groups.filter((group) => {
+      if (!group.groupAgeRestrictions) {
+        return true
+      }
+
+      if (!userProfile || !userProfile.dateOfBirth) {
+        return false
+      }
+
+      const userAge = this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth)
+      const {allowedThreshold, maxAge, minAge} = group.groupAgeRestrictions
+
+      const adjustedMinAge = minAge !== null ? minAge - (allowedThreshold ?? 0) : null
+      const adjustedMaxAge = maxAge !== null ? maxAge + (allowedThreshold ?? 0) : null
+      return (
+        (adjustedMinAge === null || userAge >= adjustedMinAge) &&
+        (adjustedMaxAge === null || userAge <= adjustedMaxAge)
+      )
+    })
+
+    return ageAppropriateGroups
   }
 
   async getGroupById(groupId: string): Promise<GetGroupByIdResponse> {
-
     const cacheKey = GroupCacheKey.groupById(groupId)
 
     const groupCashed = await this.redisCacheService.get<typeof groupFound>(cacheKey)

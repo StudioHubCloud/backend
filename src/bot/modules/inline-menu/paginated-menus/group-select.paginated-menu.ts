@@ -5,13 +5,14 @@ import { TNormalizedOption } from '@app/bot/libs'
 import { BasePaginatedSelectInlineMenu } from './base.paginated-menu'
 
 @Injectable({scope: Scope.TRANSIENT})
-export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{}> {
+export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{userId: string}> {
   constructor(private readonly groupService: GroupService) {
     super()
   }
 
   protected async loadOptions(): Promise<TNormalizedOption[]> {
-    const groups = await this.groupService.getAllActiveGroups()
+    const {  userId } = this.sessionParams
+    const groups = await this.groupService.getAllActiveGroupsWithAgeRestrictions({userId})
     return KeyboardHelper.prepareInlineMenuOptions(groups, {
       labelKey: ['name'],
       valueKey: 'id',

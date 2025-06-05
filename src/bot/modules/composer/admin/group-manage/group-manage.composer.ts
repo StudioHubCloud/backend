@@ -7,7 +7,7 @@ import { CALLBACK_PREFIX } from '@app/bot/libs'
 import { AdminKeyboards } from '@app/bot/modules/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { RegexHelper } from '@app/bot/helpers'
+import { RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSelectModel } from '@app/infrastructure/database'
@@ -57,7 +57,7 @@ export class GroupManageComposer {
 
   initComposerHandlers() {
     this.composer.hears(PATTERNS_ADMIN.GROUPS, async (ctx: BotContext) => {
-      return this.groupSelectPaginatedMenu.initMenu(ctx)
+      return this.groupSelectPaginatedMenu.initMenu(ctx, {userId: UserHelper.getUser(ctx).id})
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS), async (ctx: BotContext) => {
@@ -69,7 +69,7 @@ export class GroupManageComposer {
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT),
       async (ctx: BotContext) => {
         ctx.answerCbQuery()
-        return this.groupSelectPaginatedMenu.initMenu(ctx, {}, { shouldEdit: true })
+        return this.groupSelectPaginatedMenu.initMenu(ctx, {userId: UserHelper.getUser(ctx).id}, { shouldEdit: true })
       },
     )
 
@@ -84,16 +84,44 @@ export class GroupManageComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.CANCEL), async (ctx: BotContext) => {
       ctx.answerCbQuery()
       const [_, trainingId] = ctx['match']
-      const {training, signups} = await this.trainingService.cancelTrainingById(trainingId)
-      //send message to clients about cancellation
+      const { training, signups } = await this.trainingService.cancelTrainingById(trainingId)
+
+      await Promise.all(
+        signups.map((signup) => {
+          return ctx.telegram.sendMessage(
+            String(signup.userProfile?.telegramId),
+            MessageHelper.constructTrainingCancelMessage(
+              { date: training.date, groupName: signup?.group?.name },
+              this.dateTimeProvider,
+            ),
+            {
+              parse_mode: 'HTML',
+            },
+          )
+        }),
+      )
+
       return this.renderTraininManageMenu(ctx, training)
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE), async (ctx: BotContext) => {
       ctx.answerCbQuery()
       const [_, trainingId] = ctx['match']
-      const {training, signups} = await this.trainingService.activateTrainingById(trainingId)
-      //send message to clients about activation
+      const { training, signups } = await this.trainingService.activateTrainingById(trainingId)
+      await Promise.all(
+        signups.map((signup) => {
+          return ctx.telegram.sendMessage(
+            String(signup.userProfile?.telegramId),
+            MessageHelper.constructTrainingActivateMessage(
+              { date: training.date, groupName: signup?.group?.name },
+              this.dateTimeProvider,
+            ),
+            {
+              parse_mode: 'HTML',
+            },
+          )
+        }),
+      )
       return this.renderTraininManageMenu(ctx, training)
     })
 

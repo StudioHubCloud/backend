@@ -1,6 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import {
   DatabaseService,
+  training,
   trainingSignup,
   TrainingSignupInsertModel,
   TrainingSignupSelectModel,
@@ -14,6 +15,8 @@ import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-r
 import { PinoLogger } from 'nestjs-pino'
 import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
 import { and, eq } from 'drizzle-orm'
+import { COMMON } from '@app/bot/libs'
+import { isAfter, subHours } from 'date-fns'
 
 @Injectable()
 export class TrainingSignupService {
@@ -40,7 +43,7 @@ export class TrainingSignupService {
       return cachedSignups
     }
     const signups = await this.databaseService.drizzle.query.trainingSignup.findMany({
-      where: (ts, { eq }) => eq(ts.userProfileId, userProfileId),
+      where: (ts, { eq }) => and(eq(ts.userProfileId, userProfileId), eq(ts.status, TrainingSignupStatusEnum.ACTIVE)),
       with: {
         training: true,
         group: {
@@ -175,23 +178,23 @@ export class TrainingSignupService {
           training: true,
           userProfile: true,
           pass: true,
-          group: {
-            columns: {
-              id: true,
-            },
-          },
         },
       })
 
       if (!signup) {
         return { status: API.RESPONSE.ERROR_STRING, message: 'Запис не знайдено' }
       }
+      
+      const cutoffTime = subHours(new Date(signup.training.date), COMMON.SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING);
 
       if (signup.status !== TrainingSignupStatusEnum.ACTIVE) {
         return { status: API.RESPONSE.ERROR_STRING, message: 'Запис не активний' }
       }
       if (signup.type === TrainingSignupTypeEnum.TRIAL || !signup.pass) {
         return { status: API.RESPONSE.ERROR_STRING, message: 'Виписка з пробного запису недоступна' }
+      }
+      if(isAfter(new Date(), cutoffTime)) {
+        return { status: API.RESPONSE.ERROR_STRING, message: `Виписка з тренування можлива лише за ${COMMON.SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING} години до початку` }
       }
 
       await this.databaseService.drizzle.transaction(async (tx) => {
@@ -229,6 +232,7 @@ export class TrainingSignupService {
         ),
       with: {
         userProfile: true,
+        group: true,
       },
     })
     if (result) {
@@ -236,6 +240,7 @@ export class TrainingSignupService {
     }
     return result
   }
+
   async getTrainingCancelledSignups(trainingId: string) {
     const cacheKey = TrainingSignupCacheKey.trainingCanceledSignups(trainingId)
     const cachedSignups = await this.redisCacheService.get<typeof result>(cacheKey)
@@ -252,6 +257,7 @@ export class TrainingSignupService {
         ),
       with: {
         userProfile: true,
+        group: true
       },
     })
     if (result) {

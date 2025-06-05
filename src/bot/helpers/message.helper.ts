@@ -3,11 +3,8 @@ import { TextHelper } from './text.helper'
 import { GetGroupByIdResponse, GetTrainingByIdResponse, IRegisterSceneState } from '../libs'
 import {
   GroupAgeRestrictionSelectModel,
-  GroupSelectModel,
-  GroupStyleSelectModel,
   PassTemplateAgeRestrictionSelectModel,
   PassTemplateSelectModel,
-  TrainingSelectModel,
   TrainingSignupSelectModel,
   UserProfileSelectModel,
 } from '@app/infrastructure/database'
@@ -130,14 +127,11 @@ export class MessageHelper {
     trainingSignup: (TrainingSignupSelectModel & { userProfile: UserProfileSelectModel | null })[],
     status: TrainingSignupStatusEnum.ACTIVE | TrainingSignupStatusEnum.CANCELED,
   ): string {
+    const replyMessage =
+      status === TrainingSignupStatusEnum.ACTIVE ? 'Активні записи на тренування:' : 'Скасовані записи на тренування:'
 
-    const replyMessage = status === TrainingSignupStatusEnum.ACTIVE
-      ? 'Активні записи на тренування:'
-      : 'Скасовані записи на тренування:'
-
-    const noSignupMessage = status === TrainingSignupStatusEnum.ACTIVE
-      ? 'Немає активних записів на тренування'
-      : 'Немає скасованих записів на тренування'
+    const noSignupMessage =
+      status === TrainingSignupStatusEnum.ACTIVE ? 'Немає активних записів на тренування' : 'Немає скасованих записів на тренування'
 
     if (!trainingSignup.length) {
       return noSignupMessage
@@ -145,7 +139,7 @@ export class MessageHelper {
 
     const signups = trainingSignup.map((signup) => {
       const { type } = signup
-  
+
       const emoji = type === TrainingSignupTypeEnum.TRIAL ? '🆓' : type === TrainingSignupTypeEnum.RESERVE ? '⏳' : `🔘`
       const user = signup.userProfile
         ? `${signup.userProfile.firstName}${signup.userProfile.lastName ? ` ${signup.userProfile.lastName}` : ''}`
@@ -154,5 +148,15 @@ export class MessageHelper {
     })
 
     return `${replyMessage}\n\n${signups.join('\n')}`
+  }
+
+  static constructTrainingCancelMessage({date, groupName}: {date: string, groupName: string}, dateTimeService: DateTimeProvider): string {
+    const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+    return `🚫 Тренування в групі "${groupName}" на ${formattedDate} скасовано.`
+  }
+
+  static constructTrainingActivateMessage({date, groupName}: {date: string, groupName: string}, dateTimeService: DateTimeProvider): string{
+     const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+    return `✅ Тренування в групі "${groupName}" на ${formattedDate} знову активне.`
   }
 }

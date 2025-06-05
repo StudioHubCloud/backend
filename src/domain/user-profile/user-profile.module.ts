@@ -6,7 +6,6 @@ import { PassModule } from '../pass'
 @Module({
   imports: [ClientModule, PassModule],
   providers: [UserProfileService],
-  controllers: [],
   exports: [UserProfileService],
 })
 export class UserProfileModule {}

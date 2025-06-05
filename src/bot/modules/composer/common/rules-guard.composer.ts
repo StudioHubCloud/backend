@@ -29,6 +29,7 @@ export class RulesGuardComposer {
     this.composer.action(RegexHelper.createSimpleRegex(CALLBACK_PREFIX.COMMON.AGREE_TO_RULES), async (ctx: BotContext) => {
       const { id } = UserHelper.getUser(ctx)
       await this.userProfileService.consentToRules(id)
+      await ctx.deleteMessage()
       return ctx.answerCbQuery('Дякуємо за згоду з правилами! ❤️', { show_alert: true })
     })
   }
