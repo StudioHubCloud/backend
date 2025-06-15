@@ -25,11 +25,13 @@ export class MessageHelper {
     const { firstName, date_of_birth, lastName, phone } = data
     const modeText = completed
       ? `${role === UserProfileRoleEnum.CLIENT ? 'Клієнт' : 'Тренер'} відправив запит на реєстрацію: ✅\n\n`
-      : `Підтверди дані: ✅\n\n`
-    return (
-      modeText +
-      `➡️ Ім'я: ${TextHelper.bold(`${firstName}${lastName ? ` ${lastName}` : ''}`)}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}`
-    )
+      : `🔍 Перевір, чи все вірно:\n\n`
+
+    const mainContent = `➡️ Ім'я: ${TextHelper.bold(`${firstName}${lastName ? ` ${lastName}` : ''}`)}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}`
+
+    return !completed
+      ? `${modeText}${mainContent}\n\n👌 Якщо все правильно — тисни “✅ Підтвердити”\n❌ А якщо щось хочеш змінити — просто натисни "⬅️ Назад"`
+      : `${modeText}${mainContent}`
   }
 
   static constructPassSelectMessage(
@@ -150,13 +152,35 @@ export class MessageHelper {
     return `${replyMessage}\n\n${signups.join('\n')}`
   }
 
-  static constructTrainingCancelMessage({date, groupName}: {date: string, groupName: string}, dateTimeService: DateTimeProvider): string {
+  static constructTrainingCancelMessage(
+    { date, groupName }: { date: string; groupName: string },
+    dateTimeService: DateTimeProvider,
+  ): string {
     const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
     return `🚫 Тренування в групі "${groupName}" на ${formattedDate} скасовано.`
   }
 
-  static constructTrainingActivateMessage({date, groupName}: {date: string, groupName: string}, dateTimeService: DateTimeProvider): string{
-     const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+  static constructTrainingSignoutByAdminMessage(
+    { date, groupName }: { date: string; groupName: string },
+    dateTimeService: DateTimeProvider,
+  ): string {
+    const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+    return `🚫 Вас було виписано з тренування в групі "${groupName}" на ${formattedDate}.`
+  }
+
+  static constructTrainingSigninByAdminMessage(
+    { date, groupName }: { date: string; groupName: string },
+    dateTimeService: DateTimeProvider,
+  ): string {
+    const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+    return `✅ Ви були записані на тренування в групі "${groupName}" на ${formattedDate}.`
+  }
+
+  static constructTrainingActivateMessage(
+    { date, groupName }: { date: string; groupName: string },
+    dateTimeService: DateTimeProvider,
+  ): string {
+    const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
     return `✅ Тренування в групі "${groupName}" на ${formattedDate} знову активне.`
   }
 }

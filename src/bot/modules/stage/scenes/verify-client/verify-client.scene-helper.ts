@@ -30,13 +30,13 @@ export class VerifyClientSceneHelper {
     const { userProfile, passTemplate, startDate, endDate } = data
     return (
       `🎉 Вітаємо, ${userProfile.firstName}! 🎉\n\n` +
-      `Ваш абонемент активовано!\n\n` +
-      `🎫 Інформація про ваш абонемент:\n\n` +
+      `Твій абонемент активовано!\n\n` +
+      `🎫 Інформація про абонемент:\n\n` +
       `➡️ Назва: <b>${passTemplate.name}</b>\n` +
       `➡️ Кількість тренувань: <b>${passTemplate.length}</b>\n` +
       `📅 Початок дії: <b>${startDate}</b>\n` +
       `🗓 Закінчення дії: <b>${endDate}</b>\n\n` +
-      `Чекаємо вас на тренуваннях! 💪`
+      `Чекаємо тебе на тренуваннях! 💪`
     )
   }
 }

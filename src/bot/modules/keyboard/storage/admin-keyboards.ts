@@ -28,7 +28,7 @@ export class AdminKeyboards {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
-          text: '⬅️ Назад до тренування',
+          text: '⬅️ Назад до інформації про тренування',
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE, trainingId),
         },
       ],
@@ -59,6 +59,19 @@ export class AdminKeyboards {
     return KeyboardHelper.createInlineKeyboard([
       [isCancelled ? canceledSignupsButton : activeSignupsButton],
       [isCancelled ? makeActiveButton : cancelButton],
+      [
+        {
+          text: '✔️ Записати на тренування',
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN, trainingId),
+        },
+      ],
+
+      [
+        {
+          text: '➖ Виписати з тренування',
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_OUT, trainingId),
+        },
+      ],
       [
         {
           text: '⬅️ Назад до списку тренувань',

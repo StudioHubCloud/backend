@@ -1,4 +1,5 @@
 import { BotContext } from '@app/bot/bot.context'
+import { MESSAGES_COMMON } from '@app/bot/static/messages'
 import { PATTERNS_CLIENT } from '@app/bot/static/patterns'
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
@@ -20,6 +21,6 @@ export class PaymentComposer {
   }
 
   private paymentHandler = async (ctx: BotContext) => {
-    await ctx.reply('Pass info handler works')
+    await ctx.reply(MESSAGES_COMMON.PAYMENT, {parse_mode: 'MarkdownV2'})
   }
 }

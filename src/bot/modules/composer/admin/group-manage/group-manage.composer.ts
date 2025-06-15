@@ -2,7 +2,7 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { PATTERNS_ADMIN } from '@app/bot/static/patterns'
-import { GroupSelectPaginatedMenu, TrainingSelectAdminPaginatedMenu } from '@app/bot/modules/inline-menu'
+import { ClientSelectPaginatedMenu, GroupSelectPaginatedMenu, TrainingSelectAdminPaginatedMenu } from '@app/bot/modules/inline-menu'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
 import { AdminKeyboards } from '@app/bot/modules/keyboard/storage'
 import { GroupService } from '@app/domain/group'
@@ -12,7 +12,7 @@ import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSelectModel } from '@app/infrastructure/database'
 import { TrainingSignupService } from '@app/domain/training-signup'
-import { TrainingSignupStatusEnum } from '@app/libs'
+import { API, TrainingSignupStatusEnum } from '@app/libs'
 
 @Injectable()
 export class GroupManageComposer {
@@ -22,6 +22,8 @@ export class GroupManageComposer {
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly groupSelectPaginatedMenu: GroupSelectPaginatedMenu,
     private readonly trainingSelectAdminPaginatedMenu: TrainingSelectAdminPaginatedMenu,
+    private readonly clientSelectSignOutPaginatedMenu: ClientSelectPaginatedMenu,
+    private readonly clientSelectSignInPaginatedMenu: ClientSelectPaginatedMenu,
     private readonly groupService: GroupService,
     private readonly trainingService: TrainingService,
     private readonly trainingSignupService: TrainingSignupService,
@@ -53,11 +55,27 @@ export class GroupManageComposer {
         onItemSelect: this.handleTrainingPaginatedSelect,
       }),
     )
+    this.composer.use(
+      this.clientSelectSignOutPaginatedMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.STAFF.TRAINING.CLIENT_SIGNOUT_SELECT,
+        promptMessage: 'Виберіть клієнта для скасування запису:',
+        noOptionsMessage: 'На це тренування немає активних записів',
+        onItemSelect: this.handleClientSignOutPaginatedSelect,
+      }),
+    )
+    this.composer.use(
+      this.clientSelectSignInPaginatedMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.STAFF.TRAINING.CLIENT_SIGNIN_SELECT,
+        promptMessage: 'Виберіть клієнта для запису:',
+        noOptionsMessage: 'Список активних записів порожній',
+        onItemSelect: this.handleClientSignInPaginatedSelect,
+      }),
+    )
   }
 
   initComposerHandlers() {
     this.composer.hears(PATTERNS_ADMIN.GROUPS, async (ctx: BotContext) => {
-      return this.groupSelectPaginatedMenu.initMenu(ctx, {userId: UserHelper.getUser(ctx).id})
+      return this.groupSelectPaginatedMenu.initMenu(ctx, { userId: UserHelper.getUser(ctx).id, isAdmin: true })
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS), async (ctx: BotContext) => {
@@ -69,7 +87,7 @@ export class GroupManageComposer {
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT),
       async (ctx: BotContext) => {
         ctx.answerCbQuery()
-        return this.groupSelectPaginatedMenu.initMenu(ctx, {userId: UserHelper.getUser(ctx).id}, { shouldEdit: true })
+        return this.groupSelectPaginatedMenu.initMenu(ctx, { userId: UserHelper.getUser(ctx).id }, { shouldEdit: true })
       },
     )
 
@@ -157,6 +175,28 @@ export class GroupManageComposer {
         })
       },
     )
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN), async (ctx: BotContext) => {
+      ctx.answerCbQuery()
+      const [_, trainingId] = ctx['match']
+      const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
+      return ctx.editMessageText(MessageHelper.constructSignupListMessage(activeSignUps, TrainingSignupStatusEnum.ACTIVE), {
+        parse_mode: 'HTML',
+        ...AdminKeyboards.backForTrainingManage(trainingId),
+      })
+    })
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_OUT), async (ctx: BotContext) => {
+      ctx.answerCbQuery()
+      const [_, trainingId] = ctx['match']
+      const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
+
+      const data = activeSignUps.map((signup) => ({
+        name: `${signup.userProfile?.firstName} ${signup.userProfile?.lastName}`,
+        id: signup.id,
+      }))
+
+      return this.clientSelectSignOutPaginatedMenu.initMenu(ctx, { data })
+    })
   }
 
   private renderTrainingSelectMenu = async (ctx: BotContext, { shouldEdit }: { shouldEdit: boolean }) => {
@@ -193,5 +233,80 @@ export class GroupManageComposer {
       parse_mode: 'HTML',
       ...AdminKeyboards.trainingManageMenu(training),
     })
+  }
+
+  private handleClientSignOutPaginatedSelect = async (ctx: BotContext, signupId: string) => {
+    const response = await this.trainingSignupService.signOutFromTrainingAsAdminViaTelegram(signupId)
+
+    if (response.status === API.RESPONSE.ERROR_STRING) {
+      return ctx.answerCbQuery(response.message, {show_alert: true})
+    }
+    ctx.answerCbQuery()
+
+    if (response.status === API.RESPONSE.SUCCESS_STRING) {
+      const { userProfile, training } = response.data || {}
+
+      if (!training) return ctx.reply('Невдалось знайти тренування')
+
+      const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(training!.id)
+
+      if (userProfile?.telegramId) {
+        const group = await this.groupService.getGroupById(training.groupId)
+
+        ctx.telegram.sendMessage(
+          String(userProfile.telegramId),
+          MessageHelper.constructTrainingSignoutByAdminMessage(
+            { date: training.date, groupName: group.name },
+            this.dateTimeProvider,
+          ),
+          {
+            parse_mode: 'HTML',
+          },
+        )
+      }
+
+      if (activeSignUps.length === 0) {
+        return ctx.editMessageText('✅ На це тренування більше немає активних записів.')
+      }
+
+      return this.clientSelectSignOutPaginatedMenu.initMenu(ctx, { data: activeSignUps }, { shouldEdit: true })
+    }
+  }
+
+  private handleClientSignInPaginatedSelect = async (ctx: BotContext, data: any) => {
+    ctx.answerCbQuery()
+
+    console.log(data, 'data')
+
+    // const response = await this.trainingSignupService.signInToTrainingAsAdminViaTelegram(signupId)
+
+    // if (response.status === API.RESPONSE.SUCCESS_STRING) {
+    //   const { userProfile, training } = response.data || {}
+
+    //   if (!training) return ctx.reply('Невдалось знайти тренування')
+
+    //   const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(training!.id)
+
+    //   if (userProfile?.telegramId) {
+    //     const group = await this.groupService.getGroupById(training.groupId)
+
+    //     ctx.telegram.sendMessage(
+    //       String(userProfile.telegramId),
+    //       MessageHelper.constructTrainingSigninByAdminMessage(
+    //         { date: training.date, groupName: group.name },
+    //         this.dateTimeProvider,
+    //       ),
+    //       {
+    //         parse_mode: 'HTML',
+    //       },
+    //     )
+    //   }
+
+    //   if (activeSignUps.length === 0) {
+    //     return ctx.editMessageText('✅ На це тренування більше немає активних записів.')
+    //   }
+
+    //   return this.clientSelectSignInPaginatedMenu.initMenu(ctx, { data: activeSignUps }, { shouldEdit: true })
+    // }
   }
 }

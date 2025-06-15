@@ -5,6 +5,7 @@ import { TNormalizedOption } from '@app/bot/libs'
 import { BasePaginatedSelectInlineMenu } from './base.paginated-menu'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { GroupSelectModel } from '@app/infrastructure/database'
+import { TextHelper } from '@app/bot/helpers'
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class TrainingSelectAdminPaginatedMenu extends BasePaginatedSelectInlineMenu<{
@@ -35,7 +36,7 @@ export class TrainingSelectAdminPaginatedMenu extends BasePaginatedSelectInlineM
       const emoji = training.isCancelled ? '🚫' : '🔸'
       const countString = training.trainingSignups.length > 0 ? ` [${training.trainingSignups.length}]` : ''
 
-      const date = this.dateTimeService.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)
+      const date = TextHelper.capitalize(this.dateTimeService.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)) 
       return {
         label: `${emoji} ${date}${countString}`,
         value: training.id,

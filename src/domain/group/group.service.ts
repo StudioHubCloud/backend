@@ -46,6 +46,15 @@ export class GroupService {
     return groupsFound
   }
 
+  async getAllActiveGroups(filters: Partial<GroupSelectModel> = {}) {
+    const activeGroups = await this.getAllGroups({
+      ...filters,
+      status: GroupStatusEnum.ACTIVE,
+      studioId: this.configService.get('STUDIO_ID'),
+    })
+    return activeGroups
+  }
+
   async getAllActiveGroupsWithAgeRestrictions({ userId }: { userId: string }) {
     const [groups, userProfile] = await Promise.all([
       this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID') }),

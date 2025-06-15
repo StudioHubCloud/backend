@@ -29,4 +29,9 @@ export class TextHelper {
   static italic(text?: string): string {
     return text ? `<i>${text}</i>` : ''
   }
+
+  static capitalize(text?: string): string {
+    if (!text) return ''
+    return text.charAt(0).toUpperCase() + text.slice(1)
+  }
 }

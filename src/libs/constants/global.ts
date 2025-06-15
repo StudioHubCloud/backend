@@ -12,7 +12,7 @@ export const DATE_FORMAT = {
   DATE_MAIN: 'yyyy-MM-dd',
   DATE_INPUT: 'dd.MM.yyyy',
   DB: 'yyyy-MM-dd HH:mm:ss',
-  TRAINING_DISPLAY: 'dd MMMM (HH:mm eeeeee)',
+  TRAINING_DISPLAY: 'EEEE, d MMMM, HH:mm',
 } as const
 
 export const ENVIRONMENTS = {

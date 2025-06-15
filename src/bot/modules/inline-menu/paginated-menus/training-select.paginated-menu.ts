@@ -4,6 +4,7 @@ import { DATE_FORMAT, UserProfileRoleEnum } from '@app/libs'
 import { TNormalizedOption } from '@app/bot/libs'
 import { BasePaginatedSelectInlineMenu } from './base.paginated-menu'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+import { TextHelper } from '@app/bot/helpers'
 
 @Injectable({scope: Scope.TRANSIENT})
 export class TrainingSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
@@ -27,9 +28,9 @@ export class TrainingSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
     const trainings = await this.trainingService.getTrainingsListForSchedule({ groupId, clientId, userId, role })
 
     return trainings.map((training) => {
-      const date = this.dateTimeService.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)
+      const date = TextHelper.capitalize(this.dateTimeService.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)) 
       return {
-        label: `➕ ${date}`,
+        label: `✨ ${date}`,
         value: training.id,
       }
     })

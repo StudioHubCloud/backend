@@ -32,10 +32,14 @@ export const CALLBACK_PREFIX = {
     TRAINING: {
       SIGNUPS_ACTIVE: 'trng.supa.st',
       SIGNUPS_CANCELED: 'trng.sgnc.st',
+      SIGN_IN: 'trng.sgn.st',
+      SIGN_OUT: 'trng.sgo.st',
       SELECT: 'trng.sel.st',
       CANCEL: 'trng.cancel.st',
       ACTIVATE: 'trng.activ.st',
       BACK_TO_MANAGE: 'trng.mng.back.st',
+      CLIENT_SIGNOUT_SELECT: 'trng.cl.sgo.sel.st',
+      CLIENT_SIGNIN_SELECT: 'trng.cl.sgn.sel.st',
     },
     USER: {
       VERIFY_YES: 'usr.yver.st',

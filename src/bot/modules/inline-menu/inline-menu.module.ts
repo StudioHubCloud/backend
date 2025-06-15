@@ -8,11 +8,13 @@ import { GroupSelectPaginatedMenu } from './paginated-menus/group-select.paginat
 import { TrainingSelectPaginatedMenu } from './paginated-menus/training-select.paginated-menu'
 import { VerificationInlineMenu } from './menus/verification-requests.inline-menu'
 import { TrainingSelectAdminPaginatedMenu } from './paginated-menus/training-select-admin.paginated-menu'
+import { ClientSelectPaginatedMenu } from './paginated-menus/client-select.paginated-menu'
 
 @Module({
   imports: [GroupModule, TrainingModule, TrainingSignupModule, UserProfileModule, PassTemplateModule],
   providers: [
     GroupSelectPaginatedMenu,
+    ClientSelectPaginatedMenu,
     ActiveSchedulesInlineMenu,
     TrainingSelectPaginatedMenu,
     TrainingSelectAdminPaginatedMenu,
@@ -24,6 +26,7 @@ import { TrainingSelectAdminPaginatedMenu } from './paginated-menus/training-sel
   ],
   exports: [
     GroupSelectPaginatedMenu,
+    ClientSelectPaginatedMenu,
     TrainingSelectPaginatedMenu,
     ActiveSchedulesInlineMenu,
     VerificationInlineMenu,

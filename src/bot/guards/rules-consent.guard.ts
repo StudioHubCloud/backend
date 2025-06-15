@@ -10,5 +10,5 @@ export const RulesConsentGuard = async (ctx: BotContext, next: () => Promise<voi
     return await next()
   }
 
-  return ctx.replyWithHTML(`💫 <b>Дякуємо, що приєднались!</b>\n\n<i>Перш ніж продовжити, будь ласка, ознайомтесь з <b>правилами студії</b> та підтвердіть свою згоду на їх дотримання.</i>\n\n` + RULES, CommonKeyboards.consentToRules())
+  return ctx.replyWithHTML(`💫 <b>Дякуємо, що приєднались!</b>\n\n<i>Перш ніж продовжити, будь ласка, ознайомся з <b>правилами студії</b> та підтверди свою згоду на їх дотримання.</i>\n\n` + RULES, CommonKeyboards.consentToRules())
 }

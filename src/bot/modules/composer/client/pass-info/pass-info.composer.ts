@@ -32,11 +32,8 @@ export class PassInfoComposer {
 
     const text = `${TextHelper.bold('Деталі абонементу:')}\n
 ${icon} ${TextHelper.bold('Статус:')} ${label}
-✔️ ${TextHelper.bold('Залишилось занять:')} ${pass.availableSlots}\n
-📅 ${TextHelper.bold('Початок дії:')} ${pass.startDate.substring(0, 10)}
-📅 ${TextHelper.bold('Закінчення дії:')} ${pass.endDate.substring(0, 10)}
-💰 ${TextHelper.bold('Вартість:')} ${PassHelper.toDisplayPrice(pass.passTemplate.price)}
-🗒 ${TextHelper.bold('Кількість занять:')} ${pass.passTemplate.length} (всього)
+📌 ${TextHelper.bold('Доступно:')} ${pass.availableSlots}/${pass.passTemplate.length}
+📅 ${TextHelper.bold('Дійсний до:')} ${pass.endDate.substring(0, 10)}
 ${pass.pausedFromDate ? `⏸️ ${TextHelper.bold('Призупинено:')} з ${pass.pausedFromDate.substring(0, 10)} до ${pass.pausedToDate?.substring(0, 10)}` : ''}
 ${pass.expiredFromDate ? `❌ ${TextHelper.bold('Термін дії минув:')} ${pass.expiredFromDate.substring(0, 10)}` : ''}
 `
