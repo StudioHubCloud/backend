@@ -70,11 +70,7 @@ export class SchedulerComposer {
     ctx.answerCbQuery()
     const { id, client, role } = UserHelper.getUser(ctx)
     const group = await this.groupService.getGroupById(groupId)
-    await ctx.reply(`Обрана група: ${group.name}`)
-    if (group.groupAgeRestrictions) {
-      await ctx.reply(MessageHelper.getAgeRestrictionMessage(group.groupAgeRestrictions.minAge, group.groupAgeRestrictions.maxAge))
-    }
-    return this.trainingSelectMenu.initMenu(ctx, { groupId, clientId: client?.id, userId: id, role })
+    return this.trainingSelectMenu.initMenu(ctx, { group, clientId: client?.id, userId: id, role }, { shouldEdit: true })
   }
 
   private handleTrainingSelect = async (ctx: BotContext, trainingId: string) => {

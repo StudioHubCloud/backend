@@ -22,7 +22,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
 
     const response = await this.loadOptions()
     if (typeof response === 'object' && 'message' in response) {
-      return ctx.reply(response.message)
+      return ctx.reply(response.message, { parse_mode: 'HTML' })
     } else {
       this.options = response
     }
@@ -32,13 +32,13 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     })
 
     if (!this.options.length) {
-      return ctx.reply(this.config.noOptionsMessage || 'No options available')
+      return ctx.reply(this.config.noOptionsMessage || 'No options available', { parse_mode: 'HTML' })
     }
 
     if (shouldEdit && ctx.updateType === 'callback_query') {
-      return ctx.editMessageText(this.config.promptMessage || 'Choose an item:', { reply_markup: menu })
+      return ctx.editMessageText(this.config.promptMessage || 'Choose an item:', { reply_markup: menu, parse_mode: 'HTML' })
     }
-    return ctx.reply(this.config.promptMessage || 'Choose an item:', { reply_markup: menu })
+    return ctx.reply(this.config.promptMessage || 'Choose an item:', { reply_markup: menu, parse_mode: 'HTML' })
   }
 
   private configure(config: ISelectInlineMenuConfig<BotContext>) {
@@ -63,7 +63,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
       if (!this.options.length) {
         const response = await this.loadOptions()
         if (typeof response === 'object' && 'message' in response) {
-          return ctx.reply(response.message)
+          return ctx.reply(response.message, { parse_mode: 'HTML' })
         } else {
           this.options = response
         }
@@ -74,7 +74,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
         page,
       })
 
-      return ctx.editMessageText(this.config.promptMessage || 'Виберіть елемент зі списку', { reply_markup: menu })
+      return ctx.editMessageText(this.config.promptMessage || 'Виберіть елемент зі списку', { reply_markup: menu, parse_mode: 'HTML' })
     })
   }
 

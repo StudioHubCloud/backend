@@ -1,5 +1,4 @@
 ### STAGE 1
-## refactor schedule for trainings flow to use inline menu-like style ( admin group manage as a reference )
 ## Update all texts
 ✅ Ти успішно записана на тренування в групі!
 Чекаємо на тебе🫶🏻
