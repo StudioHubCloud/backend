@@ -9,6 +9,7 @@ import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
+import { MESSAGES_CLIENT } from '@app/bot/static/messages'
 
 @Injectable()
 export class SchedulerComposer {
@@ -41,16 +42,16 @@ export class SchedulerComposer {
     this.composer.use(
       this.groupSelectMenu.middleware({
         callbackPrefix: CALLBACK_PREFIX.CLIENT.GROUP.SELECT,
-        promptMessage: 'Виберіть групу:',
-        noOptionsMessage: 'На жаль, немає доступних груп для запису.',
+        promptMessage: MESSAGES_CLIENT.CHOOSE_GROUP,
+        noOptionsMessage: MESSAGES_CLIENT.NO_GROUPS,
         onItemSelect: this.handleGroupSelect,
       }),
     )
     this.composer.use(
       this.trainingSelectMenu.middleware({
         callbackPrefix: CALLBACK_PREFIX.CLIENT.TRAINING.SELECT,
-        promptMessage: 'Виберіть тренування:',
-        noOptionsMessage: 'В межах Вашого абонементу немає доступних тренувань для запису в цій групі.',
+        promptMessage: MESSAGES_CLIENT.CHOOSE_TRAINING,
+        noOptionsMessage: MESSAGES_CLIENT.NO_TRAININGS,
         onItemSelect: this.handleTrainingSelect,
       }),
     )
@@ -58,7 +59,7 @@ export class SchedulerComposer {
   }
 
   private trainingScheduleHandler = async (ctx: BotContext) => {
-    this.groupSelectMenu.initMenu(ctx, {userId: UserHelper.getUser(ctx).id})
+    this.groupSelectMenu.initMenu(ctx, { userId: UserHelper.getUser(ctx).id })
   }
 
   private activeSchedulesHandler = async (ctx: BotContext) => {
@@ -69,14 +70,11 @@ export class SchedulerComposer {
     ctx.answerCbQuery()
     const { id, client, role } = UserHelper.getUser(ctx)
     const group = await this.groupService.getGroupById(groupId)
-    await ctx.reply(`Ви обрали групу: ${group.name}`)
+    await ctx.reply(`Обрана група: ${group.name}`)
     if (group.groupAgeRestrictions) {
       await ctx.reply(MessageHelper.getAgeRestrictionMessage(group.groupAgeRestrictions.minAge, group.groupAgeRestrictions.maxAge))
     }
-    return this.trainingSelectMenu.initMenu(
-      ctx,
-      { groupId, clientId: client?.id, userId: id, role },
-    )
+    return this.trainingSelectMenu.initMenu(ctx, { groupId, clientId: client?.id, userId: id, role })
   }
 
   private handleTrainingSelect = async (ctx: BotContext, trainingId: string) => {
@@ -107,10 +105,11 @@ export class SchedulerComposer {
       switch (response.availableSlots) {
         case 1:
           return ctx.answerCbQuery(
-            'Вітаю, запис успішний!🤗\n\nУ Вас залишився 1 доступний запис на тренування в межах даного абонемента🛎', {show_alert: true}
+            'Вітаю, запис успішний!🤗\n\nУ тебе залишився 1 доступний запис на тренування в межах даного абонемента🛎',
+            { show_alert: true },
           )
         default:
-          return ctx.answerCbQuery(response.message, {show_alert: true})
+          return ctx.answerCbQuery(response.message, { show_alert: true })
       }
     } else {
       ctx.answerCbQuery()

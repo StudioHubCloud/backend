@@ -6,6 +6,7 @@ import { BOT_INSTANCE } from '../bot.instance'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { DATE_FORMAT } from '@app/libs'
+import { BIRTHDAY_MESSAGE } from '../static/messages'
 
 export interface NotificationResult {
   success: number
@@ -45,8 +46,7 @@ export class BotNotificationService {
           continue
         }
 
-        const message = this.generateBirthdayMessage(user.firstName)
-        await this.bot.telegram.sendMessage(user.telegramId, message, {
+        await this.bot.telegram.sendMessage(user.telegramId, BIRTHDAY_MESSAGE, {
           parse_mode: 'HTML',
         })
 
@@ -98,10 +98,6 @@ export class BotNotificationService {
       this.logger.error(`Failed to send custom notification to ${chatId}: ${errorMessage}`)
       return { success: false, error: errorMessage }
     }
-  }
-
-  private generateBirthdayMessage(name: string): string {
-    return `🎉 Сьогодні твій особливий день, ${name}! 🎁\nВся команда студії вітає тебе з Днем народження!\nНехай кожне тренування приносить тобі радість та задоволення! 🏋️‍♀️💕`
   }
 
   private generateTrainingReminderMessage(name: string, workoutTime: string, groupName: string): string {

@@ -12,7 +12,7 @@ import { AdminKeyboards } from '@app/bot/modules/keyboard/storage'
 export class VerifyTrainerScene extends Scenes.WizardScene<BotContext> {
   private readonly verifyTrainerScene = new SceneHelper<{}>()
 
-  constructor(@DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider) {
+  constructor(@DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider) {
     super(
       SCENES.VERIFY_TRAINER,
       (ctx) => this.enterSceneHandler(ctx),

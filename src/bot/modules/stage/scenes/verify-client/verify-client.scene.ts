@@ -1,16 +1,15 @@
 import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
-import { addDays, isAfter, isBefore } from 'date-fns'
 import { BotContext } from '@app/bot/bot.context'
-import { CALLBACK_PREFIX, PASS_CONFIG, SCENES } from '@app/bot/libs'
-import { SceneHelper, BotHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
-import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
+import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
+import { SceneHelper, BotHelper, RegexHelper } from '@app/bot/helpers'
+import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { PATTERNS_COMMON, PATTERNS_SCENE } from '@app/bot/static/patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { AdminKeyboards, ClientKeyboards } from '@app/bot/modules/keyboard/storage'
 import { PassTemplateService } from '@app/domain/pass-template/pass-template.service'
 import { CommonSceneKeyboards, VerifyClientSceneKeyboards } from '@app/bot/modules/keyboard/storage/scene-keyboards'
-import { DATE_FORMAT, PassTemplateTypeEnum } from '@app/libs'
+import { PassTemplateTypeEnum } from '@app/libs'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { IVerifyClientSceneState, VerifyClientSceneHelper } from './verify-client.scene-helper'
 import { UserProfileService } from '@app/domain/user-profile'
@@ -20,7 +19,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
   private readonly verifyClientScene = new SceneHelper<IVerifyClientSceneState>()
 
   constructor(
-    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly passTemplateService: PassTemplateService,
     private readonly userProfileService: UserProfileService,
   ) {
@@ -28,8 +27,6 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       SCENES.VERIFY_CLIENT,
       (ctx) => this.enterSceneHandler(ctx),
       (ctx) => this.passTypeAndTemplateHandler(ctx),
-      (ctx) => this.passStartDateHandler(ctx),
-      (ctx) => this.passExpirationDateHandler(ctx),
       (ctx) => this.completeHandler(ctx),
     )
 
@@ -41,6 +38,9 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
   private enterSceneHandler = async (ctx: BotContext) => {
     try {
+      const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), 'yyyy-MM-dd')
+      this.verifyClientScene.setState(ctx, { saleDate: todayDateString })
+
       await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, VerifyClientSceneKeyboards.passType())
       return ctx.wizard.next()
     } catch (error) {
@@ -63,7 +63,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
     }
   }
 
-  private passStartDateHandler = async (ctx: BotContext) => {
+  private completeHandler = async (ctx: BotContext) => {
     try {
       const isCallbackQueryUpdate = BotHelper.isCallbackQueryUpdate(ctx)
 
@@ -77,134 +77,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
         case PATTERNS_COMMON.BACK:
           await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, VerifyClientSceneKeyboards.passType())
           return ctx.wizard.back()
-        default:
-          break
-      }
 
-      const startDate = TextHelper.validateDOB(data)
-
-      if (!startDate) {
-        return ctx.replyWithHTML(MESSAGES_COMMON.DATE_ERROR)
-      }
-
-      const parsedStartDate = this.dateTimeService.parseAndFormatDate({
-        date: startDate,
-        parseFormat: DATE_FORMAT.DATE_INPUT,
-        dateFormat: DATE_FORMAT.DATE_MAIN,
-      })
-
-      const startDateObj = new Date(parsedStartDate)
-      const today = new Date()
-      today.setHours(0, 0, 0, 0)
-
-      if (isBefore(startDateObj, today)) {
-        return ctx.replyWithHTML('❌ Дата початку не може бути в минулому. Виберіть сьогоднішню дату або пізнішу.')
-      }
-
-      this.verifyClientScene.setState(ctx, { startDate })
-
-      const suggestedEndDate = this.dateTimeService.formatDate({
-        dateFormat: DATE_FORMAT.DATE_INPUT,
-        date: addDays(startDateObj, PASS_CONFIG.DURATION_IN_DAYS),
-      })
-
-      await ctx.replyWithHTML(
-        MESSAGES_SCENE.VERIFY_CLIENT.PROVIDE_PASS_EXPIRATION_DATE,
-        CommonSceneKeyboards.dateWithSuggestion(suggestedEndDate),
-      )
-      return ctx.wizard.next()
-    } catch (error) {
-      await this.handleError(ctx, error, 'Failed to process start date')
-    }
-  }
-
-  private passExpirationDateHandler = async (ctx: BotContext) => {
-    try {
-      const isCallbackQueryUpdate = BotHelper.isCallbackQueryUpdate(ctx)
-
-      if (isCallbackQueryUpdate) {
-        return ctx.answerCbQuery()
-      }
-
-      const data = BotHelper.getUpdatePayload(ctx)
-      const { startDate } = this.verifyClientScene.getState(ctx)
-
-      switch (data) {
-        case PATTERNS_COMMON.BACK:
-          const currentDate = this.dateTimeService.formatDate({ dateFormat: DATE_FORMAT.DATE_INPUT })
-          await ctx.replyWithHTML(
-            MESSAGES_SCENE.VERIFY_CLIENT.PROVIDE_PASS_START_DATE,
-            CommonSceneKeyboards.dateWithSuggestion(currentDate),
-          )
-          return ctx.wizard.back()
-        default:
-          break
-      }
-
-      const endDate = TextHelper.validateDOB(data)
-
-      if (!endDate) {
-        return ctx.replyWithHTML(MESSAGES_COMMON.DATE_ERROR)
-      }
-
-      // Validate end date is after start date
-      if (startDate) {
-        const startDateObj = new Date(
-          this.dateTimeService.parseAndFormatDate({
-            date: startDate,
-            parseFormat: DATE_FORMAT.DATE_INPUT,
-            dateFormat: DATE_FORMAT.DATE_MAIN,
-          }),
-        )
-
-        const endDateObj = new Date(
-          this.dateTimeService.parseAndFormatDate({
-            date: endDate,
-            parseFormat: DATE_FORMAT.DATE_INPUT,
-            dateFormat: DATE_FORMAT.DATE_MAIN,
-          }),
-        )
-
-        if (!isAfter(endDateObj, startDateObj)) {
-          return ctx.replyWithHTML('❌ Дата закінчення повинна бути пізніше дати початку.')
-        }
-      }
-
-      this.verifyClientScene.setState(ctx, { endDate })
-
-      const state = this.verifyClientScene.getState(ctx) as IVerifyClientSceneState
-
-      const text = VerifyClientSceneHelper.getInfoMessageForConfirm(state)
-
-      await ctx.replyWithHTML(text, CommonSceneKeyboards.confirm())
-      return ctx.wizard.next()
-    } catch (error) {
-      await this.handleError(ctx, error, 'Failed to process end date')
-    }
-  }
-
-  private completeHandler = async (ctx: BotContext) => {
-    try {
-      const isCallbackQueryUpdate = BotHelper.isCallbackQueryUpdate(ctx)
-
-      if (isCallbackQueryUpdate) {
-        return ctx.answerCbQuery()
-      }
-
-      const data = BotHelper.getUpdatePayload(ctx)
-      const { startDate } = this.verifyClientScene.getState(ctx)
-
-      switch (data) {
-        case PATTERNS_COMMON.BACK:
-          const suggestedEndDate = this.dateTimeService.formatDate({
-            dateFormat: DATE_FORMAT.DATE_INPUT,
-            date: addDays(new Date(startDate || new Date()), PASS_CONFIG.DURATION_IN_DAYS),
-          })
-          await ctx.replyWithHTML(
-            MESSAGES_SCENE.VERIFY_CLIENT.PROVIDE_PASS_EXPIRATION_DATE,
-            CommonSceneKeyboards.dateWithSuggestion(suggestedEndDate),
-          )
-          return ctx.wizard.back()
         default:
           break
       }
@@ -213,27 +86,18 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
         return
       }
 
-      const { endDate, passTemplate, userProfile } = this.verifyClientScene.getState(ctx) as IVerifyClientSceneState
+      const { saleDate, passTemplate, userProfile } = this.verifyClientScene.getState(ctx) as IVerifyClientSceneState
 
       await this.userProfileService.verifyClient({
         userProfile,
         passTemplate,
-        endDate: this.dateTimeService.parseAndFormatDate({
-          date: endDate,
-          parseFormat: DATE_FORMAT.DATE_INPUT,
-          dateFormat: DATE_FORMAT.DATE_MAIN,
-        }),
-        startDate: this.dateTimeService.parseAndFormatDate({
-          date: startDate!,
-          parseFormat: DATE_FORMAT.DATE_INPUT,
-          dateFormat: DATE_FORMAT.DATE_MAIN,
-        }),
+        saleDate,
       })
 
       await Promise.all([
         ctx.telegram.sendMessage(
           userProfile.telegramId,
-          VerifyClientSceneHelper.getClientInfoMessage({ endDate, passTemplate, startDate: startDate!, userProfile }),
+          VerifyClientSceneHelper.getClientInfoMessage({ saleDate, passTemplate, userProfile }),
           {
             parse_mode: 'HTML',
             ...ClientKeyboards.mainMenu(),
@@ -297,7 +161,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
       if (passTemplateData.passTemplateAgeRestriction && userProfile?.dateOfBirth) {
         const { minAge, maxAge } = passTemplateData.passTemplateAgeRestriction
-        const age = this.dateTimeService.getAgeFromBirthday(userProfile.dateOfBirth)
+        const age = this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth)
 
         const meetsMinAge = minAge === null || age >= minAge
         const meetsMaxAge = maxAge === null || age <= maxAge
@@ -321,11 +185,10 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       ctx.answerCbQuery()
       this.verifyClientScene.setState(ctx, { passTemplate: passTemplateData })
 
-      const currentDate = this.dateTimeService.formatDate({ dateFormat: DATE_FORMAT.DATE_INPUT })
-      await ctx.replyWithHTML(
-        MESSAGES_SCENE.VERIFY_CLIENT.PROVIDE_PASS_START_DATE,
-        CommonSceneKeyboards.dateWithSuggestion(currentDate),
-      )
+      const state = this.verifyClientScene.getState(ctx) as IVerifyClientSceneState
+      const text = VerifyClientSceneHelper.getInfoMessageForConfirm(state)
+
+      await ctx.replyWithHTML(text, CommonSceneKeyboards.confirm())
       return ctx.wizard.next()
     }
   }

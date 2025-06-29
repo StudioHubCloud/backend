@@ -66,13 +66,13 @@ export class MessageHelper {
   static constructTrainingSelectMessage(
     training: GetTrainingByIdResponse,
     group: GetGroupByIdResponse,
-    dateTimeService: DateTimeProvider,
+    dateTimeProvider: DateTimeProvider,
   ): string {
-    const formattedDate = dateTimeService.formatDateStringInTz(training.date, 'dd MMMM')
-    const formattedTime = dateTimeService.formatDateStringInTz(training.date, 'HH:mm')
+    const formattedDate = dateTimeProvider.formatDateStringInTz(training.date, 'dd MMMM')
+    const formattedTime = dateTimeProvider.formatDateStringInTz(training.date, 'HH:mm')
     const formattedDay =
-      dateTimeService.formatDateStringInTz(training.date, 'EEEE').charAt(0).toUpperCase() +
-      dateTimeService.formatDateStringInTz(training.date, 'EEEE').slice(1)
+      dateTimeProvider.formatDateStringInTz(training.date, 'EEEE').charAt(0).toUpperCase() +
+      dateTimeProvider.formatDateStringInTz(training.date, 'EEEE').slice(1)
 
     const { activeSignUpsCount, cancelledSignupsCount } = training.trainingSignups.reduce(
       (acc, signup) => {
@@ -154,33 +154,33 @@ export class MessageHelper {
 
   static constructTrainingCancelMessage(
     { date, groupName }: { date: string; groupName: string },
-    dateTimeService: DateTimeProvider,
+    dateTimeProvider: DateTimeProvider,
   ): string {
-    const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+    const formattedDate = dateTimeProvider.formatDateStringInTz(date, 'dd MMMM')
     return `🚫 Тренування в групі "${groupName}" на ${formattedDate} скасовано.`
   }
 
   static constructTrainingSignoutByAdminMessage(
     { date, groupName }: { date: string; groupName: string },
-    dateTimeService: DateTimeProvider,
+    dateTimeProvider: DateTimeProvider,
   ): string {
-    const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+    const formattedDate = dateTimeProvider.formatDateStringInTz(date, 'dd MMMM')
     return `🚫 Вас було виписано з тренування в групі "${groupName}" на ${formattedDate}.`
   }
 
   static constructTrainingSigninByAdminMessage(
     { date, groupName }: { date: string; groupName: string },
-    dateTimeService: DateTimeProvider,
+    dateTimeProvider: DateTimeProvider,
   ): string {
-    const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+    const formattedDate = dateTimeProvider.formatDateStringInTz(date, 'dd MMMM')
     return `✅ Ви були записані на тренування в групі "${groupName}" на ${formattedDate}.`
   }
 
   static constructTrainingActivateMessage(
     { date, groupName }: { date: string; groupName: string },
-    dateTimeService: DateTimeProvider,
+    dateTimeProvider: DateTimeProvider,
   ): string {
-    const formattedDate = dateTimeService.formatDateStringInTz(date, 'dd MMMM')
+    const formattedDate = dateTimeProvider.formatDateStringInTz(date, 'dd MMMM')
     return `✅ Тренування в групі "${groupName}" на ${formattedDate} знову активне.`
   }
 }

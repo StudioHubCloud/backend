@@ -25,7 +25,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     private readonly userProfileService: UserProfileService,
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
-    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     super(
       SCENES.REGISTER,
@@ -131,7 +131,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     const { id } = UserHelper.getUser(ctx)
     const isGuest = this.REQUESTED_ROLE === UserProfileRoleEnum.GUEST
 
-    const dateOfBirth = this.dateTimeService.parseAndFormatDate({
+    const dateOfBirth = this.dateTimeProvider.parseAndFormatDate({
       date: date_of_birth!,
       dateFormat: DATE_FORMAT.DATE_MAIN,
       parseFormat: DATE_FORMAT.DATE_INPUT,
@@ -141,6 +141,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       firstName,
       lastName,
       dateOfBirth,
+      fullName: UserHelper.getFullName(firstName!, lastName),
       phoneNumber: phone,
       role: this.REQUESTED_ROLE,
       status: isGuest ? UserProfileStatusEnum.ACTIVE : UserProfileStatusEnum.VERIFICATION_REQUESTED,

@@ -13,7 +13,7 @@ export class TrainingSelectAdminPaginatedMenu extends BasePaginatedSelectInlineM
 }> {
   constructor(
     private readonly trainingService: TrainingService,
-    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     super()
   }
@@ -36,7 +36,7 @@ export class TrainingSelectAdminPaginatedMenu extends BasePaginatedSelectInlineM
       const emoji = training.isCancelled ? '🚫' : '🔸'
       const countString = training.trainingSignups.length > 0 ? ` [${training.trainingSignups.length}]` : ''
 
-      const date = TextHelper.capitalize(this.dateTimeService.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)) 
+      const date = TextHelper.capitalize(this.dateTimeProvider.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)) 
       return {
         label: `${emoji} ${date}${countString}`,
         value: training.id,

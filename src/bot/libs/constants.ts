@@ -1,5 +1,6 @@
 export const PASS_CONFIG = {
-  DURATION_IN_DAYS: 30,
+  DEFAULT_DURATION_IN_DAYS: 30,
+  ACTIVATION_GRACE_PERIOD: 7,
 } as const
 
 export const COMMON = {

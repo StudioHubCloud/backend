@@ -15,7 +15,7 @@ export class TrainingSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
 }> {
   constructor(
     private readonly trainingService: TrainingService,
-    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     super()
   }
@@ -28,7 +28,7 @@ export class TrainingSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
     const trainings = await this.trainingService.getTrainingsListForSchedule({ groupId, clientId, userId, role })
 
     return trainings.map((training) => {
-      const date = TextHelper.capitalize(this.dateTimeService.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)) 
+      const date = TextHelper.capitalize(this.dateTimeProvider.formatDateStringInTz(training.date, DATE_FORMAT.TRAINING_DISPLAY)) 
       return {
         label: `✨ ${date}`,
         value: training.id,

@@ -12,14 +12,17 @@ import {
 } from '@app/infrastructure/database'
 import { PassCacheKey, RedisCacheService } from '@app/infrastructure/redis'
 import { PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
-import { add } from 'date-fns'
+import { add, addDays, subDays } from 'date-fns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+import { PASS_CONFIG } from '@app/bot/libs'
+import { PinoLogger } from 'nestjs-pino'
 
 @Injectable()
 export class PassService {
   private studioId: string
   constructor(
-    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
+    private readonly logger: PinoLogger,
     private readonly databaseService: DatabaseService,
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
@@ -53,7 +56,7 @@ export class PassService {
 
   async expireAllPastPasses() {
     const now = new Date()
-    const todayDateString = this.dateTimeService.formatDateStringInTz(now.toISOString(), 'yyyy-MM-dd')
+    const todayDateString = this.dateTimeProvider.formatDateStringInTz(now.toISOString(), 'yyyy-MM-dd')
 
     const expiredPasses = await this.databaseService.drizzle.query.pass.findMany({
       where: (pass, { and, lt }) => and(eq(pass.status, PassStatusEnum.ACTIVE), lt(pass.endDate, todayDateString)),
@@ -67,6 +70,59 @@ export class PassService {
       await this.redisCacheService.reset()
     }
     return expiredPasses
+  }
+
+  async activatePassesAfterGracePeriod() {
+    const now = new Date()
+    const todayDateString = this.dateTimeProvider.formatDateStringInTz(now.toISOString(), 'yyyy-MM-dd')
+    const sevenDaysAgoString = this.dateTimeProvider.formatDateStringInTz(
+      subDays(now, PASS_CONFIG.ACTIVATION_GRACE_PERIOD).toISOString(),
+      'yyyy-MM-dd',
+    )
+
+    const passesToActivate = await this.databaseService.drizzle.query.pass.findMany({
+      where: (pass, { and, lte, isNull, eq, or }) =>
+        and(
+          eq(pass.status, PassStatusEnum.ACTIVE),
+          or(isNull(pass.startDate), isNull(pass.endDate)),
+          lte(pass.saleDate, sevenDaysAgoString),
+        ),
+      with: {
+        passTemplate: true,
+        client: {
+          with: {
+            userProfile: true,
+          },
+        },
+      },
+    })
+
+    let count = 0
+
+    if (passesToActivate.length) {
+      const endDateString = this.dateTimeProvider.formatDateStringInTz(
+        addDays(now, PASS_CONFIG.DEFAULT_DURATION_IN_DAYS).toISOString(),
+        'yyyy-MM-dd',
+      )
+
+      await this.databaseService.drizzle.transaction(async (tx) => {
+        for (const pass of passesToActivate) {
+          await this.updatePass(
+            pass.id,
+            {
+              startDate: todayDateString,
+              endDate: endDateString,
+            },
+            tx,
+          )
+          count++
+          this.logger.debug(`Auto-activated pass ${pass.id} for client ${pass.client?.userProfile?.firstName} after 7-day grace period`)
+        }
+      })
+
+      await this.redisCacheService.reset()
+    }
+    return count
   }
 
   async findPassByConditions(conditions: Partial<PassSelectModel>) {
@@ -136,8 +192,8 @@ export class PassService {
     const now = new Date()
     const dateToCheck = add(now, { days: days }).toISOString()
 
-    const todayDateString = this.dateTimeService.formatDateStringInTz(now.toISOString(), 'yyyy-MM-dd')
-    const checkDateString = this.dateTimeService.formatDateStringInTz(dateToCheck, 'yyyy-MM-dd')
+    const todayDateString = this.dateTimeProvider.formatDateStringInTz(now.toISOString(), 'yyyy-MM-dd')
+    const checkDateString = this.dateTimeProvider.formatDateStringInTz(dateToCheck, 'yyyy-MM-dd')
 
     return this.databaseService.drizzle.query.pass.findMany({
       where: (pass, { and, gte, lte, eq, exists }) =>

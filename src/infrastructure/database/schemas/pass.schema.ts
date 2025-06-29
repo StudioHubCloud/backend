@@ -12,8 +12,9 @@ export const pass = table(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     availableSlots: smallint('available_slots').notNull().default(0),
-    startDate: date('start_date', { mode: 'string' }).notNull(),
-    endDate: date('end_date', { mode: 'string' }).notNull(),
+    saleDate: date('sale_date', { mode: 'string' }).notNull(),
+    startDate: date('start_date', { mode: 'string' }),
+    endDate: date('end_date', { mode: 'string' }),
     reminderSent: boolean('reminder_sent').notNull().default(false),
     status: PassStatusPgEnum().notNull(),
     passTemplateId: uuid('pass_template_id')

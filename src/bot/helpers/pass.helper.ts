@@ -1,12 +1,17 @@
-import { PassStatusEnum, PassTemplateTypeEnum, type UserProfileStatusEnum } from '@app/libs'
-import { TextHelper } from './text.helper'
+import { PassSelectModel } from '@app/infrastructure/database';
+import { PassStatusEnum, PassTemplateTypeEnum,  } from '@app/libs'
 
 export class PassHelper {
   static toDisplayPrice(price: number): string {
     return price ? `${price} ₴` : '0 ₴'
   }
 
-  static getPassDisplayStatus(status: PassStatusEnum): { label: string; icon: string } {
+  static getPassDisplayStatus(status: PassStatusEnum, isInactive: boolean): { label: string; icon: string } {
+
+    if (isInactive) {
+      return { icon: '⚪️', label: 'Потребує активації' }
+    }
+
     const STATUS_MAP: Record<PassStatusEnum, { label: string; icon: string }> = {
       [PassStatusEnum.ACTIVE]: { icon: '✅', label: 'Активний' },
       [PassStatusEnum.EXPIRED]: { icon: '❌', label: 'Недійсний' },

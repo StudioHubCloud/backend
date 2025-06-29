@@ -132,15 +132,14 @@ export class UserProfileService {
   }
 
   async verifyClient(data: IVerifyClientSceneState) {
-    const { userProfile, endDate, passTemplate, startDate } = data
+    const { userProfile, passTemplate, saleDate } = data
     await this.databaseService.drizzle.transaction(async (tx) => {
       const client = await this.clientService.createNewClient({ userProfileId: userProfile.id }, tx)
       await Promise.all([
         this.passService.createNewPass(
           {
             clientId: client.id,
-            endDate,
-            startDate,
+            saleDate,
             passTemplateId: passTemplate.id,
             status: PassStatusEnum.ACTIVE,
             studioId: this.studioId,

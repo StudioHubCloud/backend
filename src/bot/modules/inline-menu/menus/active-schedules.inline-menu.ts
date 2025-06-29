@@ -1,4 +1,3 @@
-import { format } from 'date-fns'
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
@@ -6,6 +5,7 @@ import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { API } from '@app/libs'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+import { MESSAGES_CLIENT } from '@app/bot/static/messages'
 
 @Injectable()
 export class ActiveSchedulesInlineMenu {
@@ -13,7 +13,7 @@ export class ActiveSchedulesInlineMenu {
 
   constructor(
     private readonly trainingSignupService: TrainingSignupService,
-    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     this.initMenuActions()
   }
@@ -26,12 +26,12 @@ export class ActiveSchedulesInlineMenu {
     const { id } = UserHelper.getUser(ctx)
     const activeSignups = await this.trainingSignupService.getClientSignups(id)
     if (!activeSignups.length) {
-      return ctx.reply('У вас немає активних записів на тренування')
+      return ctx.reply(MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS)
     }
 
     const keyboard = activeSignups.map((signup) => [
       {
-        text: `➖ ${signup.group.groupStyle.title} (${this.dateTimeService.formatDateStringInTz(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
+        text: `➖ ${signup.group.groupStyle.title} (${this.dateTimeProvider.formatDateStringInTz(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
         callback_data: `sign-out:${signup.id}`,
       },
     ])
@@ -58,12 +58,12 @@ export class ActiveSchedulesInlineMenu {
       }
 
       if (!activeSignups.length) {
-        return ctx.editMessageText('У вас немає активних записів на тренування')
+        return ctx.editMessageText(MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS)
       }
       
       const keyboard = activeSignups.map((signup) => [
         {
-          text: `➖ ${signup.group.groupStyle.title} (${this.dateTimeService.formatDateStringInTz(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
+          text: `➖ ${signup.group.groupStyle.title} (${this.dateTimeProvider.formatDateStringInTz(signup.training.date, 'dd.MM.yyyy HH:mm')})`,
           callback_data: `sign-out:${signup.id}`,
         },
       ])

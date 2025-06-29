@@ -11,15 +11,16 @@ import {
 } from '@app/infrastructure/database'
 import { API, TrainingSignupStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { RedisCacheService, TrainingCacheKey } from '@app/infrastructure/redis'
-import { GetTrainingByIdResponse } from '@app/bot/libs'
+import { GetTrainingByIdResponse, PASS_CONFIG } from '@app/bot/libs'
 import { PassService } from '../pass'
 import { StudioService } from '../studio'
 import { TrainingSignupService } from '../training-signup'
+import { addDays } from 'date-fns'
 
 @Injectable()
 export class TrainingService {
   constructor(
-    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     @Inject(forwardRef(() => TrainingSignupService))
     private readonly trainingSignupService: TrainingSignupService,
     private readonly databaseService: DatabaseService,
@@ -126,13 +127,16 @@ export class TrainingService {
       return []
     }
 
+    const startDateBoundary = new Date().toISOString()
+    const endDateBoundary = pass.endDate || addDays(startDateBoundary, PASS_CONFIG.ACTIVATION_GRACE_PERIOD).toISOString()
+
     const trainings = await this.databaseService.drizzle.query.training.findMany({
       where: (training, { eq, and, lte, gte }) =>
         and(
           eq(training.groupId, groupId),
           eq(training.isCancelled, false),
-          gte(training.date, new Date().toISOString()),
-          lte(training.date, this.dateTimeService.toEndOfDateTimeStamp(pass.endDate)),
+          gte(training.date, startDateBoundary),
+          lte(training.date, endDateBoundary),
         ),
       with: {
         group: true,
@@ -245,13 +249,13 @@ export class TrainingService {
 
   async addTrainingsForActiveGroups() {
     const studios = await this.studioService.getAllStudiosWithActiveGroups({ allowTrainingInsertCron: true })
-    const interval = this.dateTimeService.getNextTwoMonthDateInterval()
+    const interval = this.dateTimeProvider.getNextTwoMonthDateInterval()
     let trainingsToInsert: TrainingInsertModel[] = []
 
     studios.forEach((studio) => {
       studio.groups.forEach((group) => {
         group.groupSchedules.forEach((schedule) => {
-          const trainingDates = this.dateTimeService.getEachDayOfIntervalForDayIndex(interval, schedule.groupScheduleDays.dayIndex)
+          const trainingDates = this.dateTimeProvider.getEachDayOfIntervalForDayIndex(interval, schedule.groupScheduleDays.dayIndex)
           trainingsToInsert = [
             ...trainingsToInsert,
             ...this.generateTrainingsRecords(trainingDates, group.id, schedule, group.staffMemberId),
@@ -280,7 +284,7 @@ export class TrainingService {
 
     trainingDates.forEach((date) => {
       const trainingRecord = {
-        date: this.dateTimeService.getUtcStringTz(this.dateTimeService.addTimeToDate(date, schedule.time)),
+        date: this.dateTimeProvider.getUtcStringTz(this.dateTimeProvider.addTimeToDate(date, schedule.time)),
         groupId: groupId,
         groupScheduleId: schedule.id,
         trainerId: trainerId,

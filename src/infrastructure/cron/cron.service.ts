@@ -40,6 +40,16 @@ export class CronService {
     this.logger.debug(`Expire All Past Passes Cron job completed. Total expired passes: ${result.length}`)
   }
 
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+    name: 'activate-inactive-passes-after-grace-period',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
+  async activatePassesAfterGracePeriod() {
+    this.logger.debug('Activate Inactive Passes Cron job executed at midnight')
+    const count = await this.passService.activatePassesAfterGracePeriod()
+    this.logger.debug(`Activate Inactive Passes Cron job completed. Total activated passes: ${count}`)
+  }
+
   @Cron(CronExpression.EVERY_DAY_AT_10AM, {
     name: 'happy-birthday',
     timeZone: STATIC_CONFIG.timeZone,
@@ -60,14 +70,18 @@ export class CronService {
     this.logger.debug('Notify For Pass Expiration Cron job executed at noon')
     const now = new Date()
     const threeDaysFromNow = add(now, { days: 3 }).toISOString()
-    
+
     this.logger.debug(`Current time: ${now.toISOString()}, checking for pass expiration until: ${threeDaysFromNow}`)
     const expiringPasses = await this.passService.getExpiringPassesInDays(3)
     this.logger.debug(`Found ${expiringPasses.length} expiring passes in the next 3 days`)
 
     for (const pass of expiringPasses) {
-      if(!pass.client?.userProfile) {
+      if (!pass.client?.userProfile) {
         this.logger.warn(`No user profile found for pass ID: ${pass.id}, skipping notification`)
+        continue
+      }
+      if (!pass.endDate) {
+        this.logger.warn(`No end date found for pass ID: ${pass.id}, skipping notification`)
         continue
       }
       await Promise.all([

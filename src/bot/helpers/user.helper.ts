@@ -63,4 +63,8 @@ export class UserHelper {
     const user = this.getUser(ctx)
     return user.status === UserProfileStatusEnum.VERIFICATION_REQUESTED
   }
+
+  static getFullName(firstName: string, lastName?: string): string {
+    return lastName ? `${firstName} ${lastName}` : firstName
+  }
 }

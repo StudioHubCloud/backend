@@ -57,6 +57,13 @@
       "when": 1751164940849,
       "tag": "0034_remove-unnessessary-enums",
       "breakpoints": true
+    },
+    {
+      "idx": 35,
+      "version": "7",
+      "when": 1751171426471,
+      "tag": "0035_add-sale-date-to-pass",
+      "breakpoints": true
     }
   ]
 }

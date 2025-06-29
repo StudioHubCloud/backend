@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import { PinoLogger } from 'nestjs-pino'
-import { isAfter, subHours } from 'date-fns'
+import { addDays, isAfter, subHours } from 'date-fns'
 import {
   DatabaseService,
   TrainingSelectModel,
@@ -17,11 +17,13 @@ import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
 import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
-import { COMMON } from '@app/bot/libs'
+import { COMMON, PASS_CONFIG } from '@app/bot/libs'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 
 @Injectable()
 export class TrainingSignupService {
   constructor(
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     @Inject(forwardRef(() => TrainingService))
     private readonly trainingService: TrainingService,
     private readonly logger: PinoLogger,
@@ -124,14 +126,34 @@ export class TrainingSignupService {
         this.logger.warn('Pass %s is not found or inactive', passId)
         return {
           status: API.RESPONSE.ERROR_STRING,
-          message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент — і гайда на тренування! 😉`,
+          message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент ❤️‍🔥`,
         }
       }
+
+      const isPassInactive = !pass.endDate || !pass.startDate
+
+      if (isPassInactive) {
+        const startDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), 'yyyy-MM-dd')
+        const endDate = addDays(startDateString, PASS_CONFIG.DEFAULT_DURATION_IN_DAYS)
+
+        if (endDate < new Date()) {
+          this.logger.warn('Pass %s is expired', passId)
+          return {
+            status: API.RESPONSE.ERROR_STRING,
+            message: `Упс! 🤸‍♀️ Термін дії абонемента закінчився 💥\nСаме час поновити абонемент ❤️‍🔥`,
+          }
+        }
+
+        const endDateString = this.dateTimeProvider.formatDateStringInTz(endDate.toISOString(), 'yyyy-MM-dd')
+
+        await this.passService.updatePass(passId, { startDate: startDateString, endDate: endDateString })
+      }
+
       if (pass.availableSlots <= 0) {
         this.logger.warn('User %s has no available slots in pass %s', userProfileId, passId)
         return {
           status: API.RESPONSE.ERROR_STRING,
-          message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент — і гайда на тренування! 😉`,
+          message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент ❤️‍🔥`,
         }
       }
       if (training.isCancelled) {
@@ -151,7 +173,7 @@ export class TrainingSignupService {
       await this.redisCacheService.reset()
 
       const updatedPass = await this.passService.findPassByConditions({ id: passId, status: PassStatusEnum.ACTIVE })
-      
+
       if (!updatedPass) {
         this.logger.warn('Updated pass %s is not found after signup', passId)
         return {
