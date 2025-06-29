@@ -20,7 +20,7 @@ export class SignInClientScene extends Scenes.WizardScene<BotContext> {
     private readonly userProfileService: UserProfileService,
     private readonly trainingSignupService: TrainingSignupService,
   ) {
-    super(SCENES.VERIFY_CLIENT, (ctx) => this.enterSceneHandler(ctx))
+    super(SCENES.SIGN_IN_CLIENT, (ctx) => this.enterSceneHandler(ctx))
 
     this.enter(async (ctx: BotContext, next: TNextFunction) => {
       this.signInClientScene.setState(ctx, { trainingId: ctx.scene.state['trainingId'] })
