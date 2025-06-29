@@ -77,4 +77,8 @@ export class BotService {
     this.bot.stop(reason)
     this.logger.warn('Bot stopped with reason: %s', reason)
   }
+
+  getBotInstance(): Telegraf<BotContext> {
+    return this.bot
+  }
 }

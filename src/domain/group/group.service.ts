@@ -17,8 +17,11 @@ export class GroupService {
     private readonly userProfileService: UserProfileService,
   ) {}
 
-  async getAllGroups(filters: Partial<GroupSelectModel> = {}) {
-    const cacheKey = GroupCacheKey.groupByFilterConditions(filters)
+  async getAllActiveGroupsGroups(filters: Partial<GroupSelectModel> = {}) {
+
+    const allFilters = { status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID'), ...filters }
+
+    const cacheKey = GroupCacheKey.groupByFilterConditions(allFilters)
     const groupsCashed = await this.redisCacheService.get<typeof groupsFound>(cacheKey)
 
     if (groupsCashed) {
@@ -26,7 +29,7 @@ export class GroupService {
     }
 
     const groupsFound = await this.databaseService.drizzle.query.group.findMany({
-      where: (group, { and, eq }) => and(...Object.entries(filters).map(([key, value]) => eq(group[key], value))),
+      where: (group, { and, eq }) => and(...Object.entries(allFilters).map(([key, value]) => eq(group[key], value))),
       with: {
         groupStyle: true,
         groupAgeRestrictions: true,
@@ -46,18 +49,9 @@ export class GroupService {
     return groupsFound
   }
 
-  async getAllActiveGroups(filters: Partial<GroupSelectModel> = {}) {
-    const activeGroups = await this.getAllGroups({
-      ...filters,
-      status: GroupStatusEnum.ACTIVE,
-      studioId: this.configService.get('STUDIO_ID'),
-    })
-    return activeGroups
-  }
-
   async getAllActiveGroupsWithAgeRestrictions({ userId }: { userId: string }) {
     const [groups, userProfile] = await Promise.all([
-      this.getAllGroups({ status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID') }),
+      this.getAllActiveGroupsGroups(),
       this.userProfileService.getUserProfileById(userId),
     ])
 
@@ -71,14 +65,11 @@ export class GroupService {
       }
 
       const userAge = this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth)
-      const {allowedThreshold, maxAge, minAge} = group.groupAgeRestrictions
+      const { allowedThreshold, maxAge, minAge } = group.groupAgeRestrictions
 
       const adjustedMinAge = minAge !== null ? minAge - (allowedThreshold ?? 0) : null
       const adjustedMaxAge = maxAge !== null ? maxAge + (allowedThreshold ?? 0) : null
-      return (
-        (adjustedMinAge === null || userAge >= adjustedMinAge) &&
-        (adjustedMaxAge === null || userAge <= adjustedMaxAge)
-      )
+      return (adjustedMinAge === null || userAge >= adjustedMinAge) && (adjustedMaxAge === null || userAge <= adjustedMaxAge)
     })
 
     return ageAppropriateGroups

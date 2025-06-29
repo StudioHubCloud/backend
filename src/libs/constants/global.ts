@@ -10,7 +10,9 @@ export const APP = {
 
 export const DATE_FORMAT = {
   DATE_MAIN: 'yyyy-MM-dd',
+  TIME_MAIN: 'HH:mm',
   DATE_INPUT: 'dd.MM.yyyy',
+  DATE_NOTIFICATION: 'd MMMM',
   DB: 'yyyy-MM-dd HH:mm:ss',
   TRAINING_DISPLAY: 'EEEE, d MMMM, HH:mm',
 } as const

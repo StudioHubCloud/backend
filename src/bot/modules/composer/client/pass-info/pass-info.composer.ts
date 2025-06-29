@@ -33,9 +33,9 @@ export class PassInfoComposer {
     const text = `${TextHelper.bold('Деталі абонементу:')}\n
 ${icon} ${TextHelper.bold('Статус:')} ${label}
 📌 ${TextHelper.bold('Доступно:')} ${pass.availableSlots}/${pass.passTemplate.length}
-📅 ${TextHelper.bold('Дійсний до:')} ${pass.endDate.substring(0, 10)}
-${pass.pausedFromDate ? `⏸️ ${TextHelper.bold('Призупинено:')} з ${pass.pausedFromDate.substring(0, 10)} до ${pass.pausedToDate?.substring(0, 10)}` : ''}
-${pass.expiredFromDate ? `❌ ${TextHelper.bold('Термін дії минув:')} ${pass.expiredFromDate.substring(0, 10)}` : ''}
+📅 ${TextHelper.bold('Дійсний до:')} ${pass.endDate}
+${pass.pausedFromDate ? `⏸️ ${TextHelper.bold('Призупинено:')} з ${pass.pausedFromDate} до ${pass.pausedToDate}` : ''}
+${pass.expiredFromDate ? `❌ ${TextHelper.bold('Термін дії минув:')} ${pass.expiredFromDate}` : ''}
 `
     await ctx.replyWithHTML(text)
   }

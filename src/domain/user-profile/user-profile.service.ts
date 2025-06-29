@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { eq, and, isNotNull, sql } from 'drizzle-orm'
 import {
   DatabaseService,
   userProfile,
@@ -167,5 +167,34 @@ export class UserProfileService {
 
     await this.updateUserProfile(userId, { consentToRules: true })
     await this.redisCacheService.reset()
+  }
+
+  async findUsersProfilesByConditions(conditions: Partial<UserProfileSelectModel> = {}) {
+    return this.databaseService.drizzle.query.userProfile.findMany({
+      where: (userProfile, { and, eq }) =>
+        and(
+          eq(userProfile.studioId, this.studioId),
+          ...Object.entries(conditions).map(([key, value]) => eq(userProfile[key], value)),
+        ),
+    })
+  }
+
+  async findUsersWithBirthdayToday() {
+    const today = new Date()
+    const month = today.getMonth() + 1
+    const day = today.getDate()
+
+    return this.databaseService.drizzle
+      .select()
+      .from(userProfile)
+      .where(
+        and(
+          eq(userProfile.studioId, this.studioId),
+          eq(userProfile.status, UserProfileStatusEnum.ACTIVE),
+          isNotNull(userProfile.dateOfBirth),
+          sql`EXTRACT(MONTH FROM ${userProfile.dateOfBirth}) = ${month}`,
+          sql`EXTRACT(DAY FROM ${userProfile.dateOfBirth}) = ${day}`,
+        ),
+      )
   }
 }

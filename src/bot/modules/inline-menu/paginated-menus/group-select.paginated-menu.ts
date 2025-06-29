@@ -15,7 +15,7 @@ export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{use
 
     let groups
     if (isAdmin) {
-      groups = await this.groupService.getAllGroups()
+      groups = await this.groupService.getAllActiveGroupsGroups()
     } else {
       groups = await this.groupService.getAllActiveGroupsWithAgeRestrictions({userId})
     }

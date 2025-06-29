@@ -18,7 +18,7 @@ import { DatabaseService } from './database.service'
           connectionString: DB_URL,
           ssl: true,
         })
-        return drizzle(pool, { schema }) as Database
+        return drizzle(pool, { schema, logger: true }) as Database
       },
     },
     DatabaseService,

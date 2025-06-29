@@ -1,4 +1,4 @@
-import { smallint, pgTable as table, timestamp, uuid, index, integer } from 'drizzle-orm/pg-core'
+import { smallint, pgTable as table, uuid, index, date, boolean } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
 import { client } from './client.schema'
@@ -12,11 +12,12 @@ export const pass = table(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     availableSlots: smallint('available_slots').notNull().default(0),
-    startDate: timestamp('start_date', { mode: 'string' }).notNull(),
-    endDate: timestamp('end_date', { mode: 'string' }).notNull(),
-    pausedFromDate: timestamp('paused_from_date', { mode: 'string' }),
-    pausedToDate: timestamp('paused_to_date', { mode: 'string' }),
-    expiredFromDate: timestamp('expired_from_date', { mode: 'string' }),
+    startDate: date('start_date', { mode: 'string' }).notNull(),
+    endDate: date('end_date', { mode: 'string' }).notNull(),
+    pausedFromDate: date('paused_from_date', { mode: 'string' }),
+    pausedToDate: date('paused_to_date', { mode: 'string' }),
+    expiredFromDate: date('expired_from_date', { mode: 'string' }),
+    reminderSent: boolean('reminder_sent').notNull().default(false),
     status: PassStatusPgEnum().notNull(),
     passTemplateId: uuid('pass_template_id')
       .references(() => passTemplate.id, { onDelete: 'cascade' })

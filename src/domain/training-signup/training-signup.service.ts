@@ -147,7 +147,7 @@ export class TrainingSignupService {
       return {
         status: API.RESPONSE.SUCCESS_STRING,
         availableSlots: updatedPass.availableSlots,
-        message: 'Вітаю, запис успішний!🤗',
+        message: '✅ Ти успішно записана на тренування в групі!\nЧекаємо на тебе🫶🏻',
       }
     } catch (error) {
       this.logger.error(`Error signing up for training %s for user %s: %j`, userProfileId, trainingId, error.stack)
@@ -208,7 +208,7 @@ export class TrainingSignupService {
 
       await this.redisCacheService.reset()
 
-      return { status: API.RESPONSE.SUCCESS_STRING, message:  `✅ Готово! Ти успішно відписалась з тренування` }
+      return { status: API.RESPONSE.SUCCESS_STRING, message:  `Запис скасовано 😌\nСподіваємося побачити тебе на наступному тренуванні! 💃✨` }
     } catch (error) {
       this.logger.error(`Error signing out from training %s: %j`, trainingSignupId, error.stack)
       return {

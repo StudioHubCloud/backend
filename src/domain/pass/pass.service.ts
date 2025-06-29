@@ -1,14 +1,25 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { and, eq, inArray, sql } from 'drizzle-orm'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { DatabaseService, pass, PassInsertModel, PassSelectModel, Transaction } from '@app/infrastructure/database'
+import {
+  DatabaseService,
+  pass,
+  PassInsertModel,
+  PassSelectModel,
+  Transaction,
+  userProfile,
+  client,
+} from '@app/infrastructure/database'
 import { PassCacheKey, RedisCacheService } from '@app/infrastructure/redis'
-import { PassStatusEnum } from '@app/libs'
+import { PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
+import { add } from 'date-fns'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 
 @Injectable()
 export class PassService {
   private studioId: string
   constructor(
+    @DateTimeProviderInjector() private readonly dateTimeService: DateTimeProvider,
     private readonly databaseService: DatabaseService,
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
@@ -68,5 +79,37 @@ export class PassService {
     const dbProvider = tx || this.databaseService.drizzle
     const sqlAction = action === 'increment' ? sql`${pass.availableSlots} + 1` : sql`${pass.availableSlots} - 1`
     return dbProvider.update(pass).set({ availableSlots: sqlAction }).where(inArray(pass.id, ids)).returning()
+  }
+
+  async getExpiringPassesInDays(days: number) {
+    const now = new Date()
+    const dateToCheck = add(now, { days: days }).toISOString()
+
+    const todayDateString = this.dateTimeService.formatDateStringInTz(now.toISOString(), 'yyyy-MM-dd')
+    const checkDateString = this.dateTimeService.formatDateStringInTz(dateToCheck, 'yyyy-MM-dd')
+
+    return this.databaseService.drizzle.query.pass.findMany({
+      where: (pass, { and, gte, lte, eq, exists }) =>
+        and(
+          gte(pass.endDate, todayDateString),
+          lte(pass.endDate, checkDateString),
+          eq(pass.status, PassStatusEnum.ACTIVE),
+          eq(pass.reminderSent, false),
+          exists(
+            this.databaseService.drizzle
+              .select()
+              .from(client)
+              .innerJoin(userProfile, eq(client.userProfileId, userProfile.id))
+              .where(and(eq(client.id, pass.clientId), eq(userProfile.status, UserProfileStatusEnum.ACTIVE))),
+          ),
+        ),
+      with: {
+        client: {
+          with: {
+            userProfile: true,
+          },
+        },
+      },
+    })
   }
 }

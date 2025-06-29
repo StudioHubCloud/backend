@@ -11,6 +11,6 @@ export const client = table('client', {
 })
 
 export const client_relations = relations(client, ({ one }) => ({
-  user_profile: one(userProfile, { fields: [client.userProfileId], references: [userProfile.id] }),
+  userProfile: one(userProfile, { fields: [client.userProfileId], references: [userProfile.id] }),
   pass: one(pass),
 }))

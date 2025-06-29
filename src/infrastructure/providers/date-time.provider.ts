@@ -1,5 +1,5 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, parse, endOfDay, differenceInYears, addDays } from 'date-fns'
+import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, parse, endOfDay, differenceInYears, addDays, startOfDay } from 'date-fns'
 import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz'
 import { uk } from 'date-fns/locale'
 import { APP, DATE_FORMAT, TDateFormats } from '@app/libs'
@@ -54,9 +54,10 @@ export class DateTimeProvider {
     return format(parsedDate, dateFormat)
   }
 
-  getNextMonthDateInterval(): { start: Date; end: Date } {
-    const nextMonth = addMonths(fromZonedTime(new Date(), this.time_zone), 0)
-    const startDate = startOfMonth(nextMonth)
+  getNextTwoMonthDateInterval(): { start: Date; end: Date } {
+    const currMonth = addMonths(fromZonedTime(new Date(), this.time_zone), 0)
+    const nextMonth = addMonths(fromZonedTime(new Date(), this.time_zone), 1)
+    const startDate = startOfMonth(currMonth)
     const endDate = endOfMonth(nextMonth)
 
     return { start: startDate, end: endDate }
@@ -70,6 +71,16 @@ export class DateTimeProvider {
     const birthDate = new Date(dateOfBirth)
     const now = new Date()
     return differenceInYears(now, birthDate)
+  }
+
+  toEndOfDateTimeStamp(date: string): string {
+    const endOfDate = endOfDay(new Date(date))
+    return endOfDate.toISOString()
+  }
+  
+  toStartOfDateTimeStamp(date: string): string {
+    const startOfDate = startOfDay(new Date(date))
+    return startOfDate.toISOString()
   }
 }
 

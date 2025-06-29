@@ -36,6 +36,20 @@
       "when": 1748992824451,
       "tag": "0031_add-rules-consent-boolean",
       "breakpoints": true
+    },
+    {
+      "idx": 32,
+      "version": "7",
+      "when": 1751143361389,
+      "tag": "0032_add-reminder-set-boolean-to-training",
+      "breakpoints": true
+    },
+    {
+      "idx": 33,
+      "version": "7",
+      "when": 1751154527211,
+      "tag": "0033_change-timestamp-type-in-pass-schema",
+      "breakpoints": true
     }
   ]
 }

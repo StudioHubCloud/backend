@@ -16,6 +16,7 @@ export const training = table(
       .notNull(),
     trainerId: uuid('trainer_id').references(() => staffMember.id, { onDelete: 'set null' }),
     groupScheduleId: uuid('group_schedule_id').references(() => groupSchedule.id, { onDelete: 'set null' }),
+    reminderSent: boolean('reminder_sent').notNull().default(false),
   },
   (table) => [
     uniqueIndex().on(table.date, table.groupId),

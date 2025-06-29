@@ -1,8 +1,15 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, eq, gte } from 'drizzle-orm'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { DatabaseService, GroupScheduleSelectModel, training, TrainingInsertModel } from '@app/infrastructure/database'
-import { API, TrainingSignupStatusEnum, UserProfileRoleEnum } from '@app/libs'
+import {
+  DatabaseService,
+  GroupScheduleSelectModel,
+  training,
+  TrainingInsertModel,
+  trainingSignup,
+  userProfile,
+} from '@app/infrastructure/database'
+import { API, TrainingSignupStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { RedisCacheService, TrainingCacheKey } from '@app/infrastructure/redis'
 import { GetTrainingByIdResponse } from '@app/bot/libs'
 import { PassService } from '../pass'
@@ -125,7 +132,7 @@ export class TrainingService {
           eq(training.groupId, groupId),
           eq(training.isCancelled, false),
           gte(training.date, new Date().toISOString()),
-          lte(training.date, pass.endDate),
+          lte(training.date, this.dateTimeService.toEndOfDateTimeStamp(pass.endDate)),
         ),
       with: {
         group: true,
@@ -139,6 +146,64 @@ export class TrainingService {
     }
 
     return trainings
+  }
+
+  async getTrainingListForReminder(trainingDateTimeIsoString: string) {
+    return this.databaseService.drizzle.query.training.findMany({
+      where: (training, { eq, and, lte, gte, exists }) =>
+        and(
+          eq(training.isCancelled, false),
+          eq(training.reminderSent, false),
+          gte(training.date, new Date().toISOString()),
+          lte(training.date, trainingDateTimeIsoString),
+          exists(
+            this.databaseService.drizzle
+              .select()
+              .from(trainingSignup)
+              .innerJoin(userProfile, eq(trainingSignup.userProfileId, userProfile.id))
+              .where(
+                and(
+                  eq(trainingSignup.trainingId, training.id),
+                  eq(trainingSignup.status, TrainingSignupStatusEnum.ACTIVE),
+                  eq(userProfile.status, UserProfileStatusEnum.ACTIVE),
+                ),
+              ),
+          ),
+        ),
+      with: {
+        trainingSignups: {
+          where: (signup, { eq }) => eq(signup.status, TrainingSignupStatusEnum.ACTIVE),
+          with: {
+            group: {
+              columns: {
+                name: true,
+              },
+            },
+            userProfile: true,
+          },
+        },
+      },
+    })
+  }
+
+  async updateTraining(trainingId: string, updateData: Partial<TrainingInsertModel>): Promise<TrainingInsertModel> {
+    const targetTraining = await this.getTrainingById(trainingId)
+    if (!targetTraining) {
+      throw new NotFoundException(`Training with id: ${trainingId} not found`)
+    }
+    if (updateData.date && new Date(updateData.date) < new Date()) {
+      throw new BadRequestException(`Training with id: ${trainingId} cannot be updated to a past date`)
+    }
+
+    const [updatedTraining] = await this.databaseService.drizzle
+      .update(training)
+      .set(updateData)
+      .where(eq(training.id, trainingId))
+      .returning()
+
+    await this.redisCacheService.reset()
+
+    return updatedTraining
   }
 
   async getTrainingById(trainingId: string): Promise<GetTrainingByIdResponse> {
@@ -180,7 +245,7 @@ export class TrainingService {
 
   async addTrainingsForActiveGroups() {
     const studios = await this.studioService.getAllStudiosWithActiveGroups({ allowTrainingInsertCron: true })
-    const interval = this.dateTimeService.getNextMonthDateInterval()
+    const interval = this.dateTimeService.getNextTwoMonthDateInterval()
     let trainingsToInsert: TrainingInsertModel[] = []
 
     studios.forEach((studio) => {

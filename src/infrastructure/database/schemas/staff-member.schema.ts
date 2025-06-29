@@ -9,6 +9,6 @@ export const staffMember = table('staff_member', {
 })
 
 export const staff_member_relations = relations(staffMember, ({ one, many }) => ({
-  user_profile: one(userProfile),
+  userProfile: one(userProfile),
   groups: many(group),
 }))
