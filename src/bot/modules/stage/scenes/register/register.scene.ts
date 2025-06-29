@@ -24,7 +24,6 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   constructor(
     private readonly userProfileService: UserProfileService,
     private readonly redisCacheService: RedisCacheService,
-    private readonly configService: TypedConfigService,
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     super(

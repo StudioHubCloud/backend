@@ -8,7 +8,6 @@ import { TrainingSelectPaginatedMenu, GroupSelectPaginatedMenu, ActiveSchedulesI
 import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
-import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { MESSAGES_CLIENT } from '@app/bot/static/messages'
 
 @Injectable()

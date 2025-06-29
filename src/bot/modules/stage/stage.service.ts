@@ -11,7 +11,8 @@ export class StageService {
     public readonly registerScene: Stage.RegisterScene,
     public readonly verifyClientScene: Stage.VerifyClientScene,
     public readonly verifyTrainerScene: Stage.VerifyTrainerScene,
+    public readonly signInClientScene: Stage.SignInClientScene,
   ) {
-    this.stage = new Scenes.Stage<BotContext>([registerScene, verifyClientScene, verifyTrainerScene])
+    this.stage = new Scenes.Stage<BotContext>([registerScene, verifyClientScene, verifyTrainerScene, signInClientScene])
   }
 }

@@ -11,6 +11,7 @@ export const SCENES = {
   REGISTER: 'register',
   VERIFY_CLIENT: 'verify_client',
   VERIFY_TRAINER: 'verify_trainer',
+  SIGN_IN_CLIENT: 'sign_in_client'
 } as const
 
 export const CALLBACK_DATA = {
@@ -40,7 +41,6 @@ export const CALLBACK_PREFIX = {
       ACTIVATE: 'trng.activ.st',
       BACK_TO_MANAGE: 'trng.mng.back.st',
       CLIENT_SIGNOUT_SELECT: 'trng.cl.sgo.sel.st',
-      CLIENT_SIGNIN_SELECT: 'trng.cl.sgn.sel.st',
     },
     USER: {
       VERIFY_YES: 'usr.yver.st',
