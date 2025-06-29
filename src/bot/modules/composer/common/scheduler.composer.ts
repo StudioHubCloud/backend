@@ -2,7 +2,7 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { PATTERNS_CLIENT, PATTERNS_COMMON } from '@app/bot/static/patterns'
-import { API } from '@app/libs'
+import { API, PassStatusEnum } from '@app/libs'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
 import { TrainingSelectPaginatedMenu, GroupSelectPaginatedMenu, ActiveSchedulesInlineMenu } from '@app/bot/modules/inline-menu'
 import { UserHelper } from '@app/bot/helpers'
@@ -83,8 +83,10 @@ export class SchedulerComposer {
     const { id, client, role } = UserHelper.getUser(ctx)
     const isUserClient = UserHelper.isClientRole(role)
 
+    const currentActivePass = client?.pass?.find((p) => p.status === PassStatusEnum.ACTIVE)
+
     if (isUserClient) {
-      if (!client || !client?.pass) {
+      if (!client || !currentActivePass) {
         return ctx.answerCbQuery(
           `Ой-ой! 🤸‍♀️ Поки що не бачу твого активного абонементу. Не сумуй, мерщій оновлюй його, щоб не пропустити улюблені заняття! 😉🔥`,
           { show_alert: true },
@@ -93,12 +95,14 @@ export class SchedulerComposer {
       const response = await this.trainingSignupService.signUpForTrainingAsClientViaTelegram({
         trainingId,
         userProfileId: id,
-        passId: client.pass.id,
+        passId: currentActivePass.id,
       })
 
       if (response.status === API.RESPONSE.ERROR_STRING) {
         return ctx.answerCbQuery(response.message, { show_alert: true })
       }
+
+      console.log(response, 'response from signUpForTrainingAsClientViaTelegram')
 
       switch (response.availableSlots) {
         case 1:

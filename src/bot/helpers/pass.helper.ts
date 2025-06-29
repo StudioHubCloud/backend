@@ -9,7 +9,6 @@ export class PassHelper {
   static getPassDisplayStatus(status: PassStatusEnum): { label: string; icon: string } {
     const STATUS_MAP: Record<PassStatusEnum, { label: string; icon: string }> = {
       [PassStatusEnum.ACTIVE]: { icon: '✅', label: 'Активний' },
-      [PassStatusEnum.PAUSED]: { icon: '⏸️', label: 'Призупинений' },
       [PassStatusEnum.EXPIRED]: { icon: '❌', label: 'Недійсний' },
     }
     return STATUS_MAP[status] || { icon: '❓', label: 'Невідомий статус' }

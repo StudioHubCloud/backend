@@ -65,7 +65,7 @@ export class TrainingService {
     }
 
     if (new Date(targetTraining.date) < new Date()) {
-      throw new BadRequestException(`Training with id: ${trainingId} is in the past and cannot be activated`)
+      throw new BadRequestException(`Training with id: ${trainingId} is in the past and cannot be canceled`)
     }
 
     const [result] = await this.databaseService.drizzle.transaction(async (tx) => {

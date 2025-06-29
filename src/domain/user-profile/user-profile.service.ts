@@ -54,6 +54,7 @@ export class UserProfileService {
               columns: {
                 id: true,
                 groupId: true,
+                status: true,
               },
             },
           },

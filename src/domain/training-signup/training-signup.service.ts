@@ -1,7 +1,9 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
+import { and, eq } from 'drizzle-orm'
+import { PinoLogger } from 'nestjs-pino'
+import { isAfter, subHours } from 'date-fns'
 import {
   DatabaseService,
-  training,
   TrainingSelectModel,
   trainingSignup,
   TrainingSignupInsertModel,
@@ -14,11 +16,8 @@ import { TCustomApiResponse } from '@app/libs/types'
 import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
-import { PinoLogger } from 'nestjs-pino'
 import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
-import { and, eq } from 'drizzle-orm'
 import { COMMON } from '@app/bot/libs'
-import { isAfter, subHours } from 'date-fns'
 
 @Injectable()
 export class TrainingSignupService {
@@ -103,11 +102,17 @@ export class TrainingSignupService {
 
       if (!training.group || training.group.status === GroupStatusEnum.INACTIVE) {
         this.logger.warn('Group %s is not found or inactive', training.groupId)
-        return { status: API.RESPONSE.ERROR_STRING, message: `Запис неможливий — група не знайдена або неактивна🥺\nСпробуй обрати іншу групу🫶🏻` }
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `Запис неможливий — група не знайдена або неактивна🥺\nСпробуй обрати іншу групу🫶🏻`,
+        }
       }
       if (!ageRestrictionPassed) {
         this.logger.warn('User %s does not pass age restriction for group %s', userProfileId, training.groupId)
-        return { status: API.RESPONSE.ERROR_STRING, message: `На жаль, ця група не підходить за віком 😔\nАле не хвилюйся — ми підберемо для тебе ідеальний варіант, де буде комфортно та цікаво! ✨` }
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `На жаль, ця група не підходить за віком 😔\nАле не хвилюйся — ми підберемо для тебе ідеальний варіант, де буде комфортно та цікаво! ✨`,
+        }
       }
 
       if (isAlreadySignedUp) {
@@ -117,32 +122,43 @@ export class TrainingSignupService {
 
       if (!pass) {
         this.logger.warn('Pass %s is not found or inactive', passId)
-        return { status: API.RESPONSE.ERROR_STRING, message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент — і гайда на тренування! 😉` }
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент — і гайда на тренування! 😉`,
+        }
       }
       if (pass.availableSlots <= 0) {
         this.logger.warn('User %s has no available slots in pass %s', userProfileId, passId)
-        return { status: API.RESPONSE.ERROR_STRING, message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент — і гайда на тренування! 😉` }
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент — і гайда на тренування! 😉`,
+        }
       }
       if (training.isCancelled) {
         this.logger.warn('Training %s is cancelled', trainingId)
-        return { status: API.RESPONSE.ERROR_STRING, message: `На жаль, тренування було скасовано 😔\nПросимо вибачення за незручності — а поки ти завжди можеш обрати інше тренування🎀`}
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `На жаль, тренування було скасовано 😔\nПросимо вибачення за незручності — а поки ти завжди можеш обрати інше тренування🎀`,
+        }
       }
 
-      const [updatedPass] = await this.databaseService.drizzle.transaction(async (tx) => {
-        return Promise.all([
-          this.passService.updatePass(pass.id, { availableSlots: pass.availableSlots - 1 }, tx),
-          this.signUpForTraining(
-            {
-              ...values,
-              groupId: training.groupId,
-              type: TrainingSignupTypeEnum.MAIN,
-            },
-            tx,
-          ),
-        ])
+      await this.signUpForTraining({
+        ...values,
+        groupId: training.groupId,
+        type: TrainingSignupTypeEnum.MAIN,
       })
 
       await this.redisCacheService.reset()
+
+      const updatedPass = await this.passService.findPassByConditions({ id: passId, status: PassStatusEnum.ACTIVE })
+      
+      if (!updatedPass) {
+        this.logger.warn('Updated pass %s is not found after signup', passId)
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `Виникла помилка при записі на тренування 😔\nВідсутній активний абонемент`,
+        }
+      }
 
       return {
         status: API.RESPONSE.SUCCESS_STRING,
@@ -184,31 +200,37 @@ export class TrainingSignupService {
       })
 
       if (!signup) {
-        return { status: API.RESPONSE.ERROR_STRING, message: `На жаль, запис не знайдено 😔\nМожливо, щось пішло не так — давай спробуємо ще раз!` }
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `На жаль, запис не знайдено 😔\nМожливо, щось пішло не так — давай спробуємо ще раз!`,
+        }
       }
-      
-      const cutoffTime = subHours(new Date(signup.training.date), COMMON.SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING);
+
+      const cutoffTime = subHours(new Date(signup.training.date), COMMON.SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING)
 
       if (signup.status !== TrainingSignupStatusEnum.ACTIVE) {
         return { status: API.RESPONSE.ERROR_STRING, message: `Запис наразі не активний 🙈` }
       }
       if (signup.type === TrainingSignupTypeEnum.TRIAL || !signup.pass) {
-        return { status: API.RESPONSE.ERROR_STRING, message: `На жаль, вже не можна відмінити запис на пробне тренування🌝\nЧекаємо на тебе🩷` }
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `На жаль, вже не можна відмінити запис на пробне тренування🌝\nЧекаємо на тебе🩷`,
+        }
       }
-      if(isAfter(new Date(), cutoffTime)) {
-        return { status: API.RESPONSE.ERROR_STRING, message: `На жаль, вже не можна відмінити запис на тренування🌝\nЧекаємо на тебе🩷` }
+      if (isAfter(new Date(), cutoffTime)) {
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `На жаль, вже не можна відмінити запис на тренування🌝\nЧекаємо на тебе🩷`,
+        }
       }
 
-      await this.databaseService.drizzle.transaction(async (tx) => {
-        return Promise.all([
-          this.passService.updatePass(signup.pass!.id, { availableSlots: signup.pass!.availableSlots + 1 }, tx),
-          this.signOutFromTraining({ id: signup.id }, tx),
-        ])
-      })
-
+      await this.signOutFromTraining({ id: signup.id })
       await this.redisCacheService.reset()
 
-      return { status: API.RESPONSE.SUCCESS_STRING, message:  `Запис скасовано 😌\nСподіваємося побачити тебе на наступному тренуванні! 💃✨` }
+      return {
+        status: API.RESPONSE.SUCCESS_STRING,
+        message: `Запис скасовано 😌\nСподіваємося побачити тебе на наступному тренуванні! 💃✨`,
+      }
     } catch (error) {
       this.logger.error(`Error signing out from training %s: %j`, trainingSignupId, error.stack)
       return {
@@ -218,9 +240,9 @@ export class TrainingSignupService {
     }
   }
 
-
-
-  async signOutFromTrainingAsAdminViaTelegram(trainingSignupId: string): Promise<TCustomApiResponse<{userProfile: UserProfileSelectModel | null, training: TrainingSelectModel | null}>> { 
+  async signOutFromTrainingAsAdminViaTelegram(
+    trainingSignupId: string,
+  ): Promise<TCustomApiResponse<{ userProfile: UserProfileSelectModel | null; training: TrainingSelectModel | null }>> {
     try {
       const signup = await this.databaseService.drizzle.query.trainingSignup.findFirst({
         where: (ts, { eq }) => eq(ts.id, trainingSignupId),
@@ -239,16 +261,14 @@ export class TrainingSignupService {
         return { status: API.RESPONSE.ERROR_STRING, message: `Запис наразі не активний 🙈` }
       }
 
-      await this.databaseService.drizzle.transaction(async (tx) => {
-        return Promise.all([
-          this.passService.updatePass(signup.pass!.id, { availableSlots: signup.pass!.availableSlots + 1 }, tx),
-          this.signOutFromTraining({ id: signup.id }, tx),
-        ])
-      })
-
+      await this.signOutFromTraining({ id: signup.id })
       await this.redisCacheService.reset()
 
-      return { status: API.RESPONSE.SUCCESS_STRING, message:  `✅ Клієнта успішно виписано з тренування`, data: { userProfile: signup.userProfile, training: signup.training } }
+      return {
+        status: API.RESPONSE.SUCCESS_STRING,
+        message: `✅ Клієнта успішно виписано з тренування`,
+        data: { userProfile: signup.userProfile, training: signup.training },
+      }
     } catch (error) {
       this.logger.error(`Error signing out from training %s: %j`, trainingSignupId, error.stack)
       return {
@@ -257,9 +277,6 @@ export class TrainingSignupService {
       }
     }
   }
-
-
-
 
   async getTrainingActiveSignups(trainingId: string) {
     const cacheKey = TrainingSignupCacheKey.trainingActiveSignups(trainingId)
@@ -302,7 +319,7 @@ export class TrainingSignupService {
         ),
       with: {
         userProfile: true,
-        group: true
+        group: true,
       },
     })
     if (result) {
@@ -314,33 +331,21 @@ export class TrainingSignupService {
   async cancelAllActiveTrainingSignupsForTraining(trainingId: string, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
 
-    const result = await dbProvider
+    return dbProvider
       .update(trainingSignup)
       .set({ status: TrainingSignupStatusEnum.CANCELED })
       .where(and(eq(trainingSignup.trainingId, trainingId), eq(trainingSignup.status, TrainingSignupStatusEnum.ACTIVE)))
       .returning()
-
-    const passIds = result.map((signup) => signup.passId).filter(Boolean) as string[]
-
-    await this.passService.updateAvailableSlotsForPasses(passIds, 'increment', tx)
-
-    return result
   }
 
   async activateAllCancelledTrainingSignupsForTraining(trainingId: string, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
 
-    const result = await dbProvider
+    return dbProvider
       .update(trainingSignup)
       .set({ status: TrainingSignupStatusEnum.ACTIVE })
       .where(and(eq(trainingSignup.trainingId, trainingId), eq(trainingSignup.status, TrainingSignupStatusEnum.CANCELED)))
       .returning()
-
-    const passIds = result.map((signup) => signup.passId).filter(Boolean) as string[]
-
-    await this.passService.updateAvailableSlotsForPasses(passIds, 'decrement', tx)
-
-    return result
   }
 
   private async checkIfHasTrialSignup(userProfileId: string): Promise<boolean> {

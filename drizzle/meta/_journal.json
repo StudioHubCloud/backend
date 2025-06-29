@@ -50,6 +50,13 @@
       "when": 1751154527211,
       "tag": "0033_change-timestamp-type-in-pass-schema",
       "breakpoints": true
+    },
+    {
+      "idx": 34,
+      "version": "7",
+      "when": 1751164940849,
+      "tag": "0034_remove-unnessessary-enums",
+      "breakpoints": true
     }
   ]
 }

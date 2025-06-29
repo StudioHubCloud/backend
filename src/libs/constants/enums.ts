@@ -1,6 +1,5 @@
 export enum PassStatusEnum {
   ACTIVE = 'active',
-  PAUSED = 'paused',
   EXPIRED = 'expired',
 }
 
@@ -20,7 +19,6 @@ export enum SubscribtionStatusEnum {
 export enum TrainingSignupStatusEnum {
   ACTIVE = 'active',
   CANCELED = 'canceled',
-  COMPLETED = 'completed',
   ARCHIVED = 'archived',
 }
 

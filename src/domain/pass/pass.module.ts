@@ -5,6 +5,7 @@ import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 
 @Module({
+  imports: [],
   controllers: [PassController],
   providers: [
     PassService,

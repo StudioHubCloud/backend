@@ -23,7 +23,7 @@ export class PassInfoComposer {
 
   private passInfoHandler = async (ctx: BotContext) => {
     const { client } = UserHelper.getUser(ctx)
-    const pass = await this.passService.findActivePassByClientId(client?.id)
+    const pass = await this.passService.findActivePassByClientId(client?.id, true)
     if (!pass) {
       return ctx.reply('У вас немає активного абонементу')
     }
@@ -34,8 +34,6 @@ export class PassInfoComposer {
 ${icon} ${TextHelper.bold('Статус:')} ${label}
 📌 ${TextHelper.bold('Доступно:')} ${pass.availableSlots}/${pass.passTemplate.length}
 📅 ${TextHelper.bold('Дійсний до:')} ${pass.endDate}
-${pass.pausedFromDate ? `⏸️ ${TextHelper.bold('Призупинено:')} з ${pass.pausedFromDate} до ${pass.pausedToDate}` : ''}
-${pass.expiredFromDate ? `❌ ${TextHelper.bold('Термін дії минув:')} ${pass.expiredFromDate}` : ''}
 `
     await ctx.replyWithHTML(text)
   }

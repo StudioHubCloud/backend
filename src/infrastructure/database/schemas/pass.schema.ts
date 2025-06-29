@@ -1,5 +1,5 @@
-import { smallint, pgTable as table, uuid, index, date, boolean } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { smallint, pgTable as table, uuid, index, date, boolean, uniqueIndex } from 'drizzle-orm/pg-core'
+import { relations, sql } from 'drizzle-orm'
 import { group } from './group.schema'
 import { client } from './client.schema'
 import { trainingSignup } from './training-signup.schema'
@@ -14,9 +14,6 @@ export const pass = table(
     availableSlots: smallint('available_slots').notNull().default(0),
     startDate: date('start_date', { mode: 'string' }).notNull(),
     endDate: date('end_date', { mode: 'string' }).notNull(),
-    pausedFromDate: date('paused_from_date', { mode: 'string' }),
-    pausedToDate: date('paused_to_date', { mode: 'string' }),
-    expiredFromDate: date('expired_from_date', { mode: 'string' }),
     reminderSent: boolean('reminder_sent').notNull().default(false),
     status: PassStatusPgEnum().notNull(),
     passTemplateId: uuid('pass_template_id')
@@ -36,6 +33,7 @@ export const pass = table(
     index().on(table.studioId),
     index().on(table.groupId, table.status),
     index().on(table.clientId, table.status),
+    uniqueIndex('unique_active_pass_per_client').on(table.clientId).where(sql`${table.status} = 'active'`),
   ],
 )
 

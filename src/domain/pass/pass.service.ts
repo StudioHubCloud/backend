@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { and, eq, inArray, sql } from 'drizzle-orm'
+import { eq } from 'drizzle-orm'
 import { TypedConfigService } from '@app/infrastructure/config'
 import {
   DatabaseService,
@@ -30,7 +30,43 @@ export class PassService {
   async createNewPass(data: PassInsertModel, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
     const [createdPass] = await dbProvider.insert(pass).values(data).returning()
+    await this.redisCacheService.reset()
     return createdPass
+  }
+
+  async createNewPassForExistingClient(clientId: string, newPassData: PassInsertModel) {
+    return await this.databaseService.drizzle.transaction(async (tx) => {
+      const currentPass = await this.findActivePassByClientId(clientId)
+
+      if (currentPass) {
+        await this.updatePass(
+          currentPass.id,
+          {
+            status: PassStatusEnum.EXPIRED,
+          },
+          tx,
+        )
+      }
+      return await this.createNewPass(newPassData, tx)
+    })
+  }
+
+  async expireAllPastPasses() {
+    const now = new Date()
+    const todayDateString = this.dateTimeService.formatDateStringInTz(now.toISOString(), 'yyyy-MM-dd')
+
+    const expiredPasses = await this.databaseService.drizzle.query.pass.findMany({
+      where: (pass, { and, lt }) => and(eq(pass.status, PassStatusEnum.ACTIVE), lt(pass.endDate, todayDateString)),
+    })
+    if (expiredPasses.length) {
+      await this.databaseService.drizzle.transaction(async (tx) => {
+        for (const pass of expiredPasses) {
+          await this.updatePass(pass.id, { status: PassStatusEnum.EXPIRED }, tx)
+        }
+      })
+      await this.redisCacheService.reset()
+    }
+    return expiredPasses
   }
 
   async findPassByConditions(conditions: Partial<PassSelectModel>) {
@@ -40,15 +76,10 @@ export class PassService {
         passTemplate: true,
       },
     })
-
-    if (!passFound) {
-      throw new BadRequestException('Користувач не має абонементу')
-    }
-
     return passFound
   }
 
-  async findActivePassByClientId(clientId?: string) {
+  async findActivePassByClientId(clientId?: string, withExpired?: boolean) {
     if (!clientId) {
       return null
     }
@@ -60,6 +91,13 @@ export class PassService {
     }
     const pass = (await this.findPassByConditions({ clientId, status: PassStatusEnum.ACTIVE, studioId: this.studioId })) ?? null
 
+    if (!pass && withExpired) {
+      const expiredPass = await this.findLastExpiredPassByClientId(clientId)
+      if (expiredPass) {
+        return expiredPass
+      }
+    }
+
     if (pass) {
       this.redisCacheService.set(cacheKey, pass)
     }
@@ -67,18 +105,31 @@ export class PassService {
     return pass
   }
 
+  async findLastExpiredPassByClientId(clientId: string) {
+    if (!clientId) {
+      return null
+    }
+    const pass = await this.databaseService.drizzle.query.pass.findFirst({
+      where: (pass, { and, eq }) => and(eq(pass.clientId, clientId), eq(pass.status, PassStatusEnum.EXPIRED)),
+      orderBy: (pass, { desc }) => desc(pass.endDate),
+      with: {
+        passTemplate: true,
+      },
+    })
+    return pass || null
+  }
+
   async updatePass(id: string, data: Partial<PassInsertModel>, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
     const [updateResult] = await dbProvider.update(pass).set(data).where(eq(pass.id, id)).returning()
     const updatedPass = await this.findPassByConditions({ id: updateResult.id })
+
+    if (!updatedPass) {
+      throw new BadRequestException(`Pass with id ${id} not found`)
+    }
+
     await this.redisCacheService.set(PassCacheKey.passByClientId(updatedPass.clientId, this.studioId), updatedPass)
     return updatedPass
-  }
-
-  async updateAvailableSlotsForPasses(ids: string[], action: 'increment' | 'decrement', tx?: Transaction) {
-    const dbProvider = tx || this.databaseService.drizzle
-    const sqlAction = action === 'increment' ? sql`${pass.availableSlots} + 1` : sql`${pass.availableSlots} - 1`
-    return dbProvider.update(pass).set({ availableSlots: sqlAction }).where(inArray(pass.id, ids)).returning()
   }
 
   async getExpiringPassesInDays(days: number) {

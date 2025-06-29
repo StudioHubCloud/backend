@@ -11,7 +11,7 @@ import {
   GroupStyleVariantSelectModel,
   TrainingSignupSelectModel,
 } from '@app/infrastructure/database/models'
-import { UserProfileRoleEnum } from '@app/libs'
+import { PassStatusEnum, UserProfileRoleEnum } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 
 export type TBotStore = {
@@ -20,7 +20,7 @@ export type TBotStore = {
 }
 
 export type AuthUserProfile = UserProfileSelectModel & {
-  client: (ClientSelectModel & { pass: { id: string; groupId: string | null } | null }) | null
+  client: (ClientSelectModel & { pass: { id: string; status: PassStatusEnum; groupId: string | null }[]}) | null
 }
 
 export type TNextFunction = () => Promise<void>

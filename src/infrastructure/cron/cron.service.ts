@@ -6,6 +6,7 @@ import { BotNotificationService } from '@app/bot/services'
 import { TrainingService } from '@app/domain/training'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
+import { STATIC_CONFIG } from '../config/config.helper'
 
 @Injectable()
 export class CronService {
@@ -15,16 +16,34 @@ export class CronService {
     private readonly userProfileService: UserProfileService,
     private readonly passService: PassService,
     private readonly botNotificationService: BotNotificationService,
-  ) {}
+  ) {
+    this.logger.setContext(CronService.name)
+  }
 
-  @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT)
-  async handleMonthlyCron() {
+  @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT, {
+    name: 'add-trainings',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
+  async addTrainingsCron() {
     this.logger.debug('ADD TRAININGS Cron job executed on the first day of the month at midnight')
     const result = await this.trainingService.addTrainingsForActiveGroups()
     this.logger.debug(`ADD TRAININGS Cron job completed. Total added records: ${result.length}`)
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_10AM)
+  @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
+    name: 'expire-all-past-passes',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
+  async expireAllPastPasses() {
+    this.logger.debug('Expire All Past Passes Cron job executed on the first day of the month at midnight')
+    const result = await this.passService.expireAllPastPasses()
+    this.logger.debug(`Expire All Past Passes Cron job completed. Total expired passes: ${result.length}`)
+  }
+
+  @Cron(CronExpression.EVERY_DAY_AT_10AM, {
+    name: 'happy-birthday',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
   async handleHappyBirthdayCron() {
     this.logger.debug('Happy Birthday Cron job executed at 10 AM')
     const users = await this.userProfileService.findUsersWithBirthdayToday()
@@ -33,7 +52,10 @@ export class CronService {
     this.logger.debug(`Birthday notifications completed: ${results.success} sent, ${results.failed} failed`)
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_NOON)
+  @Cron(CronExpression.EVERY_DAY_AT_NOON, {
+    name: 'notify-pass-expiration',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
   async handleNotifyForPassExpirationCron() {
     this.logger.debug('Notify For Pass Expiration Cron job executed at noon')
     const now = new Date()
@@ -56,7 +78,10 @@ export class CronService {
     this.logger.debug('Notify For Pass Expiration Cron job completed')
   }
 
-  @Cron(CronExpression.EVERY_10_MINUTES)
+  @Cron(CronExpression.EVERY_10_MINUTES, {
+    name: 'notify-upcoming-training',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
   async handleNotifyForUpcomingTrainingCron() {
     this.logger.debug('Notify For Upcoming Training Cron job executed')
 
