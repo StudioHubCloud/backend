@@ -3,16 +3,15 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { DATE_FORMAT, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { IRegisterSceneState, SCENES, TNextFunction } from '@app/bot/libs'
-import { SceneHelper, BotHelper, UserHelper, TextHelper } from '@app/bot/helpers'
+import { SceneHelper, BotHelper, UserHelper, TextHelper, KeyboardHelper, NameHelper } from '@app/bot/helpers'
 import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
 import { SceneNavigation } from '../scene.navigation'
 import { PATTERNS_COMMON } from '@app/bot/static/patterns'
 import { UserProfileService } from '@app/domain/user-profile'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { RedisCacheService } from '@app/infrastructure/redis'
-import { TypedConfigService } from '@app/infrastructure/config'
 import { REGISTER_SCENE_CURSOR_MAP, REGISTER_SCENE_NAVIGATION_MAP } from './register.navigation-map'
-import { CommonKeyboards, GuestKeyboards } from '@app/bot/modules/keyboard/storage'
+import { CommonKeyboards, CommonSceneKeyboards, GuestKeyboards } from '@app/bot/modules/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 @Injectable()
@@ -44,6 +43,8 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       await ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.EXIT, CommonKeyboards.registerAs())
       return ctx.scene.leave()
     })
+
+    this.initNameConfirmationActions()
   }
 
   private enterSceneHandler = async (ctx: BotContext) => {
@@ -56,7 +57,43 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     const data = BotHelper.getUpdatePayload(ctx)
 
-    const [firstName, lastName] = data?.split(' ')
+    const result = NameHelper.processNameInput(data)
+    const { firstName, lastName, wasSwapped, confidence } = result
+
+    const validation = NameHelper.validateNames(firstName, lastName)
+
+    if (!validation.isValid) {
+      return ctx.replyWithHTML(`❌ ${validation.suggestion}\n\nСпробуйте ще раз:`)
+    }
+    const suggestion = NameHelper.getSuggestionMessage(result)
+
+    if (confidence === 'low' && suggestion) {
+      const confirmKeyboard = KeyboardHelper.createInlineKeyboard([
+        [
+          { text: '✅ Залишити як є', callback_data: 'name_confirm_keep' },
+          { text: '🔄 Змінити порядок', callback_data: 'name_confirm_swap' },
+        ],
+        [{ text: '✏️ Ввести заново', callback_data: 'name_confirm_retry' }],
+      ])
+
+      // Store both variants in scene state
+      this.registerScene.setState(ctx, {
+        firstName,
+        lastName,
+        firstNameAlt: lastName,
+        lastNameAlt: firstName,
+      })
+
+      return ctx.replyWithHTML(
+        `📝 Ви ввели: <b>${firstName}${lastName ? ` ${lastName}` : ''}</b>\n\n💡 ${suggestion}`,
+        confirmKeyboard,
+      )
+    }
+
+    if (wasSwapped && suggestion) {
+      await ctx.replyWithHTML(`✅ ${suggestion}\n\n📝 Результат: <b>${firstName}${lastName ? ` ${lastName}` : ''}</b>`)
+    }
+
     this.registerScene.setState(ctx, { firstName, lastName })
 
     return await this.sceneNavigation.handleNext(ctx, next)
@@ -169,5 +206,37 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     ])
 
     return ctx.scene.leave()
+  }
+
+  private initNameConfirmationActions() {
+    this.action('name_confirm_keep', async (ctx) => {
+      ctx.answerCbQuery()
+      await ctx.deleteMessage()
+      const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
+      return await this.sceneNavigation.handleNext(ctx, next)
+    })
+
+    this.action('name_confirm_swap', async (ctx) => {
+      ctx.answerCbQuery()
+      await ctx.deleteMessage()
+
+      const state = this.registerScene.getState(ctx)
+      // Swap the names
+      this.registerScene.setState(ctx, {
+        firstName: state.firstNameAlt,
+        lastName: state.lastNameAlt,
+      })
+
+      await ctx.replyWithHTML(`✅ Порядок змінено на: <b>${state.firstNameAlt} ${state.lastNameAlt}</b>`)
+
+      const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
+      return await this.sceneNavigation.handleNext(ctx, next)
+    })
+
+    this.action('name_confirm_retry', async (ctx) => {
+      ctx.answerCbQuery()
+      await ctx.deleteMessage()
+      return ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.PROVIDE_NAME, CommonSceneKeyboards.exit())
+    })
   }
 }

@@ -66,6 +66,8 @@ export interface ISelectInlineMenuConfig<T> {
 export interface IRegisterSceneState {
   firstName: string
   lastName?: string
+  firstNameAlt?: string
+  lastNameAlt?: string
   phone?: string
   date_of_birth?: string
 }

@@ -95,8 +95,6 @@ export class SchedulerComposer {
         return ctx.answerCbQuery(response.message, { show_alert: true })
       }
 
-      console.log(response, 'response from signUpForTrainingAsClientViaTelegram')
-
       switch (response.availableSlots) {
         case 1:
           return ctx.answerCbQuery(

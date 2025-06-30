@@ -1,6 +1,12 @@
 import { DOB_REGEXP, NUMBERS_REGEXP, PHONE_REGEXP } from '@app/libs/constants/regexp'
 
 export class TextHelper {
+
+  static capitalizeWord(word: string): string {
+    if (!word) return word
+    return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
+  }
+
   static stripNonNumericCharacters(text: string): string {
     return text.replace(NUMBERS_REGEXP, '')
   }
