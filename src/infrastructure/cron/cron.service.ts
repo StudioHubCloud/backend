@@ -20,6 +20,17 @@ export class CronService {
     this.logger.setContext(CronService.name)
   }
 
+  @Cron(CronExpression.EVERY_DAY_AT_6PM, {
+    name: 'feedback-notification',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
+  async handleFeedbackNotificationCron() {
+    this.logger.debug('Feedback Notification Cron job executed at 6 PM')
+    
+    this.logger.debug('Feedback Notification Cron job completed')
+  }
+
+
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT, {
     name: 'add-trainings',
     timeZone: STATIC_CONFIG.timeZone,

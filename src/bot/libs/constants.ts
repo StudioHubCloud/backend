@@ -4,7 +4,7 @@ export const PASS_CONFIG = {
 } as const
 
 export const COMMON = {
-  SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING: 4,
+  SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING: 6,
 } as const
 
 export const SCENES = {

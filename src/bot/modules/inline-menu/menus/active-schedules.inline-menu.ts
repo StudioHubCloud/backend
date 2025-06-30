@@ -58,6 +58,7 @@ export class ActiveSchedulesInlineMenu {
       }
 
       if (!activeSignups.length) {
+        await ctx.answerCbQuery(response.message, { show_alert: true })
         return ctx.editMessageText(MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS)
       }
       
