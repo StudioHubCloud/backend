@@ -12,4 +12,4 @@ restartPolicyMaxRetries = 10
 healthcheckPath = "/api/v1/health"
 
 [deploy.multiRegionConfig.europe-west4-drams3a]
-numReplicas = 1
+numReplicas = 2
