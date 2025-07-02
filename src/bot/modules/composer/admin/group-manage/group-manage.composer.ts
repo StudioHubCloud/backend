@@ -175,8 +175,9 @@ export class GroupManageComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN), async (ctx: BotContext) => {
       ctx.answerCbQuery()
       const [_, trainingId] = ctx['match']
-      return ctx.scene.enter(SCENES.SIGN_IN_CLIENT, { trainingId })
-      console.log('Sign in action triggered for trainingId:', trainingId)
+      ctx.reply('В процеці розробки...)')
+      // return ctx.scene.enter(SCENES.SIGN_IN_CLIENT, { trainingId })
+      // console.log('Sign in action triggered for trainingId:', trainingId)
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_OUT), async (ctx: BotContext) => {
