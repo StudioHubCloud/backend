@@ -4,6 +4,7 @@ import { staffMember } from './staff-member.schema'
 import { client } from './client.schema'
 import { UserProfileRolePgEnum, UserProfileStatusPgEnum } from '../database.enums'
 import { studio } from './studio.schema'
+import { feedbackNotification } from './feedback-notification.schema'
 
 export const userProfile = table(
   'user_profile',
@@ -33,4 +34,5 @@ export const user_profile_relations = relations(userProfile, ({ one }) => ({
   studio: one(studio, { fields: [userProfile.studioId], references: [studio.id] }),
   staffMember: one(staffMember),
   client: one(client),
+  feedbackNotification: one(feedbackNotification)
 }))

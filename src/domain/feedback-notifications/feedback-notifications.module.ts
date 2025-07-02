@@ -1,7 +1,7 @@
 import { DateTimeProvider } from '@app/infrastructure/providers';
 import { APP } from '@app/libs';
 import { Module } from '@nestjs/common'
-import { UserProfileFeedbackNotificationService } from './user-profile-feedback-notifications.service';
+import { FeedbackNotificationService } from './feedback-notifications.service';
 
 @Module({
   imports: [],
@@ -10,8 +10,8 @@ import { UserProfileFeedbackNotificationService } from './user-profile-feedback-
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,
     },
-    UserProfileFeedbackNotificationService
+    FeedbackNotificationService
   ],
-  exports: [UserProfileFeedbackNotificationService],
+  exports: [FeedbackNotificationService],
 })
-export class UserProfileFeedbackNotificationModule {}
+export class FeedbackNotificationModule {}

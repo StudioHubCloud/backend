@@ -7,6 +7,7 @@ import { TrainingService } from '@app/domain/training'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
 import { STATIC_CONFIG } from '../config/config.helper'
+import { FeedbackNotificationService } from '@app/domain/feedback-notifications'
 
 @Injectable()
 export class CronService {
@@ -16,20 +17,40 @@ export class CronService {
     private readonly userProfileService: UserProfileService,
     private readonly passService: PassService,
     private readonly botNotificationService: BotNotificationService,
+    private readonly feedbackNotificationService: FeedbackNotificationService,
   ) {
     this.logger.setContext(CronService.name)
   }
 
-  @Cron(CronExpression.EVERY_DAY_AT_6PM, {
-    name: 'feedback-notification',
-    timeZone: STATIC_CONFIG.timeZone,
-  })
-  async handleFeedbackNotificationCron() {
-    this.logger.debug('Feedback Notification Cron job executed at 6 PM')
-    
-    this.logger.debug('Feedback Notification Cron job completed')
-  }
+  // @Cron(CronExpression.EVERY_10_SECONDS, {
+  //   name: 'feedback-notification',
+  //   timeZone: STATIC_CONFIG.timeZone,
+  // })
+  // async handleFeedbackNotificationCron() {
+  //   this.logger.debug('Feedback Notification Cron job executed at 6 PM')
 
+  //   const dueNotifications = await this.feedbackNotificationService.getUserProfilesForFeedbackNotification()
+  //   this.logger.debug(`Found ${dueNotifications.length} due feedback notifications`)
+
+  //   let successCount = 0
+  //   let failureCount = 0
+
+  //   for (const notification of dueNotifications) {
+  //     try {
+  //       const { userProfile } = notification
+  //       await this.botNotificationService.sendFeedbackNotificationToUser(userProfile)
+  //       await this.feedbackNotificationService.markNotificationAsSent(notification.id)
+  //       successCount++
+  //       this.logger.debug(`Feedback notification sent to user ${userProfile.firstName} (${userProfile.telegramId})`)
+  //     } catch (error) {
+  //       failureCount++
+  //       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+  //       this.logger.error(`Failed to process feedback notification ${notification.id}: ${errorMessage}`)
+  //     }
+  //   }
+
+  //   this.logger.debug(`Feedback Notification Cron completed: ${successCount} sent, ${failureCount} failed`)
+  // }
 
   @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_MIDNIGHT, {
     name: 'add-trainings',

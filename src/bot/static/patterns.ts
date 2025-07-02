@@ -15,6 +15,8 @@ export const PATTERNS_COMMON = {
   REGISTER_AS_CLIENT: '🧚‍♀️ Зареєструватись як клієнт',
   REGISTER_AS_TRAINER: '👨‍🏫 Зареєструватись як тренер',
   SCHEDULE: '📝 Записатись на тренування',
+  ADD_REVIEW: '⭐ Залишити відгук',
+  REMIND_LATER: '⏰ Нагадати пізніше'
 } as const
 
 export const PATTERNS_CLIENT = {

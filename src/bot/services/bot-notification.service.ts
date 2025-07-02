@@ -5,8 +5,9 @@ import { BotContext } from '../bot.context'
 import { BOT_INSTANCE } from '../bot.instance'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { DATE_FORMAT } from '@app/libs'
+import { API, DATE_FORMAT } from '@app/libs'
 import { BIRTHDAY_MESSAGE } from '../static/messages'
+import { TypedConfigService } from '@app/infrastructure/config'
 
 export interface NotificationResult {
   success: number
@@ -25,6 +26,7 @@ interface ITrainingReminderInput {
 export class BotNotificationService {
   constructor(
     private readonly logger: PinoLogger,
+    private readonly configService: TypedConfigService,
     @Inject(BOT_INSTANCE) private readonly bot: Telegraf<BotContext>,
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
@@ -88,9 +90,9 @@ export class BotNotificationService {
     }
   }
 
-  async sendCustomNotification(bot: Telegraf<BotContext>, chatId: string | number, message: string, options?: any) {
+  async sendCustomNotification(chatId: string | number, message: string, options?: any) {
     try {
-      await bot.telegram.sendMessage(chatId, message, options)
+      await this.bot.telegram.sendMessage(chatId, message, options)
       this.logger.debug(`Custom notification sent to ${chatId}`)
       return { success: true }
     } catch (error) {
@@ -100,13 +102,47 @@ export class BotNotificationService {
     }
   }
 
+  async sendFeedbackNotificationToUser(userProfile: UserProfileSelectModel): Promise<void> {
+
+    const googleReviewUrl = `${API.GOOGLE_REVIEW_URL}${this.configService.get('GOOGLE_PLACE_ID')}`
+    const keyboard = {
+      reply_markup: {
+        inline_keyboard: [
+          [
+            {
+              text: '⭐ Залишити відгук',
+              url: googleReviewUrl,
+            },
+            {
+              text: '⏰ Нагадати пізніше',
+              callback_data: 'feedback_remind_later',
+            },
+          ],
+        ],
+      },
+    }
+
+    await this.sendCustomNotification(userProfile.telegramId, this.generateFeedbackMessage(userProfile.firstName), {
+      parse_mode: 'HTML',
+      ...keyboard,
+    })
+  }
+
   private generateTrainingReminderMessage(name: string, workoutTime: string, groupName: string): string {
     workoutTime = this.dateTimeProvider.formatDateStringInTz(workoutTime, DATE_FORMAT.TIME_MAIN)
-    return `⏰ Привіт, ${name}!\nНагадуємо, що о ${workoutTime} на тебе чекає тренування в групі ${groupName}!\nДо зустрічі в студії! 💃✨`
+    return `Привіт, ${name}!🌸\nМи вже чекаємо тебе на тренуванні в групі ${groupName} об ${workoutTime}\nДо зустрічі 💖`
   }
 
   private generatePassExpirationMessage(name: string, expirationDate: string): string {
     expirationDate = this.dateTimeProvider.formatDateStringInTz(expirationDate, DATE_FORMAT.DATE_NOTIFICATION)
-    return `⚠️ Привіт, ${name}!\nНагадуємо, що твій абонемент закінчується ${expirationDate}.\nНе забудь продовжити його, щоб не пропустити улюблені тренування! 🏋️‍♂️💪`
+    return `Привіт, ${name}!⚠️\nНагадуємо, що твій абонемент закінчується ${expirationDate}.\nНе забудь продовжити його, щоб не пропустити улюблені тренування! 💖`
+  }
+
+  private generateFeedbackMessage(firstName: string): string {
+    return (
+      `Привіт, ${firstName}! 💫\n` +
+      `Ми дуже хочемо почути твою думку — залиш, будь ласка, відгук про тренування або студію загалом.\n` +
+      `Твої слова допомагають нам ставати кращими! 🙌💖`
+    )
   }
 }

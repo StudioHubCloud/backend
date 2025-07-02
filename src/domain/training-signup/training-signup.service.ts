@@ -11,7 +11,7 @@ import {
   Transaction,
   UserProfileSelectModel,
 } from '@app/infrastructure/database'
-import { API, GroupStatusEnum, PassStatusEnum, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs/constants'
+import { API, DATE_FORMAT, GroupStatusEnum, PassStatusEnum, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs/constants'
 import { TCustomApiResponse } from '@app/libs/types'
 import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
@@ -133,7 +133,7 @@ export class TrainingSignupService {
       const isPassInactive = !pass.endDate || !pass.startDate
 
       if (isPassInactive) {
-        const startDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), 'yyyy-MM-dd')
+        const startDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
         const endDate = addDays(startDateString, PASS_CONFIG.DEFAULT_DURATION_IN_DAYS)
 
         if (endDate < new Date()) {
@@ -144,7 +144,7 @@ export class TrainingSignupService {
           }
         }
 
-        const endDateString = this.dateTimeProvider.formatDateStringInTz(endDate.toISOString(), 'yyyy-MM-dd')
+        const endDateString = this.dateTimeProvider.formatDateStringInTz(endDate.toISOString(), DATE_FORMAT.DATE_MAIN)
 
         await this.passService.updatePass(passId, { startDate: startDateString, endDate: endDateString })
       }

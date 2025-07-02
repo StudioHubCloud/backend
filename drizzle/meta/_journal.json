@@ -71,6 +71,13 @@
       "when": 1751293278565,
       "tag": "0036_add-feedback-notification-table",
       "breakpoints": true
+    },
+    {
+      "idx": 37,
+      "version": "7",
+      "when": 1751325565655,
+      "tag": "0037_rename-user-profile-feedback-notification-table",
+      "breakpoints": true
     }
   ]
 }

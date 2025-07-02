@@ -166,7 +166,6 @@ export class MessageHelper {
   ): string {
     const formattedDate = dateTimeProvider.formatDateStringInTz(date, 'dd MMMM')
     return `🚫 Вас було виписано з тренування\n\n📌 Група: ${groupName}\n📅 Дата: ${formattedDate}`
-
   }
 
   static constructTrainingSigninByAdminMessage(
@@ -183,5 +182,9 @@ export class MessageHelper {
   ): string {
     const formattedDate = dateTimeProvider.formatDateStringInTz(date, 'dd MMMM')
     return `✅ Тренування в групі "${groupName}" на ${formattedDate} знову активне.`
+  }
+
+  static constructAddReviewMessage(name: string) {
+    return `Привіт, ${name}! 👋\nМи дуже хочемо почути твою думку — залиш, будь ласка, відгук про тренування або студію загалом.\nТвої слова допомагають нам ставати кращими!\n🙌💖`
   }
 }

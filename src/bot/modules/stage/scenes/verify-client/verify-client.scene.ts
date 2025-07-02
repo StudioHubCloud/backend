@@ -9,7 +9,7 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { AdminKeyboards, ClientKeyboards } from '@app/bot/modules/keyboard/storage'
 import { PassTemplateService } from '@app/domain/pass-template/pass-template.service'
 import { CommonSceneKeyboards, VerifyClientSceneKeyboards } from '@app/bot/modules/keyboard/storage/scene-keyboards'
-import { PassTemplateTypeEnum } from '@app/libs'
+import { DATE_FORMAT, PassTemplateTypeEnum } from '@app/libs'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { IVerifyClientSceneState, VerifyClientSceneHelper } from './verify-client.scene-helper'
 import { UserProfileService } from '@app/domain/user-profile'
@@ -38,7 +38,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
   private enterSceneHandler = async (ctx: BotContext) => {
     try {
-      const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), 'yyyy-MM-dd')
+      const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
       this.verifyClientScene.setState(ctx, { saleDate: todayDateString })
 
       await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, VerifyClientSceneKeyboards.passType())

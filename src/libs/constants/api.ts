@@ -4,5 +4,7 @@ export const API = {
     SUCCESS_STRING: 'OK',
     ERROR_STRING: 'ERROR',
   },
-  DEFAULT_LIMIT: 12
+  DEFAULT_LIMIT: 12,
+  GOOGLE_REVIEW_URL: 'https://search.google.com/local/writereview?placeid=',
 } as const
+
