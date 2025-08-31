@@ -7,7 +7,7 @@ import {
 } from '@telegraf/types'
 import { AutocompletableString, UserProfileRoleEnum } from '@app/libs'
 import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, TReplyInlineKeyboard } from '@app/bot/libs'
-import { AdminKeyboards, ClientKeyboards, GuestKeyboards, TrainerKeyboards } from '../modules/keyboard/storage'
+import { AdminKeyboards, ClientKeyboards, GuestKeyboards, TrainerKeyboards } from '../keyboard/storage'
 
 export class KeyboardHelper {
   constructor() {}

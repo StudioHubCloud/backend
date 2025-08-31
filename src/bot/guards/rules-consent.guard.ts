@@ -1,6 +1,6 @@
 import { BotContext } from '../bot.context'
 import { UserHelper } from '../helpers'
-import { CommonKeyboards } from '../modules/keyboard/storage'
+import { CommonKeyboards } from '../keyboard/storage'
 import { RULES } from '../static/messages'
 
 export const RulesConsentGuard = async (ctx: BotContext, next: () => Promise<void>) => {

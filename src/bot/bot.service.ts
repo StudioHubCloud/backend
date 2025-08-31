@@ -1,12 +1,13 @@
 import { session, Telegraf } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
-
-import { ComposerService, MiddlewareService, StageService } from './modules'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { ENVIRONMENTS } from '@app/libs'
 import { BotContext } from './bot.context'
 import { MESSAGES_COMMON } from './static/messages'
+import { MiddlewareService } from './middleware'
+import { StageService } from './stage'
+import { ComposerService } from './composer'
 
 @Injectable()
 export class BotService {

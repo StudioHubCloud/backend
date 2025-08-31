@@ -78,6 +78,13 @@
       "when": 1751325565655,
       "tag": "0037_rename-user-profile-feedback-notification-table",
       "breakpoints": true
+    },
+    {
+      "idx": 38,
+      "version": "7",
+      "when": 1751493811359,
+      "tag": "0038_add-additional-indexes-to-user-table",
+      "breakpoints": true
     }
   ]
 }

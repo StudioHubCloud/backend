@@ -10,12 +10,12 @@ export class SceneHelper<T extends Record<string, any>> {
     } as T
   }
 
-  getStateAll(ctx: BotContext): T  {
+  getStateAll(ctx: BotContext): T {
     return ctx.scene.state as T
   }
 
   getState<K extends keyof T>(ctx: BotContext, key?: K | K[]) {
-    const scene_state = (ctx.scene.state) as T
+    const scene_state = ctx.scene.state as T
 
     if (Array.isArray(key)) {
       return key.reduce((acc, k) => {

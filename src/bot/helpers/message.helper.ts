@@ -18,6 +18,16 @@ export class MessageHelper {
     return `📢 <i>Увага!</i>\n💖 Для цієї групи є вікові обмеження: <b>${minAgeText}${maxAgeText}</b>`
   }
 
+  static getAgeRestrictionsMessageShort(minAge: number | null = null, maxAge: number | null = null): string{
+    if (minAge && maxAge) {
+      return `${minAge}-${maxAge}`
+    }
+    if (maxAge) {
+      return `${maxAge}+`
+    }
+    return ''
+  }
+
   static getVerifyRequestMessage(
     data: Partial<IRegisterSceneState>,
     { completed = false, role }: { completed?: boolean; role: UserProfileRoleEnum },
@@ -186,5 +196,13 @@ export class MessageHelper {
 
   static constructAddReviewMessage(name: string) {
     return `Привіт, ${name}! 👋\nМи дуже хочемо почути твою думку — залиш, будь ласка, відгук про тренування або студію загалом.\nТвої слова допомагають нам ставати кращими!\n🙌💖`
+  }
+
+  static makeTrainerVerifySuccessMessage(fullName: string): string {
+    return `Верифікація пройшла успішно 💫`
+  }
+
+  static makeClientGreetingsMessage(firstName: string): string {
+    return `Вітаємо в особистому кабінеті ${firstName}❤️`
   }
 }

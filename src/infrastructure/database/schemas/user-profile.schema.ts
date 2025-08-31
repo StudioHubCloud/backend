@@ -1,5 +1,5 @@
 import { index, date, pgTable as table, uniqueIndex, uuid, varchar, boolean } from 'drizzle-orm/pg-core'
-import { relations } from 'drizzle-orm'
+import { relations, sql } from 'drizzle-orm'
 import { staffMember } from './staff-member.schema'
 import { client } from './client.schema'
 import { UserProfileRolePgEnum, UserProfileStatusPgEnum } from '../database.enums'
@@ -34,5 +34,5 @@ export const user_profile_relations = relations(userProfile, ({ one }) => ({
   studio: one(studio, { fields: [userProfile.studioId], references: [studio.id] }),
   staffMember: one(staffMember),
   client: one(client),
-  feedbackNotification: one(feedbackNotification)
+  feedbackNotification: one(feedbackNotification),
 }))

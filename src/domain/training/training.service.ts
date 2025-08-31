@@ -182,6 +182,14 @@ export class TrainingService {
               columns: {
                 name: true,
               },
+              with: {
+                groupStyle: {
+                  columns: {
+                    title: true,
+                  }
+                },
+                groupAgeRestrictions: true
+              }
             },
             userProfile: true,
           },

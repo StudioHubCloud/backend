@@ -1,7 +1,9 @@
 import { Module } from '@nestjs/common'
-
+import { KeyboardModule } from './keyboard'
+import { MiddlewareModule } from './middleware'
+import { StageModule } from './stage'
+import { ComposerModule } from './composer'
 import { BotService } from './bot.service'
-import { ComposerModule, KeyboardModule, MiddlewareModule, StageModule } from './modules'
 import { BotNotificationService } from './services'
 import { BOT_INSTANCE } from './bot.instance'
 import { DateTimeProvider } from '@app/infrastructure/providers'

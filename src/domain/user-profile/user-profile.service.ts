@@ -12,7 +12,8 @@ import { TypedConfigService } from '@app/infrastructure/config'
 import { PassStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { ClientService } from '../client/client.service'
 import { PassService } from '../pass/pass.service'
-import { IVerifyClientSceneState } from '@app/bot/modules/stage/scenes/verify-client/verify-client.scene-helper'
+import { IVerifyClientSceneState } from '@app/bot/stage/scenes/verify-client/verify-client.scene-helper'
+import { StaffMemberService } from '../staff-member'
 
 @Injectable()
 export class UserProfileService {
@@ -22,6 +23,7 @@ export class UserProfileService {
     private readonly databaseService: DatabaseService,
     private readonly configService: TypedConfigService,
     private readonly clientService: ClientService,
+    private readonly staffMemberService: StaffMemberService,
     private readonly passService: PassService,
   ) {
     this.studioId = this.configService.get('STUDIO_ID')
@@ -133,6 +135,13 @@ export class UserProfileService {
 
   async verifyClient(data: IVerifyClientSceneState) {
     const { userProfile, passTemplate, saleDate } = data
+
+    const user = await this.getUserProfileById(userProfile.id)
+
+    if (user.role !== UserProfileRoleEnum.CLIENT || user.status !== UserProfileStatusEnum.VERIFICATION_REQUESTED) {
+      return false
+    }
+
     await this.databaseService.drizzle.transaction(async (tx) => {
       const client = await this.clientService.createNewClient({ userProfileId: userProfile.id }, tx)
       await Promise.all([
@@ -157,16 +166,35 @@ export class UserProfileService {
       ])
     })
     await this.redisCacheService.reset()
+    return true
+  }
+
+  async verifyTrainer(userProfileId: string) {
+    const user = await this.getUserProfileById(userProfileId)
+    if (user.role !== UserProfileRoleEnum.TRAINER || user.status !== UserProfileStatusEnum.VERIFICATION_REQUESTED) {
+      return false
+    }
+
+    await this.databaseService.drizzle.transaction(async (tx) => {
+      await Promise.all([
+        this.staffMemberService.createOne({ userProfileId }, tx),
+        this.updateUserProfile(userProfileId, { status: UserProfileStatusEnum.ACTIVE }, tx),
+      ])
+    })
+
+    await this.redisCacheService.reset()
+    return true
   }
 
   async consentToRules(userId: string) {
     const user = await this.getUserProfileById(userId)
     if (user.consentToRules) {
-      return
+      return false
     }
 
     await this.updateUserProfile(userId, { consentToRules: true })
     await this.redisCacheService.reset()
+    return true
   }
 
   async findUsersProfilesByConditions(conditions: Partial<UserProfileSelectModel> = {}) {
@@ -196,5 +224,29 @@ export class UserProfileService {
           sql`EXTRACT(DAY FROM ${userProfile.dateOfBirth}) = ${day}`,
         ),
       )
+  }
+
+  async findWildcardClients(query: string) {
+    const sanitizedQuery = query.trim().toLowerCase()
+
+    if (sanitizedQuery.length < 2) {
+      return []
+    }
+
+    return this.databaseService.drizzle.query.userProfile.findMany({
+      where: (userProfile, { and, eq, or, ilike }) =>
+        and(
+          eq(userProfile.studioId, this.studioId),
+          eq(userProfile.role, UserProfileRoleEnum.CLIENT),
+          eq(userProfile.status, UserProfileStatusEnum.ACTIVE),
+          or(
+            ilike(userProfile.firstName, `%${sanitizedQuery}%`),
+            ilike(userProfile.lastName, `%${sanitizedQuery}%`),
+            ilike(userProfile.fullName, `%${sanitizedQuery}%`),
+            ilike(userProfile.phoneNumber, `%${sanitizedQuery}%`),
+          ),
+        ),
+      orderBy: (userProfile, { asc }) => asc(userProfile.firstName),
+    })
   }
 }

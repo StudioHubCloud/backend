@@ -15,10 +15,7 @@ export const customer = table(
     telegramId: varchar('telegram_id').unique(),
     countryCode: varchar('country_code').default('UA'),
   },
-  (table) => [
-    uniqueIndex('customer-emailAddress').on(sql`LOWER(${table.emailAddress})`),
-    uniqueIndex().on(table.telegramId),
-  ],
+  (table) => [uniqueIndex('customer-emailAddress').on(sql`LOWER(${table.emailAddress})`), uniqueIndex().on(table.telegramId)],
 )
 
 export const customer_relations = relations(customer, ({ one, many }) => ({

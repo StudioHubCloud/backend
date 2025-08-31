@@ -17,15 +17,14 @@ export class GroupService {
     private readonly userProfileService: UserProfileService,
   ) {}
 
-  async getAllActiveGroupsGroups(filters: Partial<GroupSelectModel> = {}) {
-
-    const allFilters = { status: GroupStatusEnum.ACTIVE, studioId: this.configService.get('STUDIO_ID'), ...filters }
+  async getAllStudioGroupsByFilterConditions(filters: Partial<GroupSelectModel> = {}) {
+    const allFilters = { studioId: this.configService.get('STUDIO_ID'), ...filters }
 
     const cacheKey = GroupCacheKey.groupByFilterConditions(allFilters)
-    const groupsCashed = await this.redisCacheService.get<typeof groupsFound>(cacheKey)
+    const groupsCached = await this.redisCacheService.get<typeof groupsFound>(cacheKey)
 
-    if (groupsCashed) {
-      return groupsCashed
+    if (groupsCached) {
+      return groupsCached
     }
 
     const groupsFound = await this.databaseService.drizzle.query.group.findMany({
@@ -44,16 +43,23 @@ export class GroupService {
     })
 
     if (groupsFound) {
-      this.redisCacheService.set(cacheKey, groupsFound)
+      await this.redisCacheService.set(cacheKey, groupsFound)
     }
+
     return groupsFound
   }
 
-  async getAllActiveGroupsWithAgeRestrictions({ userId }: { userId: string }) {
-    const [groups, userProfile] = await Promise.all([
-      this.getAllActiveGroupsGroups(),
-      this.userProfileService.getUserProfileById(userId),
-    ])
+  async getAllGroups(filters: Partial<GroupSelectModel> = {}) {
+    return this.getAllStudioGroupsByFilterConditions(filters)
+  }
+
+  async getAllActiveGroups(filters: Partial<GroupSelectModel> = {}) {
+    const activeFilters = { status: GroupStatusEnum.ACTIVE, ...filters }
+    return this.getAllStudioGroupsByFilterConditions(activeFilters)
+  }
+  
+  async getAllUserAgeResctictedActiveGroups({ userId }: { userId: string }) {
+    const [groups, userProfile] = await Promise.all([this.getAllActiveGroups(), this.userProfileService.getUserProfileById(userId)])
 
     const ageAppropriateGroups = groups.filter((group) => {
       if (!group.groupAgeRestrictions) {

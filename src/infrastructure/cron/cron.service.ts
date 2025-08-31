@@ -146,10 +146,17 @@ export class CronService {
           return this.logger.warn(`No user profile found for signup ID: ${signup.id} in training ID: ${training.id}`)
         }
         const name = signup.userProfile.firstName
-        const groupName = signup.group.name
+        const groupStyle = signup.group.groupStyle.title
         const telegramId = signup.userProfile.telegramId
         await Promise.all([
-          this.botNotificationService.sendTrainingReminderNotification({ name, groupName, date: training.date, telegramId }),
+          this.botNotificationService.sendTrainingReminderNotification({
+            name,
+            groupStyle,
+            date: training.date,
+            telegramId,
+            min: signup.group.groupAgeRestrictions?.minAge || null,
+            max: signup.group.groupAgeRestrictions?.maxAge || null,
+          }),
           this.trainingService.updateTraining(training.id, { reminderSent: true }),
         ])
       })

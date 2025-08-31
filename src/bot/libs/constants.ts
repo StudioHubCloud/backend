@@ -61,6 +61,9 @@ export const CALLBACK_PREFIX = {
       PASS_TEMPLATE_PREVIEW: 'sc.vercl.pt.prvw',
       PASS_TEMPLATE_SELECT: 'c.vercl.pt.sel',
     },
+    VERIFY_TRAINER: {
+      GROUP_SELECT: 'sc.vertr.grp.sel',
+    },
   },
   COMMON: {
     AGREE_TO_RULES: 'cmn.agree.to.rules',

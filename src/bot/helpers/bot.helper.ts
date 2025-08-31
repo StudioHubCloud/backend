@@ -17,33 +17,31 @@ export class BotHelper {
     return from
   }
 
-  static getUpdatePayload(ctx: BotContext): string {
+  static getUpdatePayload(ctx: BotContext): [string, any] {
     const update = deunionize(ctx.update)
-    let messageText: string | null = ''
+
+    let payloadData: string | null = ''
+
+    let isTextUpdate = false
+    let isCallbackQueryUpdate = false
+    let isInlineQueryUpdate = false
 
     switch (true) {
       case !!update.callback_query:
-        messageText = deunionize(ctx.callbackQuery)?.data ?? ''
+        payloadData = deunionize(ctx.callbackQuery)?.data ?? ''
+        isCallbackQueryUpdate = true
         break
       case !!update.message:
-        messageText = deunionize(ctx.message)?.text ?? ''
+        payloadData = deunionize(ctx.message)?.text ?? ''
+        isTextUpdate = true
         break
       case !!update.inline_query:
-        messageText = deunionize(ctx.inlineQuery)?.query ?? ''
+        payloadData = deunionize(ctx.inlineQuery)?.query ?? ''
+        isInlineQueryUpdate = true
         break
       default:
         break
     }
-    return messageText
-  }
-
-  static isTextUpdate(ctx: BotContext): boolean {
-    const update = deunionize(ctx.update)
-    return !!update.message
-  }
-
-  static isCallbackQueryUpdate(ctx: BotContext): boolean {
-    const update = deunionize(ctx.update)
-    return !!update.callback_query
+    return [payloadData, { isTextUpdate, isCallbackQueryUpdate, isInlineQueryUpdate }]
   }
 }

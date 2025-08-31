@@ -1,6 +1,6 @@
 import { BotContext } from '../bot.context'
 import { UserHelper } from '../helpers'
-import { CommonKeyboards } from '../modules/keyboard/storage'
+import { CommonKeyboards } from '../keyboard/storage'
 import { MESSAGES_COMMON } from '../static/messages'
 
 export const UnverifiedGuard = async (ctx: BotContext, next: () => Promise<void>) => {

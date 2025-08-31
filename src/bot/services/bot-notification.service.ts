@@ -6,8 +6,9 @@ import { BOT_INSTANCE } from '../bot.instance'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { API, DATE_FORMAT } from '@app/libs'
-import { BIRTHDAY_MESSAGE } from '../static/messages'
+import { MESSAGES_COMMON } from '../static/messages'
 import { TypedConfigService } from '@app/infrastructure/config'
+import { MessageHelper } from '../helpers/message.helper'
 
 export interface NotificationResult {
   success: number
@@ -17,9 +18,11 @@ export interface NotificationResult {
 
 interface ITrainingReminderInput {
   name: string
-  groupName: string
+  groupStyle: string
   date: string
   telegramId: string
+  min: number | null
+  max: number | null
 }
 
 @Injectable()
@@ -48,7 +51,7 @@ export class BotNotificationService {
           continue
         }
 
-        await this.bot.telegram.sendMessage(user.telegramId, BIRTHDAY_MESSAGE, {
+        await this.bot.telegram.sendMessage(user.telegramId, MESSAGES_COMMON.BIRTHDAY_MESSAGE, {
           parse_mode: 'HTML',
         })
 
@@ -64,9 +67,9 @@ export class BotNotificationService {
     return results
   }
 
-  async sendTrainingReminderNotification({ name, groupName, date, telegramId }: ITrainingReminderInput): Promise<void> {
+  async sendTrainingReminderNotification({ name, groupStyle, date, telegramId, min, max }: ITrainingReminderInput): Promise<void> {
     try {
-      const message = this.generateTrainingReminderMessage(name, date, groupName)
+      const message = this.generateTrainingReminderMessage(name, date, groupStyle, min, max)
       await this.bot.telegram.sendMessage(telegramId, message, {
         parse_mode: 'HTML',
       })
@@ -128,9 +131,11 @@ export class BotNotificationService {
     })
   }
 
-  private generateTrainingReminderMessage(name: string, workoutTime: string, groupName: string): string {
+  private generateTrainingReminderMessage(name: string, workoutTime: string, groupStyle: string, min: number | null, max: number | null): string {
     workoutTime = this.dateTimeProvider.formatDateStringInTz(workoutTime, DATE_FORMAT.TIME_MAIN)
-    return `Привіт, ${name}!🌸\nМи вже чекаємо тебе на тренуванні в групі ${groupName} об ${workoutTime}\nДо зустрічі 💖`
+    const ageRestrictions = MessageHelper.getAgeRestrictionsMessageShort(min, max)
+    const grouptitle = ageRestrictions ? `${groupStyle} (${ageRestrictions})` : groupStyle
+    return `Привіт, ${name}!🌸\nМи вже чекаємо тебе на тренуванні групи ${grouptitle} об ${workoutTime}\nДо зустрічі 💖`
   }
 
   private generatePassExpirationMessage(name: string, expirationDate: string): string {
