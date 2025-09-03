@@ -73,13 +73,17 @@ export class UserProfileService {
   async findUserProfileByCondition(conditions: Partial<UserProfileSelectModel>) {
     const cacheKey = UserProfileCacheKey.userProfileByConditions(conditions)
 
-    const userProfileCashed = await this.redisCacheService.get<UserProfileSelectModel>(cacheKey)
+    const userProfileCashed = await this.redisCacheService.get<typeof userProfileFound>(cacheKey)
     if (userProfileCashed) {
       return userProfileCashed
     }
 
     const userProfileFound = await this.databaseService.drizzle.query.userProfile.findFirst({
       where: (userProfile, { and, eq }) => and(...Object.entries(conditions).map(([key, value]) => eq(userProfile[key], value))),
+      with: {
+        staffMember: true,
+        client: true
+      }
     })
 
     if (userProfileFound) {

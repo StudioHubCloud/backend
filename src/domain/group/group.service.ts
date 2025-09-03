@@ -57,7 +57,15 @@ export class GroupService {
     const activeFilters = { status: GroupStatusEnum.ACTIVE, ...filters }
     return this.getAllStudioGroupsByFilterConditions(activeFilters)
   }
-  
+
+  async getAllActiveTrainerGroups(userId: string) {
+    const userProfile = await this.userProfileService.getUserProfileById(userId)
+    if (!userProfile.staffMember) {
+      return []
+    }
+    return this.getAllActiveGroups({ staffMemberId: userProfile.staffMember.id })
+  }
+
   async getAllUserAgeResctictedActiveGroups({ userId }: { userId: string }) {
     const [groups, userProfile] = await Promise.all([this.getAllActiveGroups(), this.userProfileService.getUserProfileById(userId)])
 

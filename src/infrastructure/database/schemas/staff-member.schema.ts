@@ -5,10 +5,12 @@ import { group } from './group.schema'
 
 export const staffMember = table('staff_member', {
   id: uuid('id').primaryKey().defaultRandom(),
-  userProfileId: uuid('user_profile_id').references(() => userProfile.id),
+  userProfileId: uuid('user_profile_id')
+    .references(() => userProfile.id)
+    .notNull(),
 })
 
 export const staff_member_relations = relations(staffMember, ({ one, many }) => ({
-  userProfile: one(userProfile),
+  userProfile: one(userProfile, { fields: [staffMember.userProfileId], references: [userProfile.id] }),
   groups: many(group),
 }))

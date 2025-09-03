@@ -8,11 +8,11 @@ import {
   TrainingSelectAdminPaginatedMenu,
   CLIENT_SIGNOUT_MENU,
 } from '@app/bot/menus'
-import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
-import { AdminKeyboards } from '@app/bot/keyboard/storage'
+import { CALLBACK_PREFIX } from '@app/bot/libs'
+import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSelectModel } from '@app/infrastructure/database'
@@ -47,8 +47,8 @@ export class GroupManageComposer {
     this.composer.use(
       this.groupSelectPaginatedMenu.middleware({
         callbackPrefix: CALLBACK_PREFIX.STAFF.GROUP.SELECT,
-        promptMessage: 'Виберіть групу:',
-        noOptionsMessage: 'На жаль, немає активих груп для управління.',
+        promptMessage: (ctx: BotContext) => this.getStaffMemberMessages(ctx, 'prompt'),
+        noOptionsMessage: (ctx: BotContext) => this.getStaffMemberMessages(ctx, 'noOptions'),
         onItemSelect: this.handleGroupPaginatedSelect,
       }),
     )
@@ -71,22 +71,18 @@ export class GroupManageComposer {
 
   initComposerHandlers() {
     this.composer.hears(BUTTON_PATTERNS.GROUPS, async (ctx: BotContext) => {
-      const {id, role} = UserHelper.getUser(ctx)
-      
-      return this.groupSelectPaginatedMenu.initMenu(ctx, { userId: id, role })
+      return this.renderGroupSelectMenu(ctx, { shouldEdit: false })
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS), async (ctx: BotContext) => {
       ctx.answerCbQuery()
-      return this.renderTrainingSelectMenu(ctx, { shouldEdit: false })
+      return this.renderTrainingSelectMenu(ctx, { shouldEdit: true })
     })
 
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT),
       async (ctx: BotContext) => {
-        const {id, role} = UserHelper.getUser(ctx)
-        ctx.answerCbQuery()
-        return this.groupSelectPaginatedMenu.initMenu(ctx, { userId: id, role }, { shouldEdit: true })
+        return this.renderGroupSelectMenu(ctx)
       },
     )
 
@@ -95,6 +91,21 @@ export class GroupManageComposer {
       async (ctx: BotContext) => {
         ctx.answerCbQuery()
         return this.renderTrainingSelectMenu(ctx, { shouldEdit: true })
+      },
+    )
+
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECTED_GROUP),
+      async (ctx: BotContext) => {
+        const [groupId] = RegexHelper.getMatchGroupValue(ctx)
+
+        if (!groupId) {
+          ctx.answerCbQuery('Не вдалося повернутися до групи.', { show_alert: true })
+          ctx.deleteMessage()
+          return
+        }
+
+        return this.handleGroupPaginatedSelect(ctx, groupId)
       },
     )
 
@@ -187,7 +198,6 @@ export class GroupManageComposer {
       ctx.answerCbQuery()
       const [_, trainingId] = ctx['match']
       const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
-      console.log(activeSignUps, 'activeSignUps')
       const data = activeSignUps.map((signup) => ({
         name: `${signup.userProfile?.firstName} ${signup.userProfile?.lastName}`,
         id: signup.id,
@@ -196,10 +206,23 @@ export class GroupManageComposer {
     })
   }
 
+  private renderGroupSelectMenu = async (ctx: BotContext, options: { shouldEdit: boolean } = { shouldEdit: true }) => {
+    const { id, role } = UserHelper.getUser(ctx)
+    const [_, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
+    if (isCallbackQueryUpdate) {
+      ctx.answerCbQuery()
+    }
+    return this.groupSelectPaginatedMenu.initMenu(ctx, { userId: id, role }, { shouldEdit: options.shouldEdit })
+  }
+
   private renderTrainingSelectMenu = async (ctx: BotContext, { shouldEdit }: { shouldEdit: boolean }) => {
     const [_, groupId] = ctx['match']
     const group = await this.groupService.getGroupById(groupId)
-    return this.trainingSelectAdminPaginatedMenu.initMenu(ctx, { group }, { shouldEdit })
+    const backButtonCallbackData = RegexHelper.createButtonActionCallbackData(
+      CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECTED_GROUP,
+      groupId,
+    )
+    return this.trainingSelectAdminPaginatedMenu.initMenu(ctx, { group }, { shouldEdit, backButtonCallbackData })
   }
 
   private renderTraininManageMenu = async (ctx: BotContext, updatedTraining: TrainingSelectModel) => {
@@ -207,9 +230,12 @@ export class GroupManageComposer {
       this.trainingService.getTrainingById(updatedTraining.id),
       this.groupService.getGroupById(updatedTraining.groupId),
     ])
+
+    const isAdmin = UserHelper.isAdminRole(ctx)
+
     return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
       parse_mode: 'HTML',
-      ...AdminKeyboards.trainingManageMenu(training),
+      ...(isAdmin ? AdminKeyboards.trainingManageMenu(training) : TrainerKeyboards.trainingManageMenu(training)),
     })
   }
 
@@ -226,9 +252,10 @@ export class GroupManageComposer {
     await ctx.answerCbQuery()
     const training = await this.trainingService.getTrainingById(trainingId)
     const group = await this.groupService.getGroupById(training.groupId)
+    const isAdmin = UserHelper.isAdminRole(ctx)
     return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
       parse_mode: 'HTML',
-      ...AdminKeyboards.trainingManageMenu(training),
+      ...(isAdmin ? AdminKeyboards.trainingManageMenu(training) : TrainerKeyboards.trainingManageMenu(training)),
     })
   }
 
@@ -268,5 +295,10 @@ export class GroupManageComposer {
 
       return this.clientSelectSignOutPaginatedMenu.initMenu(ctx, { data: activeSignUps }, { shouldEdit: true })
     }
+  }
+
+  private getStaffMemberMessages(ctx: BotContext, messageType: 'noOptions' | 'prompt' | 'trainings') {
+    const role = UserHelper.getUserRole(ctx)
+    return MessageHelper.getStaffMemberMessages(role, messageType)
   }
 }

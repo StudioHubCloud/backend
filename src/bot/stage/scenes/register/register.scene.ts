@@ -152,8 +152,6 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     const [incoming_message] = BotHelper.getUpdatePayload(ctx)
     const state = this.registerScene.getState(ctx)
 
-    console.log(incoming_message, 'DATA')
-
     switch (incoming_message) {
       case BUTTON_PATTERNS.BACK:
         return await this.sceneNavigation.handleBack(ctx, prev, { data: state, role: this.REQUESTED_ROLE })

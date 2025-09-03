@@ -20,7 +20,7 @@ export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{ us
         groups = await this.groupService.getAllActiveGroups()
         break
       case UserProfileRoleEnum.TRAINER:
-        groups = await this.groupService.getAllActiveGroups({ staffMemberId: userId })
+        groups = await this.groupService.getAllActiveTrainerGroups(userId)
         break
       default:
         groups = await this.groupService.getAllUserAgeResctictedActiveGroups({ userId })

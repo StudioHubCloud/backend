@@ -85,6 +85,13 @@
       "when": 1751493811359,
       "tag": "0038_add-additional-indexes-to-user-table",
       "breakpoints": true
+    },
+    {
+      "idx": 39,
+      "version": "7",
+      "when": 1756940633055,
+      "tag": "0039_update staffmember shcema",
+      "breakpoints": true
     }
   ]
 }

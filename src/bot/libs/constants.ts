@@ -30,6 +30,7 @@ export const CALLBACK_PREFIX = {
       BACK_TO_TRAININGS_SELECT: 'grp.trng.sel.back.st',
       SELECT: 'grp.sel.st',
       BACK_TO_SELECT: 'grp.sel.back.st',
+      BACK_TO_SELECTED_GROUP: 'grp.sel.back.selected.st',
     },
     TRAINING: {
       SIGNUPS_ACTIVE: 'trng.supa.st',

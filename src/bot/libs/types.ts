@@ -59,8 +59,8 @@ export type TReplyInlineKeyboard = { reply_markup: InlineKeyboardMarkup }
 export interface ISelectInlineMenuConfig<T> {
   callbackPrefix: string
   onItemSelect: (ctx: T, itemId: string) => any
-  promptMessage?: string
-  noOptionsMessage?: string
+  promptMessage?: string | Function
+  noOptionsMessage?: string | Function
 }
 
 export interface IRegisterSceneState {

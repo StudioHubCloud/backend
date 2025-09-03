@@ -18,7 +18,7 @@ export class MessageHelper {
     return `📢 <i>Увага!</i>\n💖 Для цієї групи є вікові обмеження: <b>${minAgeText}${maxAgeText}</b>`
   }
 
-  static getAgeRestrictionsMessageShort(minAge: number | null = null, maxAge: number | null = null): string{
+  static getAgeRestrictionsMessageShort(minAge: number | null = null, maxAge: number | null = null): string {
     if (minAge && maxAge) {
       return `${minAge}-${maxAge}`
     }
@@ -62,14 +62,14 @@ export class MessageHelper {
   }
 
   static constructGroupSelectMessage(group: GetGroupByIdResponse) {
-    const { name, capacity, groupStyle, groupAgeRestrictions } = group
+    const { name, groupStyle, groupAgeRestrictions } = group
 
     const ageRestrictionInfo = groupAgeRestrictions ? `\n${this.makeGroupAgeRestrictionMessage(groupAgeRestrictions, '🔹')}` : ''
 
     return (
       `📌 Обрана група: <b>${name}</b>\n\n` +
       `🔹 Стиль: <b>${groupStyle.title}</b>\n` +
-      `🔹 Місць: <b>${capacity}</b>${ageRestrictionInfo}`
+      `${ageRestrictionInfo}`
     )
   }
 
@@ -108,8 +108,7 @@ export class MessageHelper {
       `${countString}` +
       `📅 Дата: <b>${formattedDate}</b>\n` +
       `🌝 День: <b>${formattedDay}</b>\n` +
-      `🕓 Час: <b>${formattedTime}</b>\n` +
-      `🔘 Місць: <b>${group.capacity}</b>`
+      `🕓 Час: <b>${formattedTime}</b>\n`
     )
   }
 
@@ -204,5 +203,23 @@ export class MessageHelper {
 
   static makeClientGreetingsMessage(firstName: string): string {
     return `Вітаємо в особистому кабінеті ${firstName}❤️`
+  }
+
+  static getStaffMemberMessages(role: UserProfileRoleEnum, messageType: 'noOptions' | 'prompt' | 'trainings') {
+    const messages: Record<typeof messageType, Record<string, string>> = {
+      noOptions: {
+        [UserProfileRoleEnum.ADMIN]: 'На жаль, немає активих груп для управління.',
+        [UserProfileRoleEnum.TRAINER]: `У вас поки що немає призначених груп.\nЗверніться до адміністратора.`,
+      },
+      prompt: {
+        [UserProfileRoleEnum.ADMIN]: 'Виберіть групу для управління:',
+        [UserProfileRoleEnum.TRAINER]: 'Ваші групи:',
+      },
+      trainings: {
+        [UserProfileRoleEnum.ADMIN]: 'На жаль, немає доступних тренувань в цій групі.',
+        [UserProfileRoleEnum.TRAINER]: 'У вас немає запланованих тренувань в цій групі.',
+      },
+    }
+    return messages[messageType][role]
   }
 }

@@ -1,8 +1,9 @@
 import { CALLBACK_DATA } from '@app/bot/libs'
+import { BotContext } from '../bot.context'
 
 export class RegexHelper {
   static createSimpleRegex(prefix: string) {
-    return new RegExp(`^${prefix}$`) 
+    return new RegExp(`^${prefix}$`)
   }
 
   static createMenuPaginationActionRegex(prefix: string) {
@@ -25,5 +26,13 @@ export class RegexHelper {
     const regex = typeof input === 'string' ? this.createButtonActionRegex(input) : input
     const match = data.match(regex)
     return match ? [match[1], match[2]] : null
+  }
+
+  static getMatchGroupValue(ctx: BotContext): [string | null, string | null] {
+    if (ctx['match']?.groups) {
+      const matchGroup = ctx['match'].groups
+      return [matchGroup['value'], matchGroup['subvalue']]
+    }
+    return [null, null]
   }
 }
