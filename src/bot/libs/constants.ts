@@ -1,6 +1,7 @@
 export const PASS_CONFIG = {
   DEFAULT_DURATION_IN_DAYS: 30,
   ACTIVATION_GRACE_PERIOD: 7,
+  INCOMING_TRAININGS_DAYS_RANGE: 24,
 } as const
 
 export const COMMON = {
@@ -24,37 +25,38 @@ export const CALLBACK_DATA = {
 export const CALLBACK_PREFIX = {
   STAFF: {
     GROUP: {
-      MENU: 'grp.menu.st',
-      TRAININGS: 'grp.trng.st',
-      TRAININGS_SELECT: 'grp.trng.sel.st',
-      BACK_TO_TRAININGS_SELECT: 'grp.trng.sel.back.st',
-      SELECT: 'grp.sel.st',
-      BACK_TO_SELECT: 'grp.sel.back.st',
-      BACK_TO_SELECTED_GROUP: 'grp.sel.back.selected.st',
+      MENU: 'g.m.st',
+      TRAININGS: 'g.tr.st',
+      TRAININGS_SELECT: 'g.tr.s.st',
+      BACK_TO_TRAININGS_SELECT: 'g.tr.s.b.st',
+      SELECT: 'g.s.st',
+      BACK_TO_SELECT: 'g.s.b.st',
+      BACK_TO_SELECTED_GROUP: 'g.s.b.s.st',
     },
     TRAINING: {
-      SIGNUPS_ACTIVE: 'trng.supa.st',
-      SIGNUPS_CANCELED: 'trng.sgnc.st',
-      SIGN_IN: 'trng.sgn.st',
-      SIGN_OUT: 'trng.sgo.st',
-      SELECT: 'trng.sel.st',
-      CANCEL: 'trng.cancel.st',
-      ACTIVATE: 'trng.activ.st',
-      BACK_TO_MANAGE: 'trng.mng.back.st',
-      CLIENT_SIGNOUT_SELECT: 'trng.cl.sgo.sel.st',
+      SIGNUPS_ACTIVE: 'tr.sua.st',
+      SIGNUPS_CANCELED: 'tr.suc.st',
+      SIGN_IN: 'tr.si.st',
+      SIGN_OUT: 'tr.so.st',
+      SELECT: 'tr.s.st',
+      CANCEL: 'tr.c.st',
+      ACTIVATE: 'tr.a.st',
+      BACK_TO_MANAGE: 'tr.m.b.st',
+      CLIENT_SIGNOUT_SELECT: 'tr.c.so.s.st',
+      BACK_TO_CLOSEST_TRAINING_LIST: 'tr.cl.s.b.st',
     },
     USER: {
-      VERIFY_YES: 'usr.yver.st',
-      VERIFY_NO: 'usr.nver.st',
-      BLOCK: 'usr.block.st',
+      VERIFY_YES: 'u.vy.st',
+      VERIFY_NO: 'u.vn.st',
+      BLOCK: 'u.b.st',
     },
   },
   CLIENT: {
     TRAINING: {
-      SELECT: 'trng.sel.cl',
+      SELECT: 'tr.s.cl',
     },
     GROUP: {
-      SELECT: 'grp.sel.cl',
+      SELECT: 'g.s.cl',
     },
   },
   SCENES: {

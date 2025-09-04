@@ -5,7 +5,7 @@ import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
 
 @Injectable()
-export class StaffPayoutComposer {
+export class PayoutStaffComposer {
   private readonly composer: Composer<BotContext>
   constructor() {
     this.composer = new Composer<BotContext>()

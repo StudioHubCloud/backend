@@ -3,6 +3,7 @@ import { and, eq, gte } from 'drizzle-orm'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import {
   DatabaseService,
+  group,
   GroupScheduleSelectModel,
   training,
   TrainingInsertModel,
@@ -186,10 +187,10 @@ export class TrainingService {
                 groupStyle: {
                   columns: {
                     title: true,
-                  }
+                  },
                 },
-                groupAgeRestrictions: true
-              }
+                groupAgeRestrictions: true,
+              },
             },
             userProfile: true,
           },
@@ -280,6 +281,40 @@ export class TrainingService {
 
     await this.redisCacheService.reset()
     return result
+  }
+
+  async getUpcomingTrainingsForStaff(userId: string) {
+    const now = new Date().toISOString()
+    const sevenDaysFromNow = addDays(now, PASS_CONFIG.INCOMING_TRAININGS_DAYS_RANGE).toISOString()
+
+    return this.databaseService.drizzle.query.training.findMany({
+      where: (training, { eq, and, gte, lte, exists, or, isNull }) =>
+        and(
+          gte(training.date, now),
+          lte(training.date, sevenDaysFromNow),
+          exists(
+            this.databaseService.drizzle
+              .select()
+              .from(group)
+              .where(
+                and(
+                  eq(group.id, training.groupId),
+                  or(
+                    // Direct trainer assignment matches
+                    eq(training.trainerId, userId),
+                    // Group assignment matches and no conflicting trainer assignment
+                    and(eq(group.staffMemberId, userId), or(isNull(training.trainerId), eq(training.trainerId, userId))),
+                  ),
+                ),
+              ),
+          ),
+        ),
+      with: {
+        group: true,
+        trainingSignups: true,
+      },
+      orderBy: (training, { asc }) => asc(training.date),
+    })
   }
 
   private generateTrainingsRecords(

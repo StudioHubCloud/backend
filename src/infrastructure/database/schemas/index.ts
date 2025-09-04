@@ -17,10 +17,13 @@ export { groupAgeRestriction, group_age_restriction_relations } from './group-ag
 export { groupAgeRestrictionException, group_age_restriction_exception_relations } from './group-age-restriction-exeption.schema'
 export { passTemplate, pass_template_relations } from './pass-template.schema'
 export { passTemplateAgeRestriction, pass_template_age_restriction_relations } from './pass-template-age-restriction.schema'
-export { passTemplateAgeRestrictionException, pass_template_age_restriction_exception_relations } from './pass-template-age-restriction-exeption.schema'
+export {
+  passTemplateAgeRestrictionException,
+  pass_template_age_restriction_exception_relations,
+} from './pass-template-age-restriction-exeption.schema'
 export { studioPrice, studio_price_relations } from './studio-price.schema'
 export { feedbackNotification, feedback_notification_relations } from './feedback-notification.schema'
-
+export { payment, payment_relations } from './payment.schema'
 
 export {
   PassStatusPgEnum,
@@ -33,4 +36,7 @@ export {
   UserProfileStatusPgEnum,
   PassTemplateTypePgEnum,
   StudioPriceTypePgEnum,
+  PaymentMethodPgEnum,
+  PaymentStatusPgEnum,
+  PaymentTypePgEnum,
 } from '../database.enums'

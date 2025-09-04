@@ -7,16 +7,16 @@ export class TrainerKeyboards {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_TRAINER.MAIN_MENU)
   }
 
-  static trainingManageMenu(training: GetTrainingByIdResponse): TReplyInlineKeyboard {
+  static trainingManageMenu(training: GetTrainingByIdResponse, backButtonCallbackData?: string | null): TReplyInlineKeyboard {
     const { id: trainingId, groupId, isCancelled } = training
 
     const activeSignupsButton = {
       text: '📜 Активні записи',
-      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE, trainingId),
+      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE, trainingId, backButtonCallbackData),
     }
     const canceledSignupsButton = {
       text: '📜 Скасовані записи',
-      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED, trainingId),
+      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED, trainingId, backButtonCallbackData),
     }
 
     return KeyboardHelper.createInlineKeyboard([
@@ -24,7 +24,7 @@ export class TrainerKeyboards {
       [
         {
           text: '⬅️ Назад до списку тренувань',
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT, groupId),
+          callback_data: RegexHelper.createButtonActionCallbackData(backButtonCallbackData ?? CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT, groupId),
         },
       ],
     ])

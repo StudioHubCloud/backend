@@ -60,3 +60,23 @@ export enum StudioPriceTypeEnum {
   DUO = 'duo',
   TRIO= 'trio',
 }
+
+export enum PaymentTypeEnum {
+  INCOMING = 'incoming',
+  OUTGOING = 'outgoing',
+}
+
+export enum PaymentStatusEnum {
+  PENDING = 'pending',
+  COMPLETED = 'completed',
+  FAILED = 'failed',
+  REFUNDED = 'refunded',
+}
+
+export enum PaymentMethodEnum {
+  CASH = 'cash',
+  CARD = 'card',
+  BANK_TRANSFER = 'bank_transfer',
+  ONLINE = 'online',
+  OTHER = 'other',
+}

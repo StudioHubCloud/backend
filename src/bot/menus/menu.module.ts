@@ -7,7 +7,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
 import { GroupSelectPaginatedMenu } from './paginated-menus/group-select.paginated-menu'
 import { TrainingSelectPaginatedMenu } from './paginated-menus/training-select.paginated-menu'
 import { VerificationInlineMenu } from './inline-menus/verification-requests.inline-menu'
-import { TrainingSelectAdminPaginatedMenu } from './paginated-menus/training-select-admin.paginated-menu'
+import { TrainingSelectStaffPaginatedMenu } from './paginated-menus/training-select-staff.paginated-menu'
 import { ClientSelectPaginatedMenu, CLIENT_SIGNOUT_MENU } from './paginated-menus/client-select.paginated-menu'
 import { GroupService } from '@app/domain/group'
 
@@ -17,7 +17,7 @@ import { GroupService } from '@app/domain/group'
     GroupSelectPaginatedMenu,
     ActiveSchedulesInlineMenu,
     TrainingSelectPaginatedMenu,
-    TrainingSelectAdminPaginatedMenu,
+    TrainingSelectStaffPaginatedMenu,
     VerificationInlineMenu,
     ClientSelectPaginatedMenu,
     {
@@ -38,7 +38,7 @@ import { GroupService } from '@app/domain/group'
     ActiveSchedulesInlineMenu,
     CLIENT_SIGNOUT_MENU,
     VerificationInlineMenu,
-    TrainingSelectAdminPaginatedMenu,
+    TrainingSelectStaffPaginatedMenu,
   ],
 })
 export class MenuModule {}

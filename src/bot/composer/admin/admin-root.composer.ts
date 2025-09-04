@@ -3,8 +3,9 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { ClientManageComposer } from './client-manage/client-manage.composer'
 import { StaffManageComposer } from './staff-manage/staff-manage.composer'
-import { GroupManageComposer } from '@app/bot/composer/common/group-manage.composer'
 import { VerificationRequestComposer } from './verification-request/verification-request.composer'
+import { GroupManageStaffComposer } from '../common/group-manage-staff.composer'
+import { PayoutStaffComposer } from '../common/payout-staff.composer'
 import { MESSAGES_STAFF } from '@app/bot/static/messages'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 
@@ -15,8 +16,9 @@ export class AdminRootComposer {
   constructor(
     private readonly clientManageComposer: ClientManageComposer,
     private readonly staffManageComposer: StaffManageComposer,
-    private readonly groupManageComposer: GroupManageComposer,
     private readonly requestVerificationComposer: VerificationRequestComposer,
+    private readonly payoutStaffComposer: PayoutStaffComposer,
+    private readonly groupManageStaffComposer: GroupManageStaffComposer,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -32,9 +34,12 @@ export class AdminRootComposer {
   }
 
   initExternalComposers() {
+    //admin only
     this.composer.use(this.clientManageComposer.middleware())
     this.composer.use(this.staffManageComposer.middleware())
-    this.composer.use(this.groupManageComposer.middleware())
     this.composer.use(this.requestVerificationComposer.middleware())
+    //common staff
+    this.composer.use(this.groupManageStaffComposer.middleware())
+    this.composer.use(this.payoutStaffComposer.middleware())
   }
 }

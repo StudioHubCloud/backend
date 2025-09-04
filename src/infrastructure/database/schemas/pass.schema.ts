@@ -6,6 +6,7 @@ import { trainingSignup } from './training-signup.schema'
 import { PassStatusPgEnum } from '../database.enums'
 import { studio } from './studio.schema'
 import { passTemplate } from './pass-template.schema'
+import { payment } from './payment.schema'
 
 export const pass = table(
   'pass',
@@ -34,7 +35,9 @@ export const pass = table(
     index().on(table.studioId),
     index().on(table.groupId, table.status),
     index().on(table.clientId, table.status),
-    uniqueIndex('unique_active_pass_per_client').on(table.clientId).where(sql`${table.status} = 'active'`),
+    uniqueIndex('unique_active_pass_per_client')
+      .on(table.clientId)
+      .where(sql`${table.status} = 'active'`),
   ],
 )
 
@@ -44,4 +47,5 @@ export const pass_relations = relations(pass, ({ many, one }) => ({
   studio: one(studio, { fields: [pass.studioId], references: [studio.id] }),
   client: one(client, { fields: [pass.clientId], references: [client.id] }),
   passTemplate: one(passTemplate, { fields: [pass.passTemplateId], references: [passTemplate.id] }),
+  payment: one(payment, { fields: [pass.id], references: [payment.passId] }),
 }))

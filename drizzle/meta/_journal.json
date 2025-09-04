@@ -92,6 +92,13 @@
       "when": 1756940633055,
       "tag": "0039_update staffmember shcema",
       "breakpoints": true
+    },
+    {
+      "idx": 40,
+      "version": "7",
+      "when": 1757019888351,
+      "tag": "0040_add payment table",
+      "breakpoints": true
     }
   ]
 }

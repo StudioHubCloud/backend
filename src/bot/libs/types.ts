@@ -13,6 +13,7 @@ import {
 } from '@app/infrastructure/database/models'
 import { PassStatusEnum, UserProfileRoleEnum } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
+import { BotContext } from '../bot.context'
 
 export type TBotStore = {
   user: AuthUserProfile | null
@@ -20,12 +21,18 @@ export type TBotStore = {
 }
 
 export type AuthUserProfile = UserProfileSelectModel & {
-  client: (ClientSelectModel & { pass: { id: string; status: PassStatusEnum; groupId: string | null }[]}) | null
+  client: (ClientSelectModel & { pass: { id: string; status: PassStatusEnum; groupId: string | null }[] }) | null
 }
 
 export type TNextFunction = () => Promise<void>
 
 export type TNormalizedOption = { label: string; value: string }
+export type TPaginatedMenuRenderOptions = {
+  shouldEdit?: boolean
+  backButtonCallbackData?: string | null
+  backButtonCallback?: (ctx: BotContext) => Promise<any> | void
+  context?: Record<string, any>
+}
 
 export type TPaginatedMenuOptions = { page?: number; perPage?: number; prefix: string }
 
@@ -58,7 +65,7 @@ export type TReplyInlineKeyboard = { reply_markup: InlineKeyboardMarkup }
 
 export interface ISelectInlineMenuConfig<T> {
   callbackPrefix: string
-  onItemSelect: (ctx: T, itemId: string) => any
+  onItemSelect: (ctx: T, itemId: string, context?: Record<string, any>) => any
   promptMessage?: string | Function
   noOptionsMessage?: string | Function
 }
