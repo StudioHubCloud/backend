@@ -1,0 +1,3 @@
+ALTER TABLE "payment" ALTER COLUMN "paid_at" SET DATA TYPE timestamp;--> statement-breakpoint
+ALTER TABLE "payment" ALTER COLUMN "created_at" SET DATA TYPE timestamp;--> statement-breakpoint
+CREATE INDEX "payment_staff_member_id_paid_at_index" ON "payment" USING btree ("staff_member_id","paid_at") WHERE "payment"."staff_member_id" IS NOT NULL AND "payment"."type" = 'outgoing' AND "payment"."status" = 'completed';

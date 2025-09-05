@@ -1,5 +1,5 @@
 import { Module } from '@nestjs/common'
-import { GroupScheduleModule, PassModule, TrainingModule, TrainingSignupModule, GroupModule, UserProfileModule } from '@app/domain'
+import { GroupScheduleModule, PassModule, TrainingModule, TrainingSignupModule, GroupModule, UserProfileModule, PaymentModule } from '@app/domain'
 import ClientComposers from './client'
 import TrainerComposers from './trainer'
 import AdminComposers from './admin'
@@ -19,6 +19,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     GroupScheduleModule,
     PassModule,
     UserProfileModule,
+    PaymentModule
   ],
   providers: [
     ComposerService,
@@ -35,3 +36,4 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
   exports: [ComposerService],
 })
 export class ComposerModule {}
+

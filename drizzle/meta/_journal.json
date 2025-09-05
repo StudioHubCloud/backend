@@ -99,6 +99,27 @@
       "when": 1757019888351,
       "tag": "0040_add payment table",
       "breakpoints": true
+    },
+    {
+      "idx": 41,
+      "version": "7",
+      "when": 1757023465467,
+      "tag": "0041_remove timezone from payment date",
+      "breakpoints": true
+    },
+    {
+      "idx": 42,
+      "version": "7",
+      "when": 1757054973865,
+      "tag": "0042_add studio-payout-rule table",
+      "breakpoints": true
+    },
+    {
+      "idx": 43,
+      "version": "7",
+      "when": 1757056275839,
+      "tag": "0043_add studio-payout-rule relations",
+      "breakpoints": true
     }
   ]
 }

@@ -1,0 +1,2 @@
+DROP INDEX "payment_staff_member_id_paid_at_index";--> statement-breakpoint
+CREATE INDEX "payment_staff_member_id_paid_at_index" ON "payment" USING btree ("staff_member_id","paid_at") WHERE "payment"."staff_member_id" IS NOT NULL AND "payment"."type" = 'outgoing' AND "payment"."status" = 'completed';

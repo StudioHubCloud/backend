@@ -21,3 +21,6 @@ export type UserProfileSelectModel = InferSelectModel<typeof schemas.userProfile
 export type PassTemplateSelectModel = InferSelectModel<typeof schemas.passTemplate>
 export type PassTemplateAgeRestrictionSelectModel = InferSelectModel<typeof schemas.passTemplateAgeRestriction>
 export type PassTemplateAgeRestrictionExceptionSelectModel = InferSelectModel<typeof schemas.passTemplateAgeRestrictionException>
+export type PaymentSelectModel = InferSelectModel<typeof schemas.payment>
+export type StudioPayoutRuleSelectModel = InferSelectModel<typeof schemas.studioPayoutRule>
+export type FeedbackNotificationSelectModel = InferSelectModel<typeof schemas.feedbackNotification>

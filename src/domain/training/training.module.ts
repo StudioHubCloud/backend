@@ -6,9 +6,10 @@ import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { PassModule } from '../pass'
 import { TrainingSignupModule } from '../training-signup'
+import { StaffMemberModule } from '../staff-member'
 
 @Module({
-  imports: [StudioModule, PassModule, forwardRef(() => TrainingSignupModule)],
+  imports: [StudioModule, PassModule, forwardRef(() => TrainingSignupModule), StaffMemberModule],
   controllers: [TrainingController],
   providers: [
     TrainingService,

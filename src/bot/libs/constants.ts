@@ -1,7 +1,7 @@
 export const PASS_CONFIG = {
   DEFAULT_DURATION_IN_DAYS: 30,
   ACTIVATION_GRACE_PERIOD: 7,
-  INCOMING_TRAININGS_DAYS_RANGE: 24,
+  INCOMING_TRAININGS_DAYS_RANGE: 7,
 } as const
 
 export const COMMON = {
@@ -50,6 +50,12 @@ export const CALLBACK_PREFIX = {
       VERIFY_NO: 'u.vn.st',
       BLOCK: 'u.b.st',
     },
+    PAYOUT: {
+      DETAILS: 'p.i.st',
+      SUMMARY: 'p.d.st',
+      CLIENT_INFO: 'p.i.cl',
+      BACK_TO_STAFF: 'p.b.s.st',
+    }
   },
   CLIENT: {
     TRAINING: {

@@ -8,7 +8,10 @@ import {
   PassTemplateModule,
   GroupAgeRestrictionExeptionModule,
   GroupAgeRestrictionModule,
-  FeedbackNotificationModule
+  FeedbackNotificationModule,
+  PaymentModule,
+  StaffMemberModule,
+  StudioPayoutRuleModule
 } from '@app/domain'
 import { LoggerModule, ConfigModule, DatabaseModule, RedisCacheModule, CronModule, HealthModule } from '@app/infrastructure'
 import { BotModule } from 'src/bot/bot.module'
@@ -30,7 +33,10 @@ import { BotModule } from 'src/bot/bot.module'
     GroupAgeRestrictionModule,
     GroupAgeRestrictionExeptionModule,
     PassTemplateModule,
-    FeedbackNotificationModule
+    FeedbackNotificationModule,
+    PaymentModule,
+    StaffMemberModule,
+    StudioPayoutRuleModule
   ],
   providers: [],
 })

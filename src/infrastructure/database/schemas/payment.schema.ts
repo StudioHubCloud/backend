@@ -5,6 +5,7 @@ import { studio } from './studio.schema'
 import { pass } from './pass.schema'
 import { userProfile } from './user-profile.schema'
 import { staffMember } from './staff-member.schema'
+import { PaymentStatusEnum, PaymentTypeEnum } from '@app/libs'
 import { PaymentTypePgEnum, PaymentStatusPgEnum, PaymentMethodPgEnum } from '../database.enums'
 
 export const payment = table(
@@ -16,8 +17,8 @@ export const payment = table(
     type: PaymentTypePgEnum().notNull(),
     status: PaymentStatusPgEnum().notNull(),
     method: PaymentMethodPgEnum().notNull(),
-    paidAt: timestamp('paid_at', { withTimezone: true }),
-    createdAt: timestamp('created_at', { withTimezone: true }).notNull().defaultNow(),
+    paidAt: timestamp('paid_at'),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
@@ -35,7 +36,11 @@ export const payment = table(
     index()
       .on(table.staffMemberId, table.status)
       .where(sql`${table.staffMemberId} IS NOT NULL`),
-
+    index()
+      .on(table.staffMemberId, table.paidAt)
+      .where(
+        sql`${table.staffMemberId} IS NOT NULL AND ${table.type} = 'outgoing' AND ${table.status} = 'completed'`,
+      ),
     uniqueIndex('unique_external_transaction_per_studio')
       .on(table.studioId, table.externalTransactionId)
       .where(sql`${table.externalTransactionId} IS NOT NULL`),

@@ -2,7 +2,7 @@ import { GetGroupByIdResponse } from '@app/bot/libs'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { DatabaseService, GroupSelectModel } from '@app/infrastructure/database'
 import { RedisCacheService, GroupCacheKey } from '@app/infrastructure/redis'
-import { GroupStatusEnum } from '@app/libs'
+import { GroupStatusEnum, TrainingSignupStatusEnum } from '@app/libs'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { UserProfileService } from '../user-profile'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
@@ -116,5 +116,25 @@ export class GroupService {
     }
 
     return groupFound
+  }
+
+  async getAllTrainingsForStaffMemberSalary(staffMemberId: string, startDate?: string) {
+    return this.databaseService.drizzle.query.group.findMany({
+      where: (group, { eq, and }) => and(eq(group.studioId, this.configService.get('STUDIO_ID'))),
+      with: {
+        trainings: {
+          where: (training, { and, gte, eq }) =>
+            and(
+              eq(training.isCancelled, false), // Not cancelled
+              gte(training.date, startDate ?? '1970-01-01'), // After last payout
+            ),
+          with: {
+            trainingSignups: {
+              where: (signup, { eq }) => eq(signup.status, TrainingSignupStatusEnum.ACTIVE), // Only active signups
+            },
+          },
+        },
+      },
+    })
   }
 }

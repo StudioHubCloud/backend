@@ -80,3 +80,9 @@ export enum PaymentMethodEnum {
   ONLINE = 'online',
   OTHER = 'other',
 }
+
+export enum StudioPayoutRuleTypeEnum {
+  FIXED = 'fixed',
+  PERCENTAGE = 'percentage',
+  PER_SIGNUP = 'per_signup',
+}

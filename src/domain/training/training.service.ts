@@ -1,5 +1,5 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { and, eq, gte } from 'drizzle-orm'
+import { and, eq, gte, lte } from 'drizzle-orm'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import {
   DatabaseService,
@@ -17,6 +17,9 @@ import { PassService } from '../pass'
 import { StudioService } from '../studio'
 import { TrainingSignupService } from '../training-signup'
 import { addDays } from 'date-fns'
+import { TypedConfigService } from '@app/infrastructure/config'
+import { PgTableWithColumns } from 'drizzle-orm/pg-core'
+import { StaffMemberService } from '../staff-member'
 
 @Injectable()
 export class TrainingService {
@@ -28,6 +31,8 @@ export class TrainingService {
     private readonly studioService: StudioService,
     private readonly passService: PassService,
     private readonly redisCacheService: RedisCacheService,
+    private readonly configService: TypedConfigService,
+    private readonly staffMemberService: StaffMemberService,
   ) {}
 
   async getTrainingListForManage({ groupId }: { groupId: string }) {
@@ -284,6 +289,8 @@ export class TrainingService {
   }
 
   async getUpcomingTrainingsForStaff(userId: string) {
+    const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: userId })
+
     const now = new Date().toISOString()
     const sevenDaysFromNow = addDays(now, PASS_CONFIG.INCOMING_TRAININGS_DAYS_RANGE).toISOString()
 
@@ -292,22 +299,7 @@ export class TrainingService {
         and(
           gte(training.date, now),
           lte(training.date, sevenDaysFromNow),
-          exists(
-            this.databaseService.drizzle
-              .select()
-              .from(group)
-              .where(
-                and(
-                  eq(group.id, training.groupId),
-                  or(
-                    // Direct trainer assignment matches
-                    eq(training.trainerId, userId),
-                    // Group assignment matches and no conflicting trainer assignment
-                    and(eq(group.staffMemberId, userId), or(isNull(training.trainerId), eq(training.trainerId, userId))),
-                  ),
-                ),
-              ),
-          ),
+          this.staffMemberTrainingFilter(staffMember.id)(training, { eq, and, exists, or, isNull }),
         ),
       with: {
         group: true,
@@ -315,6 +307,62 @@ export class TrainingService {
       },
       orderBy: (training, { asc }) => asc(training.date),
     })
+  }
+
+  async getAllTrainingsForStaffMemberSalary(staffMemberId: string, startDate: string | null) {
+
+    const now = new Date().toISOString()
+
+    return this.databaseService.drizzle.query.training.findMany({
+      where: (training, helpers) => {
+        const { and, gte, eq, exists } = helpers
+        return and(
+          gte(training.date, startDate || API.LOWES_DATE),
+          lte(training.date, now),
+          eq(training.isCancelled, false),
+          this.staffMemberTrainingFilter(staffMemberId)(training, helpers),
+          exists(
+            this.databaseService.drizzle
+              .select()
+              .from(trainingSignup)
+              .where(and(eq(trainingSignup.trainingId, training.id), eq(trainingSignup.status, TrainingSignupStatusEnum.ACTIVE))),
+          ),
+        )
+      },
+      with: {
+        group: true,
+        trainingSignups: {
+          where: (signup, { eq }) => eq(signup.status, TrainingSignupStatusEnum.ACTIVE),
+          with: {
+            userProfile: {
+              columns: { firstName: true, lastName: true, fullName: true },
+            }
+          }
+        },
+      },
+      orderBy: (training, { asc }) => asc(training.date),
+    })
+  }
+
+  private staffMemberTrainingFilter(staffMemberId: string) {
+    return (tr: typeof training._.columns, { eq, and, exists, or, isNull }) =>
+      exists(
+        this.databaseService.drizzle
+          .select()
+          .from(group)
+          .where(
+            and(
+              eq(group.studioId, this.configService.get('STUDIO_ID')),
+              eq(group.id, tr.groupId),
+              or(
+                // Direct trainer assignment matches
+                eq(tr.trainerId, staffMemberId), // Note: assuming trainerId = staffMemberId
+                // Group assignment matches and no conflicting trainer assignment
+                and(eq(group.staffMemberId, staffMemberId), or(isNull(tr.trainerId), eq(tr.trainerId, staffMemberId))),
+              ),
+            ),
+          ),
+      )
   }
 
   private generateTrainingsRecords(

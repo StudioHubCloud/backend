@@ -1,4 +1,10 @@
-import { TrainingSignupStatusEnum, TrainingSignupTypeEnum, UserProfileRoleEnum } from '@app/libs'
+import {
+  TPayoutStatistics,
+  TrainingSignupStatusEnum,
+  TrainingSignupTypeEnum,
+  TSalaryPayoutResult,
+  UserProfileRoleEnum,
+} from '@app/libs'
 import { TextHelper } from './text.helper'
 import { GetGroupByIdResponse, GetTrainingByIdResponse, IRegisterSceneState } from '../libs'
 import {
@@ -66,11 +72,7 @@ export class MessageHelper {
 
     const ageRestrictionInfo = groupAgeRestrictions ? `\n${this.makeGroupAgeRestrictionMessage(groupAgeRestrictions, '🔹')}` : ''
 
-    return (
-      `📌 Обрана група: <b>${name}</b>\n\n` +
-      `🔹 Стиль: <b>${groupStyle.title}</b>\n` +
-      `${ageRestrictionInfo}`
-    )
+    return `📌 Обрана група: <b>${name}</b>\n\n` + `🔹 Стиль: <b>${groupStyle.title}</b>\n` + `${ageRestrictionInfo}`
   }
 
   static constructTrainingSelectMessage(
@@ -221,5 +223,60 @@ export class MessageHelper {
       },
     }
     return messages[messageType][role]
+  }
+
+  static getStaffPayoutDetailsMessage(result: TSalaryPayoutResult, dateTimeProvider: DateTimeProvider): string {
+    const groupMessages = Object.values(result.groups).map((group) => {
+      const trainingLines = group.trainings
+        .map((training) => {
+          const date = dateTimeProvider.formatDateStringInTz(training.date, 'dd MMMM yyyy')
+          const signups = training.trainingSignups.length
+          const payout = PassHelper.toDisplayPrice(training.payout)
+          return `• ${date} | ${signups} запис${signups > 1 ? 'ів' : ''} | ${payout}`
+        })
+        .join('\n')
+
+      return `🔹 <b><i><u>${group.groupName}</u></i></b>
+🔸 ${group.trainingCount} тренува${group.trainingCount > 4 ? 'нь' : 'ння'} • ${PassHelper.toDisplayPrice(group.groupPayout)}
+${trainingLines}`
+    })
+
+    return `${groupMessages.join('\n\n')}`
+  }
+
+  static getStaffPayoutInfoMessage({ averagePayoutPerTraining, totalSignups, totalTrainings, totalPayout }: TPayoutStatistics) {
+    return `- Загальна кількість тренувань: <i>${totalTrainings}</i>
+- Загальна кількість записів: <i>${totalSignups}</i>
+- Середня виплата за тренування: <i>${PassHelper.toDisplayPrice(averagePayoutPerTraining)}</i>
+
+💵 <i>Сума до виплати: <b>${PassHelper.toDisplayPrice(totalPayout)}</b></i>`
+  }
+
+  static getStaffPayoutClientInfoMessage(result: TSalaryPayoutResult, dateTimeProvider: DateTimeProvider): string {
+    const groupMessages = Object.values(result.groups).map((group) => {
+      const trainingLines = group.trainings
+        .map((training) => {
+          const date = dateTimeProvider.formatDateStringInTz(training.date, 'dd MMMM yyyy')
+
+          const clientList = training.trainingSignups
+            .map((signup, index) => {
+              const name =
+                signup.userProfile?.fullName ||
+                `${signup.userProfile?.firstName || ''} ${signup.userProfile?.lastName || ''}`.trim() ||
+                'Невідомий клієнт'
+              return `    <i>${index + 1}. ${name}</i>`
+            })
+            .join('\n')
+
+          return `• <b>${date}</b>
+${clientList}`
+        })
+        .join('\n')
+
+      return `🔹 <b><i><u>${group.groupName}</u></i></b>
+${trainingLines}`
+    })
+
+    return `${groupMessages.join('\n\n')}`
   }
 }

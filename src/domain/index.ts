@@ -15,3 +15,6 @@ export { UserProfileModule } from './user-profile/user-profile.module'
 export { GroupAgeRestrictionModule } from './group-age-restriction/group-age-restriction.module'
 export { GroupAgeRestrictionExeptionModule } from './group-age-restriction-exeption/group-age-restriction-exeption.module'
 export { FeedbackNotificationModule } from './feedback-notifications/feedback-notifications.module'
+
+export {PaymentModule} from './payment/payment.module'
+export { StudioPayoutRuleModule } from './studio-payout-rule/studio-payout-rule.module'
