@@ -54,15 +54,15 @@ export class GroupManageStaffComposer {
     this.composer.use(
       this.trainingSelectStaffPaginatedMenu.middleware({
         callbackPrefix: CALLBACK_PREFIX.STAFF.GROUP.TRAININGS_SELECT,
-        noOptionsMessage: 'На жаль, немає доступних тренувань',
+        noOptionsMessage: '📅 В цій групі немає доступних тренувань',
         onItemSelect: this.renderTrainingManageMenu,
       }),
     )
     this.composer.use(
       this.clientSelectSignOutPaginatedMenu.middleware({
         callbackPrefix: CALLBACK_PREFIX.STAFF.TRAINING.CLIENT_SIGNOUT_SELECT,
-        promptMessage: 'Виберіть клієнта для скасування запису:',
-        noOptionsMessage: 'На це тренування немає активних записів',
+        promptMessage: '👤 Оберіть клієнта для скасування запису:',
+        noOptionsMessage: '📋 На це тренування немає активних записів',
         onItemSelect: this.handleClientSignOutPaginatedSelect,
       }),
     )
@@ -334,7 +334,7 @@ export class GroupManageStaffComposer {
     const [trainingId, backButtonCallbackData] = RegexHelper.getMatchGroupValue(ctx)
 
     if (!trainingId) {
-      ctx.answerCbQuery('Не вдалося повернутися до тренування.', { show_alert: true })
+      ctx.answerCbQuery('⚠️ Не вдалося повернутися до тренування.', { show_alert: true })
       ctx.deleteMessage()
       return
     }

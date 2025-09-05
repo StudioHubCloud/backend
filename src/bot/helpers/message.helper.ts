@@ -141,10 +141,10 @@ export class MessageHelper {
     status: TrainingSignupStatusEnum.ACTIVE | TrainingSignupStatusEnum.CANCELED,
   ): string {
     const replyMessage =
-      status === TrainingSignupStatusEnum.ACTIVE ? 'Активні записи на тренування:' : 'Скасовані записи на тренування:'
+      status === TrainingSignupStatusEnum.ACTIVE ? '✅ Активні записи на тренування:' : '❌ Скасовані записи на тренування:'
 
     const noSignupMessage =
-      status === TrainingSignupStatusEnum.ACTIVE ? 'Немає активних записів на тренування' : 'Немає скасованих записів на тренування'
+      status === TrainingSignupStatusEnum.ACTIVE ? '📋 Немає активних записів на тренування' : '📋 Немає скасованих записів на тренування'
 
     if (!trainingSignup.length) {
       return noSignupMessage
@@ -210,16 +210,16 @@ export class MessageHelper {
   static getStaffMemberMessages(role: UserProfileRoleEnum, messageType: 'noOptions' | 'prompt' | 'trainings') {
     const messages: Record<typeof messageType, Record<string, string>> = {
       noOptions: {
-        [UserProfileRoleEnum.ADMIN]: 'На жаль, немає активих груп для управління.',
-        [UserProfileRoleEnum.TRAINER]: `У вас поки що немає призначених груп.\nЗверніться до адміністратора.`,
+        [UserProfileRoleEnum.ADMIN]: '⚠️ Поки що немає активних груп для керування.',
+        [UserProfileRoleEnum.TRAINER]: `🤷‍♂️ У вас ще не призначено жодної групи.\n💬 Будь ласка, зверніться до адміністратора.`,
       },
       prompt: {
-        [UserProfileRoleEnum.ADMIN]: 'Виберіть групу для управління:',
-        [UserProfileRoleEnum.TRAINER]: 'Ваші групи:',
+        [UserProfileRoleEnum.ADMIN]: '📋 Оберіть групу для керування:',
+        [UserProfileRoleEnum.TRAINER]: '📋 Ваші групи:',
       },
       trainings: {
-        [UserProfileRoleEnum.ADMIN]: 'На жаль, немає доступних тренувань в цій групі.',
-        [UserProfileRoleEnum.TRAINER]: 'У вас немає запланованих тренувань в цій групі.',
+        [UserProfileRoleEnum.ADMIN]: '📝 В цій групі ще немає доступних тренувань.',
+        [UserProfileRoleEnum.TRAINER]: '📝 У вас немає заплановanih тренувань в цій групі.',
       },
     }
     return messages[messageType][role]

@@ -2,6 +2,7 @@ import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
 import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
+import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 
 export class AdminKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {
@@ -12,13 +13,13 @@ export class AdminKeyboards {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
-          text: '🤸‍♂️ Тренування',
+          text: BUTTON_PATTERNS.TRAININGS,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS, groupId),
         },
       ],
       [
         {
-          text: '⬅️ Назад до списку груп',
+          text: BUTTON_PATTERNS.BACK_TO_GROUP_LIST,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT, groupId),
         },
       ],
@@ -29,7 +30,7 @@ export class AdminKeyboards {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
-          text: '⬅️ Назад до інформації про тренування',
+          text: BUTTON_PATTERNS.BACK_TO_TRAINING_INFO,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
             trainingId,
@@ -44,7 +45,7 @@ export class AdminKeyboards {
     const { id: trainingId, groupId, isCancelled } = training
 
     const cancelButton = {
-      text: '🚫 Відмінити тренування',
+      text: BUTTON_PATTERNS.CANCEL_TRAINING,
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.CANCEL,
         trainingId,
@@ -52,7 +53,7 @@ export class AdminKeyboards {
       ),
     }
     const makeActiveButton = {
-      text: '✅ Активувати тренування',
+      text: BUTTON_PATTERNS.ACTIVATE_TRAINING,
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE,
         trainingId,
@@ -61,7 +62,7 @@ export class AdminKeyboards {
     }
 
     const activeSignupsButton = {
-      text: '📜 Активні записи',
+      text: BUTTON_PATTERNS.ACTIVE_SCHEDULES_LIST,
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE,
         trainingId,
@@ -69,7 +70,7 @@ export class AdminKeyboards {
       ),
     }
     const canceledSignupsButton = {
-      text: '📜 Скасовані записи',
+      text: BUTTON_PATTERNS.CANCELED_SCHEDULES_LIST,
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED,
         trainingId,
@@ -82,7 +83,7 @@ export class AdminKeyboards {
       [isCancelled ? makeActiveButton : cancelButton],
       [
         {
-          text: '✔️ Записати на тренування',
+          text: BUTTON_PATTERNS.SCHEDULE_TO_TRAINING,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN,
             trainingId,
@@ -93,7 +94,7 @@ export class AdminKeyboards {
 
       [
         {
-          text: '➖ Виписати з тренування',
+          text: BUTTON_PATTERNS.DESCHEDULE_FROM_TRAINING,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.TRAINING.SIGN_OUT,
             trainingId,
@@ -103,7 +104,7 @@ export class AdminKeyboards {
       ],
       [
         {
-          text: '⬅️ Назад до списку тренувань',
+          text: BUTTON_PATTERNS.BACK_TO_TRAINING_LIST,
           callback_data: RegexHelper.createButtonActionCallbackData(
             backButtonCallbackData ?? CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT,
             groupId,
@@ -115,17 +116,17 @@ export class AdminKeyboards {
 
   static staffmemberPayoutInfoMenu(staffMemberId: string, isEmpty: boolean = false): TReplyInlineKeyboard {
     const keyboard: InlineKeyboardButton[][] = []
-    
+
     if (!isEmpty) {
       keyboard.push([
         {
-          text: '📑 Переглянути деталі',
+          text: BUTTON_PATTERNS.SEE_DETAILS,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS, staffMemberId, 'true'),
         },
       ])
     }
 
-    keyboard.push([{ text: '⬅️ Назад до списку тренерів', callback_data: CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF }])
+    keyboard.push([{ text: BUTTON_PATTERNS.BACK_TO_STAFF_LIST, callback_data: CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF }])
 
     return KeyboardHelper.createInlineKeyboard(keyboard)
   }
@@ -134,7 +135,7 @@ export class AdminKeyboards {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
-          text: '📝 Інформація про записи',
+          text: BUTTON_PATTERNS.SCHEDULES_INFO,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.PAYOUT.CLIENT_INFO,
             staffMemberId,
@@ -144,7 +145,7 @@ export class AdminKeyboards {
       ],
       [
         {
-          text: '⬅️ Назад',
+          text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.SUMMARY, staffMemberId, 'true'),
         },
       ],
@@ -155,7 +156,7 @@ export class AdminKeyboards {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
-          text: '⬅️ Назад',
+          text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS, staffMemberId, 'true'),
         },
       ],

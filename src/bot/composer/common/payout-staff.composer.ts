@@ -99,7 +99,7 @@ export class PayoutStaffComposer {
     const [userId, isAdmin] = RegexHelper.getMatchGroupValue(ctx)
 
     if (!userId) {
-      ctx.answerCbQuery('Вісутня інформація про користувача', { show_alert: true })
+      ctx.answerCbQuery('❓ Відсутня інформація про користувача', { show_alert: true })
       ctx.deleteMessage()
       return
     }
