@@ -30,7 +30,6 @@ export const BUTTON_PATTERNS = {
   BACK_TO_MAIN_TRAINER_MENU: '🔙 Назад до меню тренера',
   BACK_TO_TRAINING_LIST: '⬅️ Назад до списку тренувань',
   BACK_TO_STAFF_LIST: '⬅️ Назад до списку тренерів',
-  BACK_TO_TRAINING_INFO: '⬅️ Назад до інформації про тренування',
   BACK_TO_GROUP_LIST: '⬅️ Назад до списку груп',
   GROUP_TRAININGS: '📝 Інформація про тренування',
   PAYOUT_CALCULATIONS: '💰 Нарахування оплати',

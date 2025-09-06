@@ -26,7 +26,7 @@ export type AuthUserProfile = UserProfileSelectModel & {
 
 export type TNextFunction = () => Promise<void>
 
-export type TNormalizedOption = { label: string; value: string }
+export type TNormalizedOption = { label: string; value: string | number }
 export type TPaginatedMenuRenderOptions = {
   shouldEdit?: boolean
   backButtonCallbackData?: string | null

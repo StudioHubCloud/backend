@@ -64,7 +64,7 @@ export class TrainingService {
     return trainings
   }
 
-  async cancelTrainingById(trainingId: string) {
+  async cancelTrainingById(trainingId: number) {
     const targetTraining = await this.getTrainingById(trainingId)
 
     if (targetTraining.isCancelled) {
@@ -92,7 +92,7 @@ export class TrainingService {
     return { training: result[0], signups: cancelledSignUps }
   }
 
-  async activateTrainingById(trainingId: string) {
+  async activateTrainingById(trainingId: number) {
     const targetTraining = await this.getTrainingById(trainingId)
 
     if (!targetTraining.isCancelled) {
@@ -204,7 +204,7 @@ export class TrainingService {
     })
   }
 
-  async updateTraining(trainingId: string, updateData: Partial<TrainingInsertModel>): Promise<TrainingInsertModel> {
+  async updateTraining(trainingId: number, updateData: Partial<TrainingInsertModel>): Promise<TrainingInsertModel> {
     const targetTraining = await this.getTrainingById(trainingId)
     if (!targetTraining) {
       throw new NotFoundException(`Training with id: ${trainingId} not found`)
@@ -224,7 +224,7 @@ export class TrainingService {
     return updatedTraining
   }
 
-  async getTrainingById(trainingId: string): Promise<GetTrainingByIdResponse> {
+  async getTrainingById(trainingId: number): Promise<GetTrainingByIdResponse> {
     const cacheKey = TrainingCacheKey.trainingById(trainingId)
 
     const cachedTraining = await this.redisCacheService.get<typeof training>(cacheKey)

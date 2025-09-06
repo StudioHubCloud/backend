@@ -127,6 +127,13 @@
       "when": 1757175259873,
       "tag": "0044_giant_hammerhead",
       "breakpoints": true
+    },
+    {
+      "idx": 45,
+      "version": "7",
+      "when": 1757181442252,
+      "tag": "0045_change training id type",
+      "breakpoints": true
     }
   ]
 }

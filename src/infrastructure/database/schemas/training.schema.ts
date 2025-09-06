@@ -1,4 +1,4 @@
-import { boolean, pgTable as table, timestamp, uuid, index, integer, uniqueIndex } from 'drizzle-orm/pg-core'
+import { boolean, pgTable as table, timestamp, uuid, index, integer, uniqueIndex, serial } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
 import { group } from './group.schema'
 import { staffMember } from './staff-member.schema'
@@ -8,7 +8,7 @@ import { groupSchedule } from './group-schedule.schema'
 export const training = table(
   'training',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: serial('id').primaryKey(),
     date: timestamp('date', { mode: 'string', withTimezone: true }).notNull(),
     isCancelled: boolean('is_cancelled').notNull().default(false),
     groupId: integer('group_id')

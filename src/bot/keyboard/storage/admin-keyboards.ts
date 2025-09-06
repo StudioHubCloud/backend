@@ -10,7 +10,6 @@ export class AdminKeyboards {
   }
 
   static groupManageMenu(groupId: number, staffUserId?: string): TReplyInlineKeyboard {
-
     return KeyboardHelper.createInlineKeyboard([
       [
         {
@@ -21,28 +20,40 @@ export class AdminKeyboards {
       [
         {
           text: BUTTON_PATTERNS.BACK_TO_GROUP_LIST,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT, groupId, staffUserId),
-        },
-      ],
-    ])
-  }
-
-  static backForTrainingManage(trainingId: string, backButtonCallbackData: string | null = null): TReplyInlineKeyboard {
-    return KeyboardHelper.createInlineKeyboard([
-      [
-        {
-          text: BUTTON_PATTERNS.BACK_TO_TRAINING_INFO,
           callback_data: RegexHelper.createButtonActionCallbackData(
-            CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
-            trainingId,
-            backButtonCallbackData,
+            CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT,
+            groupId,
+            staffUserId,
           ),
         },
       ],
     ])
   }
 
-  static trainingManageMenu(training: GetTrainingByIdResponse, backButtonCallbackData?: string | null): TReplyInlineKeyboard {
+  static backForTrainingManage(
+    trainingId: string,
+    backButtonCallbackData: string | null = null,
+    staffUserId?: string | null,
+  ): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: BUTTON_PATTERNS.BACK,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
+            trainingId,
+            staffUserId ?? backButtonCallbackData,
+          ),
+        },
+      ],
+    ])
+  }
+
+  static trainingManageMenu(
+    training: GetTrainingByIdResponse,
+    backButtonCallbackData?: string | null,
+    staffUserId?: string,
+  ): TReplyInlineKeyboard {
     const { id: trainingId, groupId, isCancelled } = training
 
     const cancelButton = {
@@ -50,7 +61,7 @@ export class AdminKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.CANCEL,
         trainingId,
-        backButtonCallbackData,
+        staffUserId ??backButtonCallbackData,
       ),
     }
     const makeActiveButton = {
@@ -58,7 +69,7 @@ export class AdminKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE,
         trainingId,
-        backButtonCallbackData,
+        staffUserId ??backButtonCallbackData,
       ),
     }
 
@@ -67,7 +78,7 @@ export class AdminKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE,
         trainingId,
-        backButtonCallbackData,
+        staffUserId ?? backButtonCallbackData,
       ),
     }
     const canceledSignupsButton = {
@@ -75,7 +86,7 @@ export class AdminKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED,
         trainingId,
-        backButtonCallbackData,
+        staffUserId ?? backButtonCallbackData,
       ),
     }
 
@@ -88,7 +99,7 @@ export class AdminKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN,
             trainingId,
-            backButtonCallbackData,
+            staffUserId ?? backButtonCallbackData,
           ),
         },
       ],
@@ -99,7 +110,7 @@ export class AdminKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.TRAINING.SIGN_OUT,
             trainingId,
-            backButtonCallbackData,
+            staffUserId ?? backButtonCallbackData,
           ),
         },
       ],
@@ -109,6 +120,7 @@ export class AdminKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(
             backButtonCallbackData ?? CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT,
             groupId,
+            staffUserId,
           ),
         },
       ],
@@ -133,7 +145,16 @@ export class AdminKeyboards {
       ])
     }
 
-    keyboard.push([{ text: BUTTON_PATTERNS.BACK, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_MANAGE, userId, 'true') }])
+    keyboard.push([
+      {
+        text: BUTTON_PATTERNS.BACK,
+        callback_data: RegexHelper.createButtonActionCallbackData(
+          CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_MANAGE,
+          userId,
+          'true',
+        ),
+      },
+    ])
 
     return KeyboardHelper.createInlineKeyboard(keyboard)
   }
@@ -143,11 +164,7 @@ export class AdminKeyboards {
       [
         {
           text: BUTTON_PATTERNS.SCHEDULES_INFO,
-          callback_data: RegexHelper.createButtonActionCallbackData(
-            CALLBACK_PREFIX.STAFF.PAYOUT.CLIENT_INFO,
-            userId,
-            'true',
-          ),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.CLIENT_INFO, userId, 'true'),
         },
       ],
       [
@@ -171,8 +188,6 @@ export class AdminKeyboards {
   }
 
   static staffmemberManageMenu(userId: string): TReplyInlineKeyboard {
-
-    console.log(userId, 'userId in manage menu')
     return KeyboardHelper.createInlineKeyboard([
       [
         {
@@ -189,7 +204,11 @@ export class AdminKeyboards {
       [
         {
           text: BUTTON_PATTERNS.BACK_TO_STAFF_LIST,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_LIST, userId, 'true'),
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_LIST,
+            userId,
+            'true',
+          ),
         },
       ],
     ])

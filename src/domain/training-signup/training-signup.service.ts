@@ -85,7 +85,7 @@ export class TrainingSignupService {
   }
 
   async signUpForTrainingAsClientViaTelegram(values: {
-    trainingId: string
+    trainingId: number
     userProfileId: string
     passId: string
   }): Promise<TCustomApiResponse & { availableSlots?: number }> {
@@ -196,7 +196,7 @@ export class TrainingSignupService {
     }
   }
 
-  async signUpForTrainingAsGuestViaTelegram(values: { trainingId: string; userProfileId: string }): Promise<TCustomApiResponse> {
+  async signUpForTrainingAsGuestViaTelegram(values: { trainingId: number; userProfileId: string }): Promise<TCustomApiResponse> {
     const training = await this.trainingService.getTrainingById(values.trainingId)
     if (!training) {
       return { status: API.RESPONSE.ERROR_STRING, message: 'Тренування не знайдено' }
@@ -300,7 +300,7 @@ export class TrainingSignupService {
     }
   }
 
-  async getTrainingActiveSignups(trainingId: string) {
+  async getTrainingActiveSignups(trainingId: number) {
     const cacheKey = TrainingSignupCacheKey.trainingActiveSignups(trainingId)
     const cachedSignups = await this.redisCacheService.get<typeof result>(cacheKey)
     if (cachedSignups) {
@@ -325,7 +325,7 @@ export class TrainingSignupService {
     return result
   }
 
-  async getTrainingCancelledSignups(trainingId: string) {
+  async getTrainingCancelledSignups(trainingId: number) {
     const cacheKey = TrainingSignupCacheKey.trainingCanceledSignups(trainingId)
     const cachedSignups = await this.redisCacheService.get<typeof result>(cacheKey)
     if (cachedSignups) {
@@ -350,7 +350,7 @@ export class TrainingSignupService {
     return result
   }
 
-  async cancelAllActiveTrainingSignupsForTraining(trainingId: string, tx?: Transaction) {
+  async cancelAllActiveTrainingSignupsForTraining(trainingId: number, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
 
     return dbProvider
@@ -360,7 +360,7 @@ export class TrainingSignupService {
       .returning()
   }
 
-  async activateAllCancelledTrainingSignupsForTraining(trainingId: string, tx?: Transaction) {
+  async activateAllCancelledTrainingSignupsForTraining(trainingId: number, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
 
     return dbProvider
@@ -380,7 +380,7 @@ export class TrainingSignupService {
     return !!signups
   }
 
-  private async checkIfAlreadySignedUpForTraining(userProfileId: string, trainingId: string) {
+  private async checkIfAlreadySignedUpForTraining(userProfileId: string, trainingId: number) {
     const cacheKey = TrainingSignupCacheKey.trainingAlreadyBooked(userProfileId, trainingId)
     const cachedSignup = await this.redisCacheService.get<typeof existingSignup>(cacheKey)
     if (cachedSignup) {

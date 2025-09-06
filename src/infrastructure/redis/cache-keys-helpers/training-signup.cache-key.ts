@@ -5,17 +5,17 @@ export class TrainingSignupCacheKey {
           return `${this.cache_key_prefix}:${userProfileId}:${groupId}`
      }
 
-     static trainingAlreadyBooked(userProfileId: string, trainingId: string): string {
+     static trainingAlreadyBooked(userProfileId: string, trainingId: number): string {
           return `${this.cache_key_prefix}:b:${userProfileId}:${trainingId}`
      }
 
      static clientSignups(userProfileId: string): string {
           return `${this.cache_key_prefix}:${userProfileId}`
      }
-     static trainingActiveSignups(trainingId: string): string {
+     static trainingActiveSignups(trainingId: number): string {
           return `${this.cache_key_prefix}:active:${trainingId}`
      }
-     static trainingCanceledSignups(trainingId: string): string {
+     static trainingCanceledSignups(trainingId: number): string {
           return `${this.cache_key_prefix}:canceled:${trainingId}`
      }
 }

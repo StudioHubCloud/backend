@@ -84,7 +84,7 @@ export class SchedulerComposer {
         return ctx.answerCbQuery(MESSAGES_CLIENT.NO_ACTIVE_PASS, { show_alert: true })
       }
       const response = await this.trainingSignupService.signUpForTrainingAsClientViaTelegram({
-        trainingId,
+        trainingId: +trainingId,
         userProfileId: id,
         passId: currentActivePass.id,
       })

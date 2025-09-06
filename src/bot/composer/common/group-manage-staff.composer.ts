@@ -12,7 +12,7 @@ import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { BotHelper, RegexHelper, TextHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
@@ -48,7 +48,7 @@ export class GroupManageStaffComposer {
         callbackPrefix: CALLBACK_PREFIX.STAFF.GROUP.SELECT,
         promptMessage: (ctx: BotContext) => this.getStaffMemberMessages(ctx, 'prompt'),
         noOptionsMessage: (ctx: BotContext) => this.getStaffMemberMessages(ctx, 'noOptions'),
-        onItemSelect: this.handleGroupPaginatedSelect,
+        onItemSelect: this.renderGroupManageMenu,
       }),
     )
     this.composer.use(
@@ -85,7 +85,19 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT),
       async (ctx: BotContext) => {
-        return this.renderGroupSelectMenu(ctx)
+        const [_, staffMemberId] = RegexHelper.getMatchGroupValue(ctx)
+
+        let backButtonCallbackData: string | null = null
+
+        if (!!staffMemberId) {
+          backButtonCallbackData = RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_MANAGE,
+            staffMemberId,
+            'true',
+          )
+        }
+
+        return this.renderGroupSelectMenu(ctx, { backButtonCallbackData, shouldEdit: true }, staffMemberId || undefined)
       },
     )
 
@@ -118,7 +130,7 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECTED_GROUP),
       async (ctx: BotContext) => {
-        const [groupId] = RegexHelper.getMatchGroupValue(ctx)
+        const [groupId, staffUserId] = RegexHelper.getMatchGroupValue(ctx)
 
         if (!groupId) {
           ctx.answerCbQuery('Не вдалося повернутися до групи.', { show_alert: true })
@@ -126,13 +138,13 @@ export class GroupManageStaffComposer {
           return
         }
 
-        return this.handleGroupPaginatedSelect(ctx, groupId)
+        return this.renderGroupManageMenu(ctx, groupId, { staffUserId })
       },
     )
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.CANCEL), async (ctx: BotContext) => {
-      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData) => {
-        const { training, signups } = await this.trainingService.cancelTrainingById(trainingId)
+      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+        const { training, signups } = await this.trainingService.cancelTrainingById(+trainingId)
 
         await Promise.all(
           signups.map((signup) => {
@@ -149,13 +161,13 @@ export class GroupManageStaffComposer {
           }),
         )
 
-        return this.renderTrainingManageMenu(ctx, training.id, { fromUpcomingTrainingsMenu: !!backButtonCallbackData })
+        return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId })
       })
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE), async (ctx: BotContext) => {
-      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData) => {
-        const { training, signups } = await this.trainingService.activateTrainingById(trainingId)
+      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+        const { training, signups } = await this.trainingService.activateTrainingById(+trainingId)
         await Promise.all(
           signups.map((signup) => {
             return ctx.telegram.sendMessage(
@@ -170,15 +182,15 @@ export class GroupManageStaffComposer {
             )
           }),
         )
-        return this.renderTrainingManageMenu(ctx, training.id, { fromUpcomingTrainingsMenu: !!backButtonCallbackData })
+        return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId })
       })
     })
 
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE),
       async (ctx: BotContext) => {
-        return this.handleTrainingAction(ctx, (trainingId, backButtonCallbackData) => {
-          return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData })
+        return this.handleTrainingAction(ctx, (trainingId, backButtonCallbackData, staffUserId) => {
+          return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId })
         })
       },
     )
@@ -186,12 +198,12 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE),
       async (ctx: BotContext) => {
-        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData) => {
+        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
           ctx.answerCbQuery()
-          const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
+          const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
           return ctx.editMessageText(MessageHelper.constructSignupListMessage(activeSignUps, TrainingSignupStatusEnum.ACTIVE), {
             parse_mode: 'HTML',
-            ...AdminKeyboards.backForTrainingManage(trainingId, backButtonCallbackData),
+            ...AdminKeyboards.backForTrainingManage(trainingId, backButtonCallbackData, staffUserId),
           })
         })
       },
@@ -200,19 +212,19 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED),
       async (ctx: BotContext) => {
-        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData) => {
+        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
           ctx.answerCbQuery()
-          const canceledSignups = await this.trainingSignupService.getTrainingCancelledSignups(trainingId)
+          const canceledSignups = await this.trainingSignupService.getTrainingCancelledSignups(+trainingId)
           return ctx.editMessageText(MessageHelper.constructSignupListMessage(canceledSignups, TrainingSignupStatusEnum.CANCELED), {
             parse_mode: 'HTML',
-            ...AdminKeyboards.backForTrainingManage(trainingId, backButtonCallbackData),
+            ...AdminKeyboards.backForTrainingManage(trainingId, backButtonCallbackData, staffUserId),
           })
         })
       },
     )
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN), async (ctx: BotContext) => {
-      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData) => {
+      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         ctx.answerCbQuery()
         ctx.reply('В процеці розробки...)')
         // return ctx.scene.enter(SCENES.SIGN_IN_CLIENT, { trainingId })
@@ -221,9 +233,9 @@ export class GroupManageStaffComposer {
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_OUT), async (ctx: BotContext) => {
-      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData) => {
+      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         ctx.answerCbQuery()
-        const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(trainingId)
+        const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
         const data = activeSignUps.map((signup) => ({
           name: `${signup.userProfile?.firstName} ${signup.userProfile?.lastName}`,
           id: signup.id,
@@ -231,7 +243,7 @@ export class GroupManageStaffComposer {
         return this.clientSelectSignOutPaginatedMenu.initMenu(
           ctx,
           { data },
-          { context: { fromUpcomingTrainingsMenu: !!backButtonCallbackData } },
+          { context: { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId } },
         )
       })
     })
@@ -265,44 +277,66 @@ export class GroupManageStaffComposer {
     if (isCallbackQueryUpdate) {
       ctx.answerCbQuery()
     }
+
+    console.log(options, 'options in group select menu')
     return this.groupSelectPaginatedMenu.initMenu(
       ctx,
       { userId: id, role, staffUserId },
-      { shouldEdit: options.shouldEdit, backButtonCallbackData: options.backButtonCallbackData, context: { staffUserId: staffUserId } },
+      {
+        shouldEdit: options.shouldEdit,
+        backButtonCallbackData: options.backButtonCallbackData,
+        context: { staffUserId: staffUserId },
+      },
     )
   }
 
   private renderTrainingSelectMenu = async (ctx: BotContext, { shouldEdit }: TPaginatedMenuRenderOptions) => {
-    const [_, groupId] = ctx['match']
-    const group = await this.groupService.getGroupById(groupId)
+    const [groupId, staffUserId] = RegexHelper.getMatchGroupValue(ctx)
+    if (!groupId) {
+      ctx.answerCbQuery('❗️ Не вдалося завантажити тренування. Спробуйте ще раз.', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    }
+    const group = await this.groupService.getGroupById(+groupId)
     const backButtonCallbackData = RegexHelper.createButtonActionCallbackData(
       CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECTED_GROUP,
       groupId,
+      staffUserId,
     )
-    return this.trainingSelectStaffPaginatedMenu.initMenu(ctx, { group }, { shouldEdit, backButtonCallbackData })
+
+    console.log(backButtonCallbackData, 'backButtonCallbackData in training select menu')
+    return this.trainingSelectStaffPaginatedMenu.initMenu(
+      ctx,
+      { group },
+      { shouldEdit, backButtonCallbackData, context: { staffUserId: staffUserId } },
+    )
   }
 
   private renderTrainingManageMenu = async (ctx: BotContext, trainingId: string, context: Record<string, any> = {}) => {
     await ctx.answerCbQuery()
-    const training = await this.trainingService.getTrainingById(trainingId)
+    const training = await this.trainingService.getTrainingById(+trainingId)
     const group = await this.groupService.getGroupById(training.groupId)
 
-    const { fromUpcomingTrainingsMenu } = context
+    const { fromUpcomingTrainingsMenu, staffUserId } = context
 
     const isAdmin = UserHelper.isAdminRole(ctx)
 
-    const backButtonCallbackData = fromUpcomingTrainingsMenu ? CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST : null
+    const backButtonCallbackData =  fromUpcomingTrainingsMenu ? CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST : null
+
+    console.log(context, 'context in training manage menu')
 
     return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
       parse_mode: 'HTML',
       ...(isAdmin
-        ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData)
+        ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId)
         : TrainerKeyboards.trainingManageMenu(training, backButtonCallbackData)),
     })
   }
 
-  private handleGroupPaginatedSelect = async (ctx: BotContext, groupId: string, context: Record<string, any> = {}) => {
+  private renderGroupManageMenu = async (ctx: BotContext, groupId: string, context: Record<string, any> = {}) => {
     ctx.answerCbQuery()
+    console.log('Group ID:', groupId)
+    console.log('Context:', context)
     const group = await this.groupService.getGroupById(+groupId)
     return ctx.editMessageText(MessageHelper.constructGroupSelectMessage(group), {
       parse_mode: 'HTML',
@@ -355,9 +389,15 @@ export class GroupManageStaffComposer {
 
   private async handleTrainingAction(
     ctx: BotContext,
-    action: (trainingId: string, backButtonCallbackData?: string | null) => Promise<any>,
+    action: (trainingId: string, backButtonCallbackData?: string | null, staffUserId?: string | null) => Promise<any>,
   ) {
     const [trainingId, backButtonCallbackData] = RegexHelper.getMatchGroupValue(ctx)
+
+    console.log(backButtonCallbackData, 'backButtonCallbackData in handle training action')
+
+    const staffUserId = RegexHelper.isValidUuid(backButtonCallbackData) ? backButtonCallbackData : undefined
+
+    console.log(staffUserId, 'staffUserId in handle training action')
 
     if (!trainingId) {
       ctx.answerCbQuery('⚠️ Не вдалося повернутися до тренування.', { show_alert: true })
@@ -365,6 +405,6 @@ export class GroupManageStaffComposer {
       return
     }
 
-    return action(trainingId, backButtonCallbackData)
+    return action(trainingId, staffUserId ? null : backButtonCallbackData, staffUserId)
   }
 }

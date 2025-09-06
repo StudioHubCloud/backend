@@ -17,7 +17,7 @@ export const trainingSignup = table(
     groupId: integer('group_id')
       .references(() => group.id, { onDelete: 'cascade' })
       .notNull(),
-    trainingId: uuid('training_id')
+    trainingId: integer('training_id')
       .references(() => training.id, { onDelete: 'cascade' })
       .notNull(),
   },

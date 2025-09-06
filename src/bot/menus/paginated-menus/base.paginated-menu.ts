@@ -61,7 +61,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
   private initComposerHandlers() {
     this.composer.action(this.selectItemRegex, async (ctx) => {
       const itemId = ctx.match[1]
-      return this.config.onItemSelect(ctx, itemId, this.renderOptions.context || {})
+      return this.config.onItemSelect(ctx, itemId, this.renderOptions?.context || {})
     })
 
     this.composer.action(this.paginationRegex, async (ctx) => {
