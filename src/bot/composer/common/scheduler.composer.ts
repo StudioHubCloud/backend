@@ -69,7 +69,7 @@ export class SchedulerComposer {
   private handleGroupSelect = async (ctx: BotContext, groupId: string) => {
     ctx.answerCbQuery()
     const { id, client, role } = UserHelper.getUser(ctx)
-    const group = await this.groupService.getGroupById(groupId)
+    const group = await this.groupService.getGroupById(+groupId)
     return this.trainingSelectMenu.initMenu(ctx, { group, clientId: client?.id, userId: id, role }, { shouldEdit: true })
   }
 

@@ -89,7 +89,7 @@ export class GroupService {
     return ageAppropriateGroups
   }
 
-  async getGroupById(groupId: string): Promise<GetGroupByIdResponse> {
+  async getGroupById(groupId: number): Promise<GetGroupByIdResponse> {
     const cacheKey = GroupCacheKey.groupById(groupId)
 
     const groupCashed = await this.redisCacheService.get<typeof groupFound>(cacheKey)

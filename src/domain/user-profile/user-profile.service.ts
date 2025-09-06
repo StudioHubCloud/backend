@@ -6,6 +6,7 @@ import {
   UserProfileInsertModel,
   UserProfileSelectModel,
   Transaction,
+  staffMember,
 } from '@app/infrastructure/database'
 import { RedisCacheService, UserProfileCacheKey } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
@@ -82,8 +83,8 @@ export class UserProfileService {
       where: (userProfile, { and, eq }) => and(...Object.entries(conditions).map(([key, value]) => eq(userProfile[key], value))),
       with: {
         staffMember: true,
-        client: true
-      }
+        client: true,
+      },
     })
 
     if (userProfileFound) {
@@ -252,5 +253,31 @@ export class UserProfileService {
         ),
       orderBy: (userProfile, { asc }) => asc(userProfile.firstName),
     })
+  }
+
+  async getAllActiveStaffMembersUserProfiles() {
+    const studioId = this.configService.get('STUDIO_ID')
+    const cacheKey = UserProfileCacheKey.allStudioStaffMembers(studioId)
+
+    const staffMembersCashed = await this.redisCacheService.get<typeof staffMembers>(cacheKey)
+    if (staffMembersCashed) {
+      return staffMembersCashed
+    }
+
+    const staffMembers = await this.databaseService.drizzle.query.userProfile.findMany({
+      where: (userProfile, { eq, and, or, exists }) =>
+        and(
+          eq(userProfile.studioId, studioId),
+          or(eq(userProfile.role, UserProfileRoleEnum.TRAINER), eq(userProfile.role, UserProfileRoleEnum.ADMIN)),
+          eq(userProfile.status, UserProfileStatusEnum.ACTIVE),
+          exists(this.databaseService.drizzle.select().from(staffMember).where(eq(staffMember.userProfileId, userProfile.id))),
+        ),
+      with: {
+        staffMember: true,
+      },
+    })
+
+    this.redisCacheService.set(cacheKey, staffMembers)
+    return staffMembers
   }
 }

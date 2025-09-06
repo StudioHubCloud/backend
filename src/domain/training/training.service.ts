@@ -12,7 +12,7 @@ import {
 } from '@app/infrastructure/database'
 import { API, TrainingSignupStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { RedisCacheService, TrainingCacheKey } from '@app/infrastructure/redis'
-import { GetTrainingByIdResponse, PASS_CONFIG } from '@app/bot/libs'
+import { COMMON, GetTrainingByIdResponse, PASS_CONFIG } from '@app/bot/libs'
 import { PassService } from '../pass'
 import { StudioService } from '../studio'
 import { TrainingSignupService } from '../training-signup'
@@ -35,7 +35,7 @@ export class TrainingService {
     private readonly staffMemberService: StaffMemberService,
   ) {}
 
-  async getTrainingListForManage({ groupId }: { groupId: string }) {
+  async getTrainingListForManage({ groupId }: { groupId: number }) {
     const cacheKey = TrainingCacheKey.trainingsForManage(groupId)
 
     const cachedTrainings = await this.redisCacheService.get<typeof trainings>(cacheKey)
@@ -119,7 +119,7 @@ export class TrainingService {
     return { training: result[0], signups: activeSignUps }
   }
 
-  async getTrainingsListForSchedule(options: { groupId: string; clientId?: string; userId: string; role: UserProfileRoleEnum }) {
+  async getTrainingsListForSchedule(options: { groupId: number; clientId?: string; userId: string; role: UserProfileRoleEnum }) {
     const { groupId, clientId, userId } = options
     const cacheKey = TrainingCacheKey.trainingsForSchedule(groupId, userId)
 
@@ -292,7 +292,7 @@ export class TrainingService {
     const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: userId })
 
     const now = new Date().toISOString()
-    const sevenDaysFromNow = addDays(now, PASS_CONFIG.INCOMING_TRAININGS_DAYS_RANGE).toISOString()
+    const sevenDaysFromNow = addDays(now, COMMON.INCOMING_TRAININGS_DAYS_RANGE).toISOString()
 
     return this.databaseService.drizzle.query.training.findMany({
       where: (training, { eq, and, gte, lte, exists, or, isNull }) =>
@@ -367,7 +367,7 @@ export class TrainingService {
 
   private generateTrainingsRecords(
     trainingDates: Date[],
-    groupId: string,
+    groupId: number,
     schedule: GroupScheduleSelectModel,
     trainerId: string | null,
   ) {

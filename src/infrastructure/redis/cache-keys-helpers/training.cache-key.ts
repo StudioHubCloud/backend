@@ -2,11 +2,11 @@ export class TrainingCacheKey {
    private static readonly cache_key_prefix = 'training'
 
 
-   static trainingsForSchedule(groupId: string, userId: string): string {
+   static trainingsForSchedule(groupId: number, userId: string): string {
       return `${this.cache_key_prefix}:${groupId}:${userId}`
    }
 
-   static trainingsForManage(groupId: string): string {
+   static trainingsForManage(groupId: number): string {
       return `${this.cache_key_prefix}:${groupId}:manage`
    }
 

@@ -65,7 +65,7 @@ export class VerifyTrainerSceneKeyboards {
       groups.map((group) => [
         {
           text: group.name,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.VERIFY_TRAINER.GROUP_SELECT, group.id),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.VERIFY_TRAINER.GROUP_SELECT, String(group.id)),
         },
       ]),
     )

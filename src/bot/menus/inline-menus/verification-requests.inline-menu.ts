@@ -37,7 +37,7 @@ export class VerificationInlineMenu {
     })
 
     if (!userProfiles.length) {
-      return ctx.reply('Немає активних запитів на підтвердження')
+      return ctx.reply('📝 Немає активних запитів на підтвердження')
     }
 
     Object.keys(result).forEach(async (key) => {
@@ -45,7 +45,7 @@ export class VerificationInlineMenu {
       const buttons = result[role]
       if (buttons.length > 0) {
         const keyboard = KeyboardHelper.createInlineKeyboard(buttons)
-        const message = `Активні запити на підтвердження ${UserHelper.isClientRole(role) ? 'клієнтів' : 'тренерів'}`
+        const message = `✉️ Активні запити на підтвердження ${UserHelper.isClientRole(role) ? 'клієнтів' : 'тренерів'}`
         await ctx.reply(message, keyboard)
       }
     })

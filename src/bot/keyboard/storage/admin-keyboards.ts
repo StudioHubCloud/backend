@@ -1,4 +1,4 @@
-import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
+import { KeyboardHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
 import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
 import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
@@ -9,18 +9,19 @@ export class AdminKeyboards {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_ADMIN.MAIN_MENU)
   }
 
-  static groupManageMenu(groupId: string): TReplyInlineKeyboard {
+  static groupManageMenu(groupId: number, staffUserId?: string): TReplyInlineKeyboard {
+
     return KeyboardHelper.createInlineKeyboard([
       [
         {
           text: BUTTON_PATTERNS.TRAININGS,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS, groupId),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS, groupId, staffUserId),
         },
       ],
       [
         {
           text: BUTTON_PATTERNS.BACK_TO_GROUP_LIST,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT, groupId),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT, groupId, staffUserId),
         },
       ],
     ])
@@ -114,31 +115,37 @@ export class AdminKeyboards {
     ])
   }
 
-  static staffmemberPayoutInfoMenu(staffMemberId: string, isEmpty: boolean = false): TReplyInlineKeyboard {
+  static staffmemberPayoutSummaryMenu(userId: string, isEmpty: boolean = false): TReplyInlineKeyboard {
     const keyboard: InlineKeyboardButton[][] = []
 
     if (!isEmpty) {
       keyboard.push([
         {
           text: BUTTON_PATTERNS.SEE_DETAILS,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS, staffMemberId, 'true'),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS, userId, 'true'),
+        },
+      ])
+      keyboard.push([
+        {
+          text: BUTTON_PATTERNS.INITIATE_PAYOUT,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.INITIATE, userId, 'true'),
         },
       ])
     }
 
-    keyboard.push([{ text: BUTTON_PATTERNS.BACK_TO_STAFF_LIST, callback_data: CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF }])
+    keyboard.push([{ text: BUTTON_PATTERNS.BACK, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_MANAGE, userId, 'true') }])
 
     return KeyboardHelper.createInlineKeyboard(keyboard)
   }
 
-  static staffmemberPayoutDetailsMenu(staffMemberId: string): TReplyInlineKeyboard {
+  static staffmemberPayoutDetailsMenu(userId: string): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
           text: BUTTON_PATTERNS.SCHEDULES_INFO,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.PAYOUT.CLIENT_INFO,
-            staffMemberId,
+            userId,
             'true',
           ),
         },
@@ -146,7 +153,7 @@ export class AdminKeyboards {
       [
         {
           text: BUTTON_PATTERNS.BACK,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.SUMMARY, staffMemberId, 'true'),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.SUMMARY, userId, 'true'),
         },
       ],
     ])
@@ -158,6 +165,31 @@ export class AdminKeyboards {
         {
           text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS, staffMemberId, 'true'),
+        },
+      ],
+    ])
+  }
+
+  static staffmemberManageMenu(userId: string): TReplyInlineKeyboard {
+
+    console.log(userId, 'userId in manage menu')
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: BUTTON_PATTERNS.PAYOUT_CALCULATIONS,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.SUMMARY, userId, 'true'),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.STAFF_GROUPS,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.MANAGE.GROUPS_LIST, userId, 'true'),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.BACK_TO_STAFF_LIST,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_LIST, userId, 'true'),
         },
       ],
     ])

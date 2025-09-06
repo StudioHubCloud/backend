@@ -1,4 +1,4 @@
-import { smallint, pgTable as table, varchar, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { smallint, pgTable as table, varchar, uniqueIndex, uuid, integer} from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
 import { groupScheduleDay } from './group-schedule-day.schema'
@@ -9,7 +9,7 @@ export const groupSchedule = table(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     time: varchar('time').notNull(),
-    groupId: uuid('group_id')
+    groupId: integer('group_id')
       .references(() => group.id, { onDelete: 'cascade' })
       .notNull(),
     groupScheduleDayId: smallint('group_schedule_day_id')

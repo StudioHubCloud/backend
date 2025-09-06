@@ -1,7 +1,6 @@
 import { DOB_REGEXP, NUMBERS_REGEXP, PHONE_REGEXP } from '@app/libs/constants/regexp'
 
 export class TextHelper {
-
   static capitalizeWord(word: string): string {
     if (!word) return word
     return word.charAt(0).toUpperCase() + word.slice(1).toLowerCase()
@@ -39,5 +38,20 @@ export class TextHelper {
   static capitalize(text?: string): string {
     if (!text) return ''
     return text.charAt(0).toUpperCase() + text.slice(1)
+  }
+
+  static encodeUuid(uuid?: string) {
+    if (!uuid) return ''
+
+    // Remove dashes and convert hex to base64
+    const hex = uuid.replace(/-/g, '')
+    return Buffer.from(hex, 'hex').toString('base64')
+  }
+
+  static decodeUuid(encoded?: string) {
+    if (!encoded) return ''
+    const hex = Buffer.from(encoded, 'base64').toString('hex')
+    // Reconstruct UUID format: 8-4-4-4-12
+    return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20, 32)}`
   }
 }

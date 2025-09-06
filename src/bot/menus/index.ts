@@ -4,3 +4,4 @@ export { ClientSelectPaginatedMenu, CLIENT_SIGNOUT_MENU } from './paginated-menu
 export { ActiveSchedulesInlineMenu } from './inline-menus/active-schedules.inline-menu'
 export { VerificationInlineMenu } from './inline-menus/verification-requests.inline-menu'
 export { TrainingSelectStaffPaginatedMenu } from './paginated-menus/training-select-staff.paginated-menu'
+export { StaffSelectPaginatedMenu } from './paginated-menus/staff-select.paginated-menu'

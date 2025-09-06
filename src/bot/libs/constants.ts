@@ -1,18 +1,18 @@
 export const PASS_CONFIG = {
   DEFAULT_DURATION_IN_DAYS: 30,
   ACTIVATION_GRACE_PERIOD: 7,
-  INCOMING_TRAININGS_DAYS_RANGE: 7,
 } as const
 
 export const COMMON = {
   SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING: 6,
+  INCOMING_TRAININGS_DAYS_RANGE: 7,
 } as const
 
 export const SCENES = {
   REGISTER: 'register',
   VERIFY_CLIENT: 'verify_client',
   VERIFY_TRAINER: 'verify_trainer',
-  SIGN_IN_CLIENT: 'sign_in_client'
+  SIGN_IN_CLIENT: 'sign_in_client',
 } as const
 
 export const CALLBACK_DATA = {
@@ -53,8 +53,14 @@ export const CALLBACK_PREFIX = {
     PAYOUT: {
       DETAILS: 'p.i.st',
       SUMMARY: 'p.d.st',
+      INITIATE: 'p.init.st',
       CLIENT_INFO: 'p.i.cl',
-      BACK_TO_STAFF: 'p.b.s.st',
+      BACK_TO_STAFF_MANAGE: 'p.b.s.st.m',
+      BACK_TO_STAFF_LIST: 'p.b.s.st.l',
+    },
+    MANAGE: {
+      LIST: 'm.l.st',
+      GROUPS_LIST: 'm.s.g.l.st',
     }
   },
   CLIENT: {

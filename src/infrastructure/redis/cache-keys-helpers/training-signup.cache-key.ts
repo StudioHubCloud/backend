@@ -1,7 +1,7 @@
 export class TrainingSignupCacheKey {
      private static readonly cache_key_prefix = 'training-signup'
 
-     static clientSignupsInGroup(userProfileId: string, groupId: string): string {
+     static clientSignupsInGroup(userProfileId: string, groupId: number): string {
           return `${this.cache_key_prefix}:${userProfileId}:${groupId}`
      }
 

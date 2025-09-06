@@ -4,7 +4,7 @@ export class GroupCacheKey {
    private static readonly cache_key_prefix = 'group'
 
 
-  static groupById(id: string): string {
+  static groupById(id: number): string {
       return `${this.cache_key_prefix}:id:${id}`
    }
 

@@ -62,7 +62,7 @@ export class TrainingSignupService {
     return signups
   }
 
-  async getClientGroupSignups(userProfileId: string, groupId: string) {
+  async getClientGroupSignups(userProfileId: string, groupId: number) {
     //unused
     const cache_key = TrainingSignupCacheKey.clientSignupsInGroup(userProfileId, groupId)
 

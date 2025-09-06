@@ -61,7 +61,7 @@ export class PayoutStaffComposer {
 
     const message = MessageHelper.getStaffPayoutInfoMessage(result.statistics)
     const keyboard = isAdmin
-      ? AdminKeyboards.staffmemberPayoutInfoMenu(userId, isEmpty)
+      ? AdminKeyboards.staffmemberPayoutSummaryMenu(userId, isEmpty)
       : TrainerKeyboards.staffmemberPayoutSummaryMenu(userId, isEmpty)
     const [_, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
 

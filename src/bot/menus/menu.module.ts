@@ -9,6 +9,7 @@ import { TrainingSelectPaginatedMenu } from './paginated-menus/training-select.p
 import { VerificationInlineMenu } from './inline-menus/verification-requests.inline-menu'
 import { TrainingSelectStaffPaginatedMenu } from './paginated-menus/training-select-staff.paginated-menu'
 import { ClientSelectPaginatedMenu, CLIENT_SIGNOUT_MENU } from './paginated-menus/client-select.paginated-menu'
+import { StaffSelectPaginatedMenu } from './paginated-menus/staff-select.paginated-menu'
 import { GroupService } from '@app/domain/group'
 
 @Module({
@@ -20,6 +21,7 @@ import { GroupService } from '@app/domain/group'
     TrainingSelectStaffPaginatedMenu,
     VerificationInlineMenu,
     ClientSelectPaginatedMenu,
+    StaffSelectPaginatedMenu,
     {
       provide: CLIENT_SIGNOUT_MENU,
       useFactory: (groupService: GroupService) => new ClientSelectPaginatedMenu(groupService),
@@ -39,6 +41,7 @@ import { GroupService } from '@app/domain/group'
     CLIENT_SIGNOUT_MENU,
     VerificationInlineMenu,
     TrainingSelectStaffPaginatedMenu,
+    StaffSelectPaginatedMenu,
   ],
 })
 export class MenuModule {}

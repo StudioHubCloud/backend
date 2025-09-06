@@ -1,4 +1,4 @@
-import { index, smallint, integer, pgTable as table, uuid, varchar } from 'drizzle-orm/pg-core'
+import { index, smallint, integer, pgTable as table, uuid, varchar, serial } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { training } from './training.schema'
 import { pass } from './pass.schema'
@@ -15,7 +15,7 @@ import { groupAgeRestrictionException } from './group-age-restriction-exeption.s
 export const group = table(
   'group',
   {
-    id: uuid('id').primaryKey().defaultRandom(),
+    id: serial('id').primaryKey(),
     name: varchar('title').notNull(),
     capacity: smallint('capacity').notNull(),
     status: GroupStatusPgEnum('status').notNull().default(GroupStatusEnum.INACTIVE),

@@ -15,7 +15,7 @@ export class GroupAgeRestrictionService {
     private readonly logger: PinoLogger,
   ) {}
 
-  async checkIfUserPassedAgeRestriction({ userProfileId, groupId }: { userProfileId: string; groupId: string }): Promise<boolean> {
+  async checkIfUserPassedAgeRestriction({ userProfileId, groupId }: { userProfileId: string; groupId: number }): Promise<boolean> {
     const cacheKey = GroupAgeRestrictionCacheKey.passedAgeRestriction(userProfileId, groupId)
 
     if (!userProfileId || !groupId) {

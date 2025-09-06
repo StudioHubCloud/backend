@@ -37,6 +37,7 @@ export const BUTTON_PATTERNS = {
   UPCOMING_TRAININGS: '🗓️ Найближчі тренування',
   STAFF: '👨‍🏫 Персонал',
   GROUPS: '👯‍♀️ Групи',
+  STAFF_GROUPS: '👯‍♀️ Групи тренера',
   CLIENTS: '💃 Клієнти',
   TRAININGS: '🤸‍♂️ Тренування',
   TRAINERS: '👨‍🏫 Тренери',
@@ -44,6 +45,7 @@ export const BUTTON_PATTERNS = {
   INDIVIDUAL_PASS_TYPE: '👤 Індивідуальний абонемент',
   SCHEDULES_INFO: '📝 Інформація про записи',
   SEE_DETAILS: '📑 Переглянути деталі',
+  INITIATE_PAYOUT: '💸 Виплатити запрлату',
   ACTIVE_SCHEDULES_LIST: '📜 Активні записи',
   CANCELED_SCHEDULES_LIST: '📜 Скасовані записи',
 } as const

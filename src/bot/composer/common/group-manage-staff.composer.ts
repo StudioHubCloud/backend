@@ -12,7 +12,7 @@ import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, RegexHelper, TextHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
@@ -88,6 +88,24 @@ export class GroupManageStaffComposer {
         return this.renderGroupSelectMenu(ctx)
       },
     )
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.MANAGE.GROUPS_LIST), async (ctx: BotContext) => {
+      const [userId, isAdmin] = RegexHelper.getMatchGroupValue(ctx)
+
+      if (!userId) {
+        ctx.answerCbQuery('❗️ Помилка при виборі тренера. Спробуйте ще раз.')
+        ctx.deleteMessage()
+        return
+      }
+
+      const backButtonCallbackData = RegexHelper.createButtonActionCallbackData(
+        CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_MANAGE,
+        userId,
+        isAdmin,
+      )
+
+      return this.renderGroupSelectMenu(ctx, { backButtonCallbackData, shouldEdit: true }, userId)
+    })
 
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT),
@@ -237,13 +255,21 @@ export class GroupManageStaffComposer {
     )
   }
 
-  private renderGroupSelectMenu = async (ctx: BotContext, options: TPaginatedMenuRenderOptions = { shouldEdit: true }) => {
+  private renderGroupSelectMenu = async (
+    ctx: BotContext,
+    options: TPaginatedMenuRenderOptions = { shouldEdit: true, backButtonCallbackData: null },
+    staffUserId?: string,
+  ) => {
     const { id, role } = UserHelper.getUser(ctx)
     const [_, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
     if (isCallbackQueryUpdate) {
       ctx.answerCbQuery()
     }
-    return this.groupSelectPaginatedMenu.initMenu(ctx, { userId: id, role }, { shouldEdit: options.shouldEdit })
+    return this.groupSelectPaginatedMenu.initMenu(
+      ctx,
+      { userId: id, role, staffUserId },
+      { shouldEdit: options.shouldEdit, backButtonCallbackData: options.backButtonCallbackData, context: { staffUserId: staffUserId } },
+    )
   }
 
   private renderTrainingSelectMenu = async (ctx: BotContext, { shouldEdit }: TPaginatedMenuRenderOptions) => {
@@ -275,12 +301,12 @@ export class GroupManageStaffComposer {
     })
   }
 
-  private handleGroupPaginatedSelect = async (ctx: BotContext, groupId: string) => {
+  private handleGroupPaginatedSelect = async (ctx: BotContext, groupId: string, context: Record<string, any> = {}) => {
     ctx.answerCbQuery()
-    const group = await this.groupService.getGroupById(groupId)
+    const group = await this.groupService.getGroupById(+groupId)
     return ctx.editMessageText(MessageHelper.constructGroupSelectMessage(group), {
       parse_mode: 'HTML',
-      ...AdminKeyboards.groupManageMenu(groupId),
+      ...AdminKeyboards.groupManageMenu(+groupId, context.staffUserId),
     })
   }
 

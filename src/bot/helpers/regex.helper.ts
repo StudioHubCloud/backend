@@ -18,7 +18,7 @@ export class RegexHelper {
     return new RegExp(`^${prefix}:(?<value>[^:]+)(?::(?<subvalue>.*))?$`)
   }
 
-  static createButtonActionCallbackData(prefix: string, value: string, subvalue?: string | null) {
+  static createButtonActionCallbackData(prefix: string, value: string | number, subvalue?: string | number | null) {
     return `${prefix}:${value}${subvalue ? `:${subvalue}` : ''}`
   }
 

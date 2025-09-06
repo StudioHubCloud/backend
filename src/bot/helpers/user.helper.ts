@@ -1,6 +1,7 @@
 import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { AuthUserProfile } from '@app/bot/libs'
 import { BotContext } from '../bot.context'
+import { StaffMemberSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 
 export class UserHelper {
   static getUser(ctx: BotContext): AuthUserProfile {
@@ -34,8 +35,8 @@ export class UserHelper {
     return user.role === UserProfileRoleEnum.TRAINER
   }
 
-  static isStaffMemberRole(ctx: BotContext) {
-    const user = this.getUser(ctx)
+  static isStaffMemberRole(ctx: BotContext, userPassed?: UserProfileSelectModel) {
+    const user = userPassed ?? this.getUser(ctx)
     return user.role === UserProfileRoleEnum.ADMIN || user.role === UserProfileRoleEnum.TRAINER
   }
 
@@ -64,7 +65,11 @@ export class UserHelper {
     return user.status === UserProfileStatusEnum.VERIFICATION_REQUESTED
   }
 
-  static getFullName(firstName: string, lastName?: string): string {
+  static getFullName(firstName: string, lastName?: string | null): string {
     return lastName ? `${firstName} ${lastName}` : firstName
+  }
+
+  static isStaffMember(user: UserProfileSelectModel & { staffMember: StaffMemberSelectModel | null }): boolean {
+    return (user.role === UserProfileRoleEnum.ADMIN || user.role === UserProfileRoleEnum.TRAINER) && user.staffMember !== null
   }
 }
