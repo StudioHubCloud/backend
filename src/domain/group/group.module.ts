@@ -4,10 +4,11 @@ import { GroupController } from './group.controller'
 import { UserProfileModule } from '../user-profile'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
+import { StaffMemberModule } from '../staff-member'
 
 @Module({
   controllers: [GroupController],
-  imports: [UserProfileModule],
+  imports: [UserProfileModule, StaffMemberModule],
   providers: [
     GroupService,
     {

@@ -63,6 +63,10 @@ export const CALLBACK_PREFIX = {
     MANAGE: {
       LIST: 'm.l.st',
       GROUPS_LIST: 'm.s.g.l.st',
+      ADD_GROUP: 'm.a.g.st',
+      REMOVE_GROUP: 'm.r.g.st',
+      ASSIGN_GROUP: 'm.as.g.st',
+      DEASSIGN_GROUP: 'm.de.g.st',
     }
   },
   CLIENT: {

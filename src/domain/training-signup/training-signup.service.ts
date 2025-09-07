@@ -46,7 +46,7 @@ export class TrainingSignupService {
     })
   }
 
-  async getClientSignups(userProfileId: string) {
+  async getClientSignups(userProfileId: string): Promise<(TrainingSignupSelectModel & { training: TrainingSelectModel; group: { groupStyle: { title: string } } })[]> {
     const cache_key = TrainingSignupCacheKey.clientSignups(userProfileId)
     const cachedSignups = await this.redisCacheService.get<typeof signups>(cache_key)
     if (cachedSignups) {

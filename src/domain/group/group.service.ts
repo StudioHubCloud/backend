@@ -1,11 +1,13 @@
 import { GetGroupByIdResponse } from '@app/bot/libs'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { DatabaseService, GroupSelectModel } from '@app/infrastructure/database'
+import { DatabaseService, group, GroupInsertModel, GroupSelectModel, Transaction } from '@app/infrastructure/database'
 import { RedisCacheService, GroupCacheKey } from '@app/infrastructure/redis'
-import { GroupStatusEnum, TrainingSignupStatusEnum } from '@app/libs'
+import { API, GroupStatusEnum, TrainingSignupStatusEnum } from '@app/libs'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { UserProfileService } from '../user-profile'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+import { StaffMemberService } from '../staff-member'
+import { eq } from 'drizzle-orm'
 
 @Injectable()
 export class GroupService {
@@ -15,6 +17,7 @@ export class GroupService {
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
     private readonly userProfileService: UserProfileService,
+    private readonly staffMemberService: StaffMemberService,
   ) {}
 
   async getAllStudioGroupsByFilterConditions(filters: Partial<GroupSelectModel> = {}) {
@@ -28,7 +31,15 @@ export class GroupService {
     }
 
     const groupsFound = await this.databaseService.drizzle.query.group.findMany({
-      where: (group, { and, eq }) => and(...Object.entries(allFilters).map(([key, value]) => eq(group[key], value))),
+      where: (group, { and, eq, isNull }) =>
+        and(
+          ...Object.entries(allFilters).map(([key, value]) => {
+            if (value === null) {
+              return isNull(group[key])
+            }
+            return eq(group[key], value)
+          }),
+        ),
       with: {
         groupStyle: true,
         groupAgeRestrictions: true,
@@ -136,5 +147,59 @@ export class GroupService {
         },
       },
     })
+  }
+
+  async getAvailableGroupsToAssignToStaff() {
+    return this.getAllActiveGroups({ staffMemberId: null })
+  }
+
+  async getAvailableGroupsToDeAssignFromStaff(staffMemberId: string) {
+    const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: staffMemberId })
+    if (!staffMember) {
+      return []
+    }
+    return this.getAllActiveGroups({ staffMemberId: staffMember.id })
+  }
+
+  async manageGroupStaffMember(
+    groupId: number,
+    staffMemberId: string,
+    action: (typeof API.GROUP_ACTION)[keyof typeof API.GROUP_ACTION],
+  ) {
+    const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: staffMemberId })
+
+    if (!staffMember) {
+      throw new NotFoundException(`Staff member with user id: ${staffMemberId} not found`)
+    }
+
+    if (action === API.GROUP_ACTION.ASSIGN) {
+      return this.updateGroupById(groupId, { staffMemberId: staffMember.id })
+    } else if (action === API.GROUP_ACTION.DEASSIGN) {
+      return this.updateGroupById(groupId, { staffMemberId: null })
+    }
+
+    return null
+  }
+
+  async updateGroupById(groupId: number, updateData: Partial<GroupInsertModel>, tx?: Transaction) {
+    const dbProvider = tx ?? this.databaseService.drizzle
+
+    const existingGroup = await this.getGroupById(groupId)
+
+    if (!existingGroup) {
+      throw new NotFoundException(`Group with id: ${groupId} not found`)
+    }
+
+    const [updatedGroup] = await dbProvider
+      .update(group)
+      .set({
+        ...updateData,
+      })
+      .where(eq(group.id, groupId))
+      .returning()
+
+    await this.redisCacheService.reset()
+
+    return updatedGroup
   }
 }

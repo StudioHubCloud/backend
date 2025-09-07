@@ -7,5 +7,8 @@ export const API = {
   DEFAULT_LIMIT: 12,
   GOOGLE_REVIEW_URL: 'https://search.google.com/local/writereview?placeid=',
   LOWES_DATE: '1970-01-01T00:00:00.000Z',
+  GROUP_ACTION: {
+    ASSIGN: 'ASSIGN',
+    DEASSIGN: 'DEASSIGN',
+  } as const,
 } as const
-

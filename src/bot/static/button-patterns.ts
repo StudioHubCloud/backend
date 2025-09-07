@@ -38,6 +38,8 @@ export const BUTTON_PATTERNS = {
   STAFF: '👨‍🏫 Персонал',
   GROUPS: '👯‍♀️ Групи',
   STAFF_GROUPS: '👯‍♀️ Групи тренера',
+  ADD_GROUP_TO_STAFF: '➕ Додати групу',
+  REMOVE_GROUP_FROM_STAFF: '➖ Видалити групу',
   CLIENTS: '💃 Клієнти',
   TRAININGS: '🤸‍♂️ Тренування',
   TRAINERS: '👨‍🏫 Тренери',

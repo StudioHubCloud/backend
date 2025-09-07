@@ -1,6 +1,6 @@
 import { Composer } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { CALLBACK_DATA, ISelectInlineMenuConfig, TNormalizedOption, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram'
@@ -24,9 +24,11 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     this.sessionParams = sessionParams
     this.renderOptions = renderOptions
 
+    const [_, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
+
     const response = await this.loadOptions()
     if (typeof response === 'object' && 'message' in response) {
-      return ctx.reply(response.message, { parse_mode: 'HTML' })
+      return await ctx.answerCbQuery(response.message, { show_alert: true })
     } else {
       this.options = response
     }
@@ -39,12 +41,21 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     this.appendExitButton(menu)
 
     if (!this.options.length) {
-      return ctx.reply(this.getMessageText(ctx, this.config.noOptionsMessage || 'Нічого не знайдено'), { parse_mode: 'HTML' })
+      if (isCallbackQueryUpdate) {
+        await ctx.answerCbQuery(this.getMessageText(ctx, this.config.noOptionsMessage || 'Нічого не знайдено'))
+      } else {
+        await ctx.reply(this.getMessageText(ctx, this.config.noOptionsMessage || 'Нічого не знайдено'), { parse_mode: 'HTML' })
+      }
+      return
+    }
+
+    if (isCallbackQueryUpdate) {
+      ctx.answerCbQuery()
     }
 
     const promptMessage = this.getMessageText(ctx, this.config.promptMessage || 'Виберіть елемент зі списку')
 
-    if (this.renderOptions.shouldEdit && ctx.updateType === 'callback_query') {
+    if (this.renderOptions.shouldEdit) {
       return ctx.editMessageText(promptMessage, { reply_markup: menu, parse_mode: 'HTML' })
     }
     return ctx.reply(promptMessage, { reply_markup: menu, parse_mode: 'HTML' })

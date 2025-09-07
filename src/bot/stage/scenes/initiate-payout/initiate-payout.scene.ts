@@ -82,7 +82,6 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
 
       this.initiatePayoutScene.setState(ctx, { payoutDate })
       const state = this.initiatePayoutScene.getStateAll(ctx)
-      console.log(state.payoutDate, 'state.payoutDate')
 
       const salaryResult = await this.paymentService.calculateStaffPayoutSalary(state.staffUserId, state.payoutDate)
 

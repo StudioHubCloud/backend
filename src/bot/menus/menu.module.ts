@@ -1,5 +1,5 @@
 import { Module, Scope } from '@nestjs/common'
-import { GroupModule, PassTemplateModule, TrainingModule, TrainingSignupModule, UserProfileModule } from '@app/domain'
+import { GroupModule, PassTemplateModule, TrainingModule, UserProfileModule } from '@app/domain'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { GroupSelectPaginatedMenu } from './paginated-menus/group-select.paginated-menu'
@@ -12,7 +12,7 @@ import { ActiveSchedulesPaginatedMenu } from './paginated-menus/active-schedules
 import { GroupService } from '@app/domain/group'
 
 @Module({
-  imports: [GroupModule, TrainingModule, TrainingSignupModule, UserProfileModule, PassTemplateModule],
+  imports: [GroupModule, TrainingModule, UserProfileModule, PassTemplateModule],
   providers: [
     GroupSelectPaginatedMenu,
     TrainingSelectPaginatedMenu,

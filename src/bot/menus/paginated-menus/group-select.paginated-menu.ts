@@ -10,19 +10,20 @@ export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
   userId: string
   role: UserProfileRoleEnum
   staffUserId?: string
+  data?: any[]
 }> {
   constructor(private readonly groupService: GroupService) {
     super()
   }
 
   protected async loadOptions(): Promise<TNormalizedOption[]> {
-    const { userId, role, staffUserId } = this.sessionParams
-    
+    const { userId, role, staffUserId, data } = this.sessionParams
+
     let groups
 
-    if (staffUserId) {
+    if (staffUserId && !data) {
       groups = await this.groupService.getAllActiveTrainerGroups(staffUserId)
-    } else {
+    } else if (!data) {
       switch (role) {
         case UserProfileRoleEnum.ADMIN:
           groups = await this.groupService.getAllActiveGroups()
@@ -34,6 +35,8 @@ export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
           groups = await this.groupService.getAllUserAgeResctictedActiveGroups({ userId })
           break
       }
+    } else {
+      groups = data
     }
 
     return KeyboardHelper.prepareInlineMenuOptions(groups, {

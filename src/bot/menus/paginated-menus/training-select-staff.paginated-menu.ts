@@ -29,12 +29,14 @@ export class TrainingSelectStaffPaginatedMenu extends BasePaginatedSelectInlineM
       this.config.noOptionsMessage = `😔 У найближчі ${COMMON.INCOMING_TRAININGS_DAYS_RANGE} днів тренувань не знайдено`
       return this.renderTrainingsMenu(this.sessionParams.trainings)
     } else {
+
       const { group } = this.sessionParams
-
+      
       if (!group) return []
-
+      
       const trainings = await this.trainingService.getTrainingListForManage({ groupId: group.id })
       this.config.promptMessage = `🗓 Тренування групи: ${group.name}:`
+      this.config.noOptionsMessage = '📅 В цій групі немає доступних тренувань'
 
       return this.renderTrainingsMenu(trainings)
     }

@@ -9,14 +9,12 @@ import { UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
 import { MESSAGES_CLIENT } from '@app/bot/static/messages'
-import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 
 @Injectable()
 export class SchedulerComposer {
   private readonly composer: Composer<BotContext>
 
   constructor(
-    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly groupSelectMenu: GroupSelectPaginatedMenu,
     private readonly trainingSelectMenu: TrainingSelectPaginatedMenu,
     private readonly activeSchedulesPaginatedMenu: ActiveSchedulesPaginatedMenu,
@@ -35,7 +33,9 @@ export class SchedulerComposer {
   }
 
   private initComposerHandlers() {
-    this.composer.hears(BUTTON_PATTERNS.ACTIVE_SCHEDULES, this.activeSchedulesHandler)
+    this.composer.hears(BUTTON_PATTERNS.ACTIVE_SCHEDULES, async (ctx: BotContext) => {
+      return this.renderActiveSchedulesMenu(ctx, { shouldEdit: false, withExitButton: true })
+    })
 
     this.composer.hears(BUTTON_PATTERNS.SCHEDULE, async (ctx) => {
       return this.renderGroupSelectMenu(ctx, { shouldEdit: false, withExitButton: true })
@@ -73,13 +73,7 @@ export class SchedulerComposer {
     )
   }
 
-  private activeSchedulesHandler = async (ctx: BotContext) => {
-    const { id } = UserHelper.getUser(ctx)
-    return this.activeSchedulesPaginatedMenu.initMenu(ctx, { userId: id }, { shouldEdit: false, withExitButton: true })
-  }
-
   private handleGroupSelect = async (ctx: BotContext, groupId: string) => {
-    ctx.answerCbQuery()
     const { id, client, role } = UserHelper.getUser(ctx)
     const group = await this.groupService.getGroupById(+groupId)
     const backButtonCallbackData = CALLBACK_PREFIX.CLIENT.GROUP.BACK_TO_SELECT
@@ -135,7 +129,6 @@ export class SchedulerComposer {
 
   private handleSignOutAction = async (ctx: BotContext) => {
     const signupId = ctx['match'][1]
-    const { id } = UserHelper.getUser(ctx)
 
     const response = await this.trainingSignupService.signOutFromTrainingAsClientViaTelegram(signupId)
 
@@ -144,6 +137,22 @@ export class SchedulerComposer {
     }
 
     ctx.answerCbQuery(response.message, { show_alert: true })
-    return this.activeSchedulesPaginatedMenu.initMenu(ctx, { userId: id }, { shouldEdit: true, withExitButton: true })
+
+    return this.renderActiveSchedulesMenu(ctx, { shouldEdit: true, withExitButton: true })
+  }
+
+  private renderActiveSchedulesMenu = async (
+    ctx: BotContext,
+    renderOptions: TPaginatedMenuRenderOptions = { withExitButton: true, shouldEdit: false },
+  ) => {
+    const { id } = UserHelper.getUser(ctx)
+
+    const activeSignups = await this.trainingSignupService.getClientSignups(id)
+
+    if (!activeSignups?.length  && renderOptions?.shouldEdit) {
+      return ctx.editMessageText(MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS)
+    }
+
+    return this.activeSchedulesPaginatedMenu.initMenu(ctx, { data: activeSignups }, renderOptions)
   }
 }

@@ -1,6 +1,6 @@
 import { KeyboardHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
 import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
-import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
+import { CALLBACK_DATA, CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 
@@ -61,7 +61,7 @@ export class AdminKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.CANCEL,
         trainingId,
-        staffUserId ??backButtonCallbackData,
+        staffUserId ?? backButtonCallbackData,
       ),
     }
     const makeActiveButton = {
@@ -69,7 +69,7 @@ export class AdminKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE,
         trainingId,
-        staffUserId ??backButtonCallbackData,
+        staffUserId ?? backButtonCallbackData,
       ),
     }
 
@@ -199,6 +199,16 @@ export class AdminKeyboards {
         {
           text: BUTTON_PATTERNS.STAFF_GROUPS,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.MANAGE.GROUPS_LIST, userId, 'true'),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.ADD_GROUP_TO_STAFF,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.MANAGE.ADD_GROUP, userId, 'true'),
+        },
+        {
+          text: BUTTON_PATTERNS.REMOVE_GROUP_FROM_STAFF, // <- дублікат
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.MANAGE.REMOVE_GROUP, userId, 'true'),
         },
       ],
       [

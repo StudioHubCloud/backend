@@ -12,7 +12,7 @@ import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
@@ -78,7 +78,6 @@ export class GroupManageStaffComposer {
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.TRAININGS), async (ctx: BotContext) => {
-      ctx.answerCbQuery()
       return this.renderTrainingSelectMenu(ctx, { shouldEdit: true })
     })
 
@@ -103,7 +102,6 @@ export class GroupManageStaffComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.MANAGE.GROUPS_LIST), async (ctx: BotContext) => {
       const [userId, isAdmin] = RegexHelper.getMatchGroupValue(ctx)
-
       if (!userId) {
         ctx.answerCbQuery('❗️ Помилка при виборі тренера. Спробуйте ще раз.')
         ctx.deleteMessage()
@@ -122,7 +120,6 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT),
       async (ctx: BotContext) => {
-        ctx.answerCbQuery()
         return this.renderTrainingSelectMenu(ctx, { shouldEdit: true })
       },
     )
@@ -190,7 +187,10 @@ export class GroupManageStaffComposer {
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE),
       async (ctx: BotContext) => {
         return this.handleTrainingAction(ctx, (trainingId, backButtonCallbackData, staffUserId) => {
-          return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId })
+          return this.renderTrainingManageMenu(ctx, trainingId, {
+            fromUpcomingTrainingsMenu: !!backButtonCallbackData,
+            staffUserId,
+          })
         })
       },
     )
@@ -234,7 +234,6 @@ export class GroupManageStaffComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_OUT), async (ctx: BotContext) => {
       return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
-        ctx.answerCbQuery()
         const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
         const data = activeSignUps.map((signup) => ({
           name: `${signup.userProfile?.firstName} ${signup.userProfile?.lastName}`,
@@ -251,13 +250,15 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST),
       async (ctx: BotContext) => {
-        ctx.answerCbQuery()
-        return this.renderUpcomingTrainingsMenu(ctx, { shouldEdit: true, withExitButton: true})
+        return this.renderUpcomingTrainingsMenu(ctx, { shouldEdit: true, withExitButton: true })
       },
     )
   }
 
-  private renderUpcomingTrainingsMenu = async (ctx: BotContext, options: TPaginatedMenuRenderOptions = { shouldEdit: false, withExitButton: true }) => {
+  private renderUpcomingTrainingsMenu = async (
+    ctx: BotContext,
+    options: TPaginatedMenuRenderOptions = { shouldEdit: false, withExitButton: true },
+  ) => {
     const { id } = UserHelper.getUser(ctx)
     const upcomingTrainings = await this.trainingService.getUpcomingTrainingsForStaff(id)
     return this.trainingSelectStaffPaginatedMenu.initMenu(
@@ -273,11 +274,6 @@ export class GroupManageStaffComposer {
     staffUserId?: string,
   ) => {
     const { id, role } = UserHelper.getUser(ctx)
-    const [_, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
-    if (isCallbackQueryUpdate) {
-      ctx.answerCbQuery()
-    }
-
     return this.groupSelectPaginatedMenu.initMenu(
       ctx,
       { userId: id, role, staffUserId },
@@ -303,7 +299,6 @@ export class GroupManageStaffComposer {
       groupId,
       staffUserId,
     )
-
     return this.trainingSelectStaffPaginatedMenu.initMenu(
       ctx,
       { group },
@@ -320,7 +315,7 @@ export class GroupManageStaffComposer {
 
     const isAdmin = UserHelper.isAdminRole(ctx)
 
-    const backButtonCallbackData =  fromUpcomingTrainingsMenu ? CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST : null
+    const backButtonCallbackData = fromUpcomingTrainingsMenu ? CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST : null
 
     return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
       parse_mode: 'HTML',
@@ -345,7 +340,6 @@ export class GroupManageStaffComposer {
     if (response.status === API.RESPONSE.ERROR_STRING) {
       return ctx.answerCbQuery(response.message, { show_alert: true })
     }
-    ctx.answerCbQuery()
 
     if (response.status === API.RESPONSE.SUCCESS_STRING) {
       const { userProfile, training } = response.data || {}
