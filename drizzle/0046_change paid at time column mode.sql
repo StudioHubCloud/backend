@@ -1,0 +1,1 @@
+ALTER TABLE "studio_payout_rule" DROP COLUMN "updated_at";

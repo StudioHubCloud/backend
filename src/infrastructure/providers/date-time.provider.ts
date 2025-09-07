@@ -34,6 +34,12 @@ export class DateTimeProvider {
     return endOfDay(date)
   }
 
+  roundToHours(date? : string): Date {
+    const newDate = date ? new Date(date) : new Date()
+    newDate.setMinutes(0, 0, 0)
+    return newDate
+  }
+
   formatDateStringInTz(dateString: string, dateFormat: TDateFormats): string {
     return formatInTimeZone(dateString, this.time_zone, dateFormat, { locale: uk })
   }
@@ -48,10 +54,10 @@ export class DateTimeProvider {
     return fromZonedTime(date, this.time_zone).toISOString()
   }
 
-  parseAndFormatDate(options: { date: string; dateFormat?: TDateFormats; parseFormat?: TDateFormats }): string {
-    const { date, dateFormat = DATE_FORMAT.DATE_MAIN, parseFormat = DATE_FORMAT.DATE_INPUT } = options
-    const parsedDate = parse(date, parseFormat, new Date())
-    return format(parsedDate, dateFormat)
+  parseAndFormatDate(options: { date: string; outputDateFormat?: TDateFormats; inputDateFormat?: TDateFormats }): string {
+    const { date, outputDateFormat = DATE_FORMAT.DATE_MAIN, inputDateFormat = DATE_FORMAT.DATE_INPUT } = options
+    const parsedDate = parse(date, inputDateFormat, new Date())
+    return format(parsedDate, outputDateFormat)
   }
 
   getNextTwoMonthDateInterval(): { start: Date; end: Date } {
@@ -73,13 +79,13 @@ export class DateTimeProvider {
     return differenceInYears(now, birthDate)
   }
 
-  toEndOfDateTimeStamp(date: string): string {
-    const endOfDate = endOfDay(new Date(date))
+  toEndOfDateTimeStamp(date?: string): string {
+    const endOfDate = date ? endOfDay(new Date(date)) : endOfDay(new Date())
     return endOfDate.toISOString()
   }
   
-  toStartOfDateTimeStamp(date: string): string {
-    const startOfDate = startOfDay(new Date(date))
+  toStartOfDateTimeStamp(date?: string): string {
+    const startOfDate = date ? startOfDay(new Date(date)) : startOfDay(new Date())
     return startOfDate.toISOString()
   }
 }

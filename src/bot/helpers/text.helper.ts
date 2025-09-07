@@ -10,7 +10,7 @@ export class TextHelper {
     return text.replace(NUMBERS_REGEXP, '')
   }
 
-  static validateDOB(text: string): string | null {
+  static validateDateInput(text: string): string | null {
     const match = DOB_REGEXP.exec(text)
     if (!match) {
       return null
@@ -33,6 +33,14 @@ export class TextHelper {
 
   static italic(text?: string): string {
     return text ? `<i>${text}</i>` : ''
+  }
+
+  static underscore(text?: string): string {
+    return text ? `<u>${text}</u>` : ''
+  }
+
+  static strikethrough(text?: string): string {
+    return text ? `<s>${text}</s>` : ''
   }
 
   static capitalize(text?: string): string {

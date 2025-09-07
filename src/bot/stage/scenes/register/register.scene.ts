@@ -134,7 +134,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
         break
     }
 
-    const date_of_birth = TextHelper.validateDOB(data)
+    const date_of_birth = TextHelper.validateDateInput(data)
 
     if (!date_of_birth) {
       return ctx.replyWithHTML(MESSAGES_COMMON.DATE_ERROR)
@@ -171,8 +171,8 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       this.REQUESTED_ROLE !== UserProfileRoleEnum.TRAINER
         ? this.dateTimeProvider.parseAndFormatDate({
             date: date_of_birth || '',
-            dateFormat: DATE_FORMAT.DATE_MAIN,
-            parseFormat: DATE_FORMAT.DATE_INPUT,
+            outputDateFormat: DATE_FORMAT.DATE_MAIN,
+            inputDateFormat: DATE_FORMAT.DATE_INPUT,
           })
         : null
 

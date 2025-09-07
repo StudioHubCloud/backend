@@ -1,5 +1,6 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, eq, gte, lte } from 'drizzle-orm'
+import { addDays } from 'date-fns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import {
   DatabaseService,
@@ -16,9 +17,7 @@ import { COMMON, GetTrainingByIdResponse, PASS_CONFIG } from '@app/bot/libs'
 import { PassService } from '../pass'
 import { StudioService } from '../studio'
 import { TrainingSignupService } from '../training-signup'
-import { addDays } from 'date-fns'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { PgTableWithColumns } from 'drizzle-orm/pg-core'
 import { StaffMemberService } from '../staff-member'
 
 @Injectable()
@@ -309,16 +308,13 @@ export class TrainingService {
     })
   }
 
-  async getAllTrainingsForStaffMemberSalary(staffMemberId: string, startDate: string | null) {
-
-    const now = new Date().toISOString()
-
+  async getAllTrainingsForStaffMemberSalary(staffMemberId: string, startDate: string, endDate: string) {
     return this.databaseService.drizzle.query.training.findMany({
       where: (training, helpers) => {
         const { and, gte, eq, exists } = helpers
         return and(
-          gte(training.date, startDate || API.LOWES_DATE),
-          lte(training.date, now),
+          gte(training.date, startDate),
+          lte(training.date, endDate),
           eq(training.isCancelled, false),
           this.staffMemberTrainingFilter(staffMemberId)(training, helpers),
           exists(
@@ -336,8 +332,8 @@ export class TrainingService {
           with: {
             userProfile: {
               columns: { firstName: true, lastName: true, fullName: true },
-            }
-          }
+            },
+          },
         },
       },
       orderBy: (training, { asc }) => asc(training.date),

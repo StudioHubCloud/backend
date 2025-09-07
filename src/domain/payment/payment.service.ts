@@ -1,9 +1,9 @@
-import { Injectable, NotFoundException } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { DatabaseService, StudioPayoutRuleSelectModel } from '@app/infrastructure/database'
+import { DatabaseService, payment, StudioPayoutRuleSelectModel, Transaction } from '@app/infrastructure/database'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { PaymentStatusEnum, PaymentTypeEnum, StudioPayoutRuleTypeEnum, TSalaryPayoutResult } from '@app/libs'
+import { API, DATE_FORMAT, PaymentMethodEnum, PaymentStatusEnum, PaymentTypeEnum, TSalaryPayoutResult } from '@app/libs'
 import { RedisCacheService, PaymentCacheKey } from '@app/infrastructure/redis'
 import { TrainingService } from '../training'
 import { StudioPayoutRuleService } from '../studio-payout-rule'
@@ -22,11 +22,16 @@ export class PaymentService {
     private readonly staffMemberService: StaffMemberService,
   ) {}
 
-  async calculateStaffPayoutSalary(userId: string, lastPayoutDate?: string) {
-    const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: userId })
+  async calculateStaffPayoutSalary(staffUserId: string, payoutDate?: string) {
+    const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: staffUserId })
 
-    const startDate = lastPayoutDate ?? (await this.getStaffMemberLastPayoutDate(staffMember.id))
-    const cacheKey = PaymentCacheKey.staffPayoutSalary(staffMember.id, lastPayoutDate || '')
+    const startPeriodDate = (await this.getStaffMemberLastPayoutDate(staffMember.id)) || API.LOWES_DATE
+    const endPeriodDate = this.dateTimeProvider.formatDateStringInTz(
+      payoutDate ? this.dateTimeProvider.parseAndFormatDate({ date: payoutDate }) : new Date().toISOString(),
+      DATE_FORMAT.DATE_MAIN,
+    )
+
+    const cacheKey = PaymentCacheKey.staffPayoutSalary(staffMember.id, startPeriodDate, endPeriodDate)
 
     const cachedSalaryResults = await this.redisCacheService.get<TSalaryPayoutResult>(cacheKey)
 
@@ -35,7 +40,7 @@ export class PaymentService {
     }
 
     const [allTrainings, staffMemberRules] = await Promise.all([
-      this.trainingService.getAllTrainingsForStaffMemberSalary(staffMember.id, startDate),
+      this.trainingService.getAllTrainingsForStaffMemberSalary(staffMember.id, startPeriodDate, endPeriodDate),
       this.studioPayoutRuleService.getStaffmemberApplicablePayoutRules(staffMember.id),
     ])
 
@@ -92,7 +97,7 @@ export class PaymentService {
   async getStaffMemberLastPayoutDate(staffMemberId: string) {
     const cacheKey = PaymentCacheKey.lastStaffPayoutDate(staffMemberId)
 
-    const lastPaymentCashed = this.redisCacheService.get<string>(cacheKey)
+    const lastPaymentCashed = await this.redisCacheService.get<string>(cacheKey)
 
     if (lastPaymentCashed) {
       return lastPaymentCashed
@@ -110,14 +115,50 @@ export class PaymentService {
     })
 
     if (lastPayment) {
-      this.redisCacheService.set(cacheKey, lastPayment.paidAt?.toISOString())
+      this.redisCacheService.set(cacheKey, lastPayment.paidAt)
     }
 
-    return lastPayment?.paidAt?.toISOString() || null
+    return lastPayment?.paidAt || null
   }
 
-  async initiateStaffPayout(staffMemberId: string, amount: number, tx?: any) {
+  async registerStaffPayment(
+    { staffUserId, amount, paidAt, description }: { staffUserId: string; amount: string; paidAt: string; description: string },
+    tx?: Transaction,
+  ) {
     const dbProvider = tx || this.databaseService.drizzle
+    const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: staffUserId })
+
+    const lastPayoutDate = await this.getStaffMemberLastPayoutDate(staffMember.id)
+    const paidAtDate = this.dateTimeProvider.formatDateStringInTz(
+      this.dateTimeProvider.parseAndFormatDate({ date: paidAt }),
+      DATE_FORMAT.DATE_MAIN,
+    )
+
+    if (lastPayoutDate) {
+      const lastPayout = new Date(lastPayoutDate)
+      const paidDate = new Date(paidAtDate)
+      if (paidDate <= lastPayout) {
+        throw new BadRequestException(`Payment date must be after last payout date: ${lastPayout.toISOString()}`)
+      }
+    }
+
+    const result = await dbProvider
+      .insert(payment)
+      .values({
+        amount,
+        type: PaymentTypeEnum.OUTGOING,
+        status: PaymentStatusEnum.COMPLETED,
+        method: PaymentMethodEnum.CASH,
+        paidAt: paidAtDate,
+        staffMemberId: staffMember.id,
+        studioId: this.configService.get('STUDIO_ID'),
+        description,
+      })
+      .returning()
+
+    await this.redisCacheService.delete(PaymentCacheKey.lastStaffPayoutDate(staffMember.id))
+
+    return result[0]
   }
 
   private calculateTrainingPayout(

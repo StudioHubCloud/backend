@@ -8,6 +8,8 @@ import { MESSAGES_COMMON } from './static/messages'
 import { MiddlewareService } from './middleware'
 import { StageService } from './stage'
 import { ComposerService } from './composer'
+import { KeyboardService } from './keyboard'
+import { KeyboardHelper, UserHelper } from './helpers'
 
 @Injectable()
 export class BotService {
@@ -32,7 +34,7 @@ export class BotService {
 
     this.initMiddlewares()
 
-    this.bot.use(this.stageService.stage.middleware()) 
+    this.bot.use(this.stageService.stage.middleware())
 
     this.bot.use(this.composerService.useGuardComposer)
     this.bot.use(this.composerService.useRootComposer)
@@ -40,9 +42,12 @@ export class BotService {
     this.initExitGuard()
 
     this.bot.catch(async (err: any, ctx: BotContext) => {
-      this.logger.error(`Encountered an error for ctx.update: %o, with message: %s`,ctx.update, err?.message)
+      this.logger.error(`Encountered an error for ctx.update: %o, with message: %s`, ctx.update, err?.message)
       ctx.scene.leave()
-      await ctx.telegram.sendMessage(this.configService.get('MAINTAINER_CHAT_ID'), `Error: ${err.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`)
+      await ctx.telegram.sendMessage(
+        this.configService.get('MAINTAINER_CHAT_ID'),
+        `Error: ${err.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`,
+      )
       ctx.reply(MESSAGES_COMMON.GLOBAL_ERROR)
     })
   }
@@ -58,6 +63,17 @@ export class BotService {
       ctx.answerCbQuery()
       const match = ctx.match[0]
       this.logger.error('Exit guard triggered with match: %s', match)
+    })
+
+    this.bot.hears('🚪 Вийти', (ctx) => {
+      const { role, telegramId } = UserHelper.getUser(ctx)
+      ctx.replyWithHTML('Головне меню', KeyboardHelper.getRoleBasedMainMenuKeyboard(role))
+      this.logger.error('Global Scene Exit guard triggered for userId: %s', telegramId)
+
+      if (ctx.scene.current?.id) {
+        ctx.scene.leave()
+      }
+      return;
     })
   }
 

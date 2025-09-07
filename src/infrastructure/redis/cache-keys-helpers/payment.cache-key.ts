@@ -10,8 +10,8 @@ export class PaymentCacheKey {
     return `${this.cache_key_prefix}:${JSON.stringify(filters)}`
   }
 
-  static staffPayoutSalary(staffMemberId: string, lastPayoutDate: string) {
-    return `${this.cache_key_prefix}:sps:${staffMemberId}:${lastPayoutDate}`
+  static staffPayoutSalary(staffMemberId: string, lastPayoutDate: string, endDate?: string): string {
+    return `${this.cache_key_prefix}:sps:${staffMemberId}:${lastPayoutDate}:${endDate || ''}`
   }
 }
   

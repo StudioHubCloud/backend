@@ -41,7 +41,10 @@ export class VerifyClientSceneKeyboards {
       [
         {
           text: BUTTON_PATTERNS.SELECT,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_SELECT, value),
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_SELECT,
+            value,
+          ),
         },
       ],
     ])
@@ -52,7 +55,10 @@ export class VerifyClientSceneKeyboards {
       data.map((item) => [
         {
           text: item.name,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_PREVIEW, item.id),
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_PREVIEW,
+            item.id,
+          ),
         },
       ]),
     )
@@ -65,11 +71,22 @@ export class VerifyTrainerSceneKeyboards {
       groups.map((group) => [
         {
           text: group.name,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.VERIFY_TRAINER.GROUP_SELECT, String(group.id)),
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.SCENES.VERIFY_TRAINER.GROUP_SELECT,
+            String(group.id),
+          ),
         },
       ]),
     )
   }
+}
 
-  /// init keyboard in this class
+export class InitiatePayoutSceneKeyboards {
+  static enterPayoutDateKeyboard(date: string): TReplyMarkupKeyboard {
+    return KeyboardHelper.createReplyMarkupKeyboard([[date], ...KEYBOARDS_SCENE.COMMON.EXIT])
+  }
+
+  static confirmPayoutKeyboard(): TReplyMarkupKeyboard {
+    return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.INITIATE_PAYOUT.CONFIRM)
+  }
 }

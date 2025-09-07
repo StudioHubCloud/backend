@@ -1,0 +1,1 @@
+CREATE UNIQUE INDEX "unique_outgoing_payout_per_trainer_per_day" ON "payment" USING btree ("staff_member_id","paid_at") WHERE "payment"."staff_member_id" IS NOT NULL AND "payment"."type" = 'outgoing' AND "payment"."status" = 'completed';

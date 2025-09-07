@@ -7,7 +7,7 @@ import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
-import { CALLBACK_PREFIX } from '@app/bot/libs'
+import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
 
 @Injectable()
 export class PayoutStaffComposer {
@@ -50,6 +50,13 @@ export class PayoutStaffComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.CLIENT_INFO), async (ctx: BotContext) => {
       return this.handlePaymentAction(ctx, async (userId, isAdmin) => {
         return this.renderStaffMemberPayoutClientInfoMenu(ctx, userId, isAdmin)
+      })
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.INITIATE), async (ctx: BotContext) => {
+      return this.handlePaymentAction(ctx, async (userId) => {
+        ctx.scene.enter(SCENES.INITIATE_PAYOUT, { staffUserId: userId })
+        return;
       })
     })
   }

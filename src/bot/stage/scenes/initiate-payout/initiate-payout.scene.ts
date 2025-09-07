@@ -1,0 +1,169 @@
+import { Scenes } from 'telegraf'
+import { Injectable } from '@nestjs/common'
+import { BotContext } from '@app/bot/bot.context'
+import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
+import { SceneHelper, BotHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
+import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
+import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+import { AdminKeyboards } from '@app/bot/keyboard/storage'
+import { PassTemplateService } from '@app/domain/pass-template/pass-template.service'
+import {
+  CommonSceneKeyboards,
+  InitiatePayoutSceneKeyboards,
+  VerifyClientSceneKeyboards,
+} from '@app/bot/keyboard/storage/scene-keyboards'
+import { DATE_FORMAT } from '@app/libs'
+import { IInitiatePayoutSceneState, InitiatePayoutSceneHelper } from './initiate-payout.scene-helper'
+import { UserProfileService } from '@app/domain/user-profile'
+import { PaymentService } from '@app/domain/payment'
+import { TypedConfigService } from '@app/infrastructure/config'
+
+@Injectable()
+export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
+  private readonly initiatePayoutScene = new SceneHelper<IInitiatePayoutSceneState>()
+
+  constructor(
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
+    private readonly paymentService: PaymentService,
+    private readonly userProfileService: UserProfileService,
+    private readonly configService: TypedConfigService,
+  ) {
+    super(
+      SCENES.INITIATE_PAYOUT,
+      (ctx) => this.enterSceneHandler(ctx),
+      (ctx) => this.payoutDateHandler(ctx),
+      (ctx) => this.confirmPayoutHandler(ctx),
+    )
+
+    this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
+      await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.EXIT, AdminKeyboards.mainMenu())
+      return ctx.scene.leave()
+    })
+
+    this.enter(async (ctx, next) => {
+      const { staffUserId } = this.initiatePayoutScene.getState(ctx)
+
+      if (!staffUserId) {
+        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_ID, AdminKeyboards.mainMenu())
+        return ctx.scene.leave()
+      }
+
+      const staffUserProfile = await this.userProfileService.getUserProfileById(staffUserId)
+
+      if (!staffUserProfile) {
+        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_PROFILE, AdminKeyboards.mainMenu())
+        return ctx.scene.leave()
+      }
+
+      this.initiatePayoutScene.setState(ctx, { staffUserProfile })
+      return await next()
+    })
+  }
+
+  private enterSceneHandler = async (ctx: BotContext) => {
+    const todayDateString = this.getTodayDateString()
+    await ctx.replyWithHTML(
+      MESSAGES_SCENE.INITIATE_PAYOUT.ENTER_PAYOUT_DATE,
+      InitiatePayoutSceneKeyboards.enterPayoutDateKeyboard(todayDateString),
+    )
+    return ctx.wizard.next()
+  }
+
+  private payoutDateHandler = async (ctx: BotContext) => {
+    try {
+      const [payload] = BotHelper.getUpdatePayload(ctx)
+
+      const payoutDate = TextHelper.validateDateInput(payload)
+
+      if (!payoutDate) {
+        return ctx.replyWithHTML(MESSAGES_COMMON.DATE_ERROR)
+      }
+
+      this.initiatePayoutScene.setState(ctx, { payoutDate })
+      const state = this.initiatePayoutScene.getStateAll(ctx)
+      console.log(state.payoutDate, 'state.payoutDate')
+
+      const salaryResult = await this.paymentService.calculateStaffPayoutSalary(state.staffUserId, state.payoutDate)
+
+      if (!salaryResult) {
+        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_PAYOUT_CALCULATION, AdminKeyboards.mainMenu())
+        return ctx.scene.leave()
+      }
+      this.initiatePayoutScene.setState(ctx, { payoutAmount: salaryResult.statistics.totalPayout })
+
+      await ctx.replyWithHTML(
+        InitiatePayoutSceneHelper.getConfirmPayoutMessage({ ...state, payoutAmount: salaryResult.statistics.totalPayout }),
+        InitiatePayoutSceneKeyboards.confirmPayoutKeyboard(),
+      )
+      return ctx.wizard.next()
+    } catch (error) {
+      await this.handleError(ctx, error)
+    }
+  }
+
+  private confirmPayoutHandler = async (ctx: BotContext) => {
+    try {
+      const [payload] = BotHelper.getUpdatePayload(ctx)
+
+      switch (payload) {
+        case BUTTON_PATTERNS.BACK:
+          const todayDateString = this.getTodayDateString()
+          await ctx.replyWithHTML(
+            MESSAGES_SCENE.INITIATE_PAYOUT.ENTER_PAYOUT_DATE,
+            InitiatePayoutSceneKeyboards.enterPayoutDateKeyboard(todayDateString),
+          )
+          return ctx.wizard.back()
+
+        default:
+          break
+      }
+
+      if (payload !== BUTTON_PATTERNS.CONFIRM) {
+        return
+      }
+
+      const state = this.initiatePayoutScene.getStateAll(ctx)
+
+      const payoutDescription = InitiatePayoutSceneHelper.getPayoutDescriptionMessage(state)
+
+      const result = await this.paymentService.registerStaffPayment({
+        amount: String(state.payoutAmount),
+        staffUserId: state.staffUserId,
+        paidAt: state.payoutDate,
+        description: payoutDescription,
+      })
+      
+      if (!result) {
+        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_PAYOUT_REGISTER, AdminKeyboards.mainMenu())
+      }
+
+      const staffMessage = InitiatePayoutSceneHelper.getStaffInfoMessage(state)
+
+      await Promise.all([
+        ctx.telegram.sendMessage(state.staffUserProfile.telegramId, staffMessage, {parse_mode: 'HTML'}),
+        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.REGISTER_SUCCESS, AdminKeyboards.mainMenu()),
+      ])
+      return ctx.scene.leave()
+    } catch (error) {
+      if (error?.message?.includes('duplicate key')) {
+        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.PAYOUT_ALREADY_REGISTERED, AdminKeyboards.mainMenu())
+        return ctx.scene.leave()
+      }
+      await this.handleError(ctx, error)
+    }
+  }
+
+  private async handleError(ctx: BotContext, error: any) {
+    await ctx.telegram.sendMessage(
+      this.configService.get('MAINTAINER_CHAT_ID'),
+      `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`,
+    )
+    await ctx.replyWithHTML(`❌ Виникла помилка: ${error?.message}. Спробуйте ще раз або зверніться до адміністратора.`, AdminKeyboards.mainMenu() )
+    return ctx.scene.leave()
+  }
+
+  private getTodayDateString() {
+    return this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_INPUT)
+  }
+}

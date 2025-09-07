@@ -15,12 +15,11 @@ export const studioPayoutRule = table(
     type: StudioPayoutRuleTypePgEnum().notNull(),
     amount: decimal('amount', { precision: 10, scale: 2 }),
     isActive: boolean('is_active').notNull().default(true),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
-    updatedAt: timestamp('updated_at').notNull().defaultNow(),
     studioId: uuid('studio_id')
-      .references(() => studio.id, { onDelete: 'cascade' })
-      .notNull(),
+    .references(() => studio.id, { onDelete: 'cascade' })
+    .notNull(),
     staffMemberId: uuid('staff_member_id').references(() => staffMember.id, { onDelete: 'cascade' }), // null = applies to all staff
+    createdAt: timestamp('created_at', { mode: 'string' }).notNull().defaultNow(),
   },
   (table) => [index().on(table.studioId, table.isActive), index().on(table.studioId, table.staffMemberId, table.isActive)],
 )

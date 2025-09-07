@@ -278,7 +278,6 @@ export class GroupManageStaffComposer {
       ctx.answerCbQuery()
     }
 
-    console.log(options, 'options in group select menu')
     return this.groupSelectPaginatedMenu.initMenu(
       ctx,
       { userId: id, role, staffUserId },
@@ -304,7 +303,6 @@ export class GroupManageStaffComposer {
       staffUserId,
     )
 
-    console.log(backButtonCallbackData, 'backButtonCallbackData in training select menu')
     return this.trainingSelectStaffPaginatedMenu.initMenu(
       ctx,
       { group },
@@ -323,8 +321,6 @@ export class GroupManageStaffComposer {
 
     const backButtonCallbackData =  fromUpcomingTrainingsMenu ? CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST : null
 
-    console.log(context, 'context in training manage menu')
-
     return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
       parse_mode: 'HTML',
       ...(isAdmin
@@ -335,8 +331,6 @@ export class GroupManageStaffComposer {
 
   private renderGroupManageMenu = async (ctx: BotContext, groupId: string, context: Record<string, any> = {}) => {
     ctx.answerCbQuery()
-    console.log('Group ID:', groupId)
-    console.log('Context:', context)
     const group = await this.groupService.getGroupById(+groupId)
     return ctx.editMessageText(MessageHelper.constructGroupSelectMessage(group), {
       parse_mode: 'HTML',
@@ -393,11 +387,7 @@ export class GroupManageStaffComposer {
   ) {
     const [trainingId, backButtonCallbackData] = RegexHelper.getMatchGroupValue(ctx)
 
-    console.log(backButtonCallbackData, 'backButtonCallbackData in handle training action')
-
     const staffUserId = RegexHelper.isValidUuid(backButtonCallbackData) ? backButtonCallbackData : undefined
-
-    console.log(staffUserId, 'staffUserId in handle training action')
 
     if (!trainingId) {
       ctx.answerCbQuery('⚠️ Не вдалося повернутися до тренування.', { show_alert: true })

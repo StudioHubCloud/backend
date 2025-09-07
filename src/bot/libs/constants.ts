@@ -13,6 +13,7 @@ export const SCENES = {
   VERIFY_CLIENT: 'verify_client',
   VERIFY_TRAINER: 'verify_trainer',
   SIGN_IN_CLIENT: 'sign_in_client',
+  INITIATE_PAYOUT: 'initiate_payout',
 } as const
 
 export const CALLBACK_DATA = {
