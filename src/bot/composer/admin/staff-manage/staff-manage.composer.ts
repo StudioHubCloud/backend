@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { RegexHelper, UserHelper } from '@app/bot/helpers'
 import { StaffSelectPaginatedMenu } from '@app/bot/menus'
-import { CALLBACK_PREFIX } from '@app/bot/libs'
+import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { NextFunction } from 'express'
 import { UserProfileService } from '@app/domain/user-profile'
@@ -43,15 +43,19 @@ export class StaffManageComposer {
     this.composer.hears(BUTTON_PATTERNS.STAFF, this.renderStaffSelectPaginatedMenu)
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_LIST), async (ctx) => {
-      return this.renderStaffSelectPaginatedMenu(ctx, () => {}, true)
+      return this.renderStaffSelectPaginatedMenu(ctx, () => {}, { shouldEdit: true, withExitButton: true })
     })
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_MANAGE), async (ctx) => {
       return this.renderStaffMemberManageMenu(ctx)
     })
   }
 
-  private renderStaffSelectPaginatedMenu = async (ctx: BotContext, _: NextFunction, shouldEdit = false) => {
-    return this.staffSelectPaginatedMenu.initMenu(ctx, {}, { shouldEdit })
+  private renderStaffSelectPaginatedMenu = async (
+    ctx: BotContext,
+    _: NextFunction,
+    renderOptions: TPaginatedMenuRenderOptions = { shouldEdit: false, withExitButton: true },
+  ) => {
+    return this.staffSelectPaginatedMenu.initMenu(ctx, {}, renderOptions)
   }
 
   private renderStaffMemberManageMenu = async (ctx: BotContext) => {

@@ -252,12 +252,12 @@ export class GroupManageStaffComposer {
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST),
       async (ctx: BotContext) => {
         ctx.answerCbQuery()
-        return this.renderUpcomingTrainingsMenu(ctx, { shouldEdit: true })
+        return this.renderUpcomingTrainingsMenu(ctx, { shouldEdit: true, withExitButton: true})
       },
     )
   }
 
-  private renderUpcomingTrainingsMenu = async (ctx: BotContext, options: TPaginatedMenuRenderOptions = { shouldEdit: false }) => {
+  private renderUpcomingTrainingsMenu = async (ctx: BotContext, options: TPaginatedMenuRenderOptions = { shouldEdit: false, withExitButton: true }) => {
     const { id } = UserHelper.getUser(ctx)
     const upcomingTrainings = await this.trainingService.getUpcomingTrainingsForStaff(id)
     return this.trainingSelectStaffPaginatedMenu.initMenu(
@@ -284,6 +284,7 @@ export class GroupManageStaffComposer {
       {
         shouldEdit: options.shouldEdit,
         backButtonCallbackData: options.backButtonCallbackData,
+        withExitButton: !options.backButtonCallbackData,
         context: { staffUserId: staffUserId },
       },
     )

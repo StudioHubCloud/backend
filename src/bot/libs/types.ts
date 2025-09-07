@@ -31,6 +31,7 @@ export type TPaginatedMenuRenderOptions = {
   shouldEdit?: boolean
   backButtonCallbackData?: string | null
   backButtonCallback?: (ctx: BotContext) => Promise<any> | void
+  withExitButton?: boolean
   context?: Record<string, any>
 }
 

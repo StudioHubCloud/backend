@@ -1,7 +1,7 @@
 import { Composer } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
 import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
-import { ISelectInlineMenuConfig, TNormalizedOption, TPaginatedMenuRenderOptions } from '@app/bot/libs'
+import { CALLBACK_DATA, ISelectInlineMenuConfig, TNormalizedOption, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram'
 
@@ -36,6 +36,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     })
 
     this.appendBackButton(menu)
+    this.appendExitButton(menu)
 
     if (!this.options.length) {
       return ctx.reply(this.getMessageText(ctx, this.config.noOptionsMessage || 'Нічого не знайдено'), { parse_mode: 'HTML' })
@@ -83,6 +84,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
       })
 
       this.appendBackButton(menu)
+      this.appendExitButton(menu)
 
       return ctx.editMessageText(this.getMessageText(ctx, this.config.promptMessage || 'Виберіть елемент зі списку'), {
         reply_markup: menu,
@@ -105,12 +107,24 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
 
   private appendBackButton(menu: InlineKeyboardMarkup) {
     if (this.renderOptions.backButtonCallbackData) {
-      menu.inline_keyboard.push([{
-        text: BUTTON_PATTERNS.BACK,
-        callback_data: this.renderOptions.backButtonCallbackData,
-      }])
+      menu.inline_keyboard.push([
+        {
+          text: BUTTON_PATTERNS.BACK,
+          callback_data: this.renderOptions.backButtonCallbackData,
+        },
+      ])
     }
+  }
 
+  private appendExitButton(menu: InlineKeyboardMarkup) {
+    if (this.renderOptions.withExitButton) {
+      menu.inline_keyboard.push([
+        {
+          text: BUTTON_PATTERNS.CLOSE,
+          callback_data: CALLBACK_DATA.CLOSE_MENU,
+        },
+      ])
+    }
   }
 
   protected abstract loadOptions(): Promise<TNormalizedOption[] | { message: string }>

@@ -9,6 +9,7 @@ export const BUTTON_PATTERNS = {
   CANCEL: '❌ Ні',
   BACK: '⬅️ Назад',
   EXIT: '🚪 Вийти',
+  CLOSE: '✖️ Закрити',
   START: '🏠 Головне меню',
   RULES: '‼️ПРАВИЛА ТА УМОВИ‼️',
   CANCEL_TRAINING: '🚫 Відмінити тренування',

@@ -19,7 +19,7 @@
 ## Inline chat
 ## Soft link client with its group
 ## Personal trainings manage / view
-## Staff member salary count / display / reset
+
 
 
 ### STAGE 3

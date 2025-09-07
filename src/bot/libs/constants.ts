@@ -18,6 +18,7 @@ export const SCENES = {
 
 export const CALLBACK_DATA = {
   DISABLED: '_disabled_',
+  CLOSE_MENU:'__close_menu__',
   PAGINATION_KEY: 'pagination',
   ITEM_KEY: 'item',
   VERIFY_USER: 'verify',
@@ -67,9 +68,11 @@ export const CALLBACK_PREFIX = {
   CLIENT: {
     TRAINING: {
       SELECT: 'tr.s.cl',
+      SIGN_OUT: 'tr.so.cl',
     },
     GROUP: {
       SELECT: 'g.s.cl',
+      BACK_TO_SELECT: 'g.s.b.cl',
     },
   },
   SCENES: {

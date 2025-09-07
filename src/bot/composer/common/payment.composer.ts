@@ -3,6 +3,7 @@ import { MESSAGES_COMMON } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
+import { UserHelper } from '@app/bot/helpers'
 
 @Injectable()
 export class PaymentComposer {
@@ -21,6 +22,7 @@ export class PaymentComposer {
   }
 
   private paymentHandler = async (ctx: BotContext) => {
-    await ctx.reply(MESSAGES_COMMON.PAYMENT, {parse_mode: 'MarkdownV2'})
+    const isGuestRole = UserHelper.isGuestRole(ctx)
+    await ctx.reply(isGuestRole ? MESSAGES_COMMON.PAYMENT_GUEST : MESSAGES_COMMON.PAYMENT, {parse_mode: 'MarkdownV2'})
   }
 }

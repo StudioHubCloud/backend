@@ -1,6 +1,4 @@
 import { Module, Scope } from '@nestjs/common'
-
-import { ActiveSchedulesInlineMenu } from './inline-menus/active-schedules.inline-menu'
 import { GroupModule, PassTemplateModule, TrainingModule, TrainingSignupModule, UserProfileModule } from '@app/domain'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
@@ -10,18 +8,19 @@ import { VerificationInlineMenu } from './inline-menus/verification-requests.inl
 import { TrainingSelectStaffPaginatedMenu } from './paginated-menus/training-select-staff.paginated-menu'
 import { ClientSelectPaginatedMenu, CLIENT_SIGNOUT_MENU } from './paginated-menus/client-select.paginated-menu'
 import { StaffSelectPaginatedMenu } from './paginated-menus/staff-select.paginated-menu'
+import { ActiveSchedulesPaginatedMenu } from './paginated-menus/active-schedules.paginated-menu'
 import { GroupService } from '@app/domain/group'
 
 @Module({
   imports: [GroupModule, TrainingModule, TrainingSignupModule, UserProfileModule, PassTemplateModule],
   providers: [
     GroupSelectPaginatedMenu,
-    ActiveSchedulesInlineMenu,
     TrainingSelectPaginatedMenu,
     TrainingSelectStaffPaginatedMenu,
     VerificationInlineMenu,
     ClientSelectPaginatedMenu,
     StaffSelectPaginatedMenu,
+    ActiveSchedulesPaginatedMenu,
     {
       provide: CLIENT_SIGNOUT_MENU,
       useFactory: (groupService: GroupService) => new ClientSelectPaginatedMenu(groupService),
@@ -37,11 +36,11 @@ import { GroupService } from '@app/domain/group'
     GroupSelectPaginatedMenu,
     ClientSelectPaginatedMenu,
     TrainingSelectPaginatedMenu,
-    ActiveSchedulesInlineMenu,
     CLIENT_SIGNOUT_MENU,
     VerificationInlineMenu,
     TrainingSelectStaffPaginatedMenu,
     StaffSelectPaginatedMenu,
+    ActiveSchedulesPaginatedMenu
   ],
 })
 export class MenuModule {}

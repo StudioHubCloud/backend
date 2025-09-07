@@ -1,7 +1,7 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
 import { and, eq } from 'drizzle-orm'
 import { PinoLogger } from 'nestjs-pino'
-import { addDays, isAfter, subHours } from 'date-fns'
+import { addDays, isAfter, isBefore, subHours } from 'date-fns'
 import {
   DatabaseService,
   TrainingSelectModel,
@@ -11,7 +11,14 @@ import {
   Transaction,
   UserProfileSelectModel,
 } from '@app/infrastructure/database'
-import { API, DATE_FORMAT, GroupStatusEnum, PassStatusEnum, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs/constants'
+import {
+  API,
+  DATE_FORMAT,
+  GroupStatusEnum,
+  PassStatusEnum,
+  TrainingSignupStatusEnum,
+  TrainingSignupTypeEnum,
+} from '@app/libs/constants'
 import { TCustomApiResponse } from '@app/libs/types'
 import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
@@ -228,7 +235,9 @@ export class TrainingSignupService {
         }
       }
 
-      const cutoffTime = subHours(new Date(signup.training.date), COMMON.SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING)
+      const now = new Date()
+      const trainingDate = new Date(signup.training.date)
+      const signoutDeadline = subHours(trainingDate, COMMON.SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING)
 
       if (signup.status !== TrainingSignupStatusEnum.ACTIVE) {
         return { status: API.RESPONSE.ERROR_STRING, message: `Запис наразі не активний 🙈` }
@@ -239,7 +248,15 @@ export class TrainingSignupService {
           message: `На жаль, вже не можна відмінити запис на пробне тренування🌝\nЧекаємо на тебе🩷`,
         }
       }
-      if (isAfter(new Date(), cutoffTime)) {
+
+      if (isBefore(trainingDate, now)) {
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `Тренування вже відбулося🌝\nВідміна неможлива🩷`,
+        }
+      }
+
+      if (isAfter(now, signoutDeadline)) {
         return {
           status: API.RESPONSE.ERROR_STRING,
           message: `На жаль, вже не можна відмінити запис на тренування🌝\nЧекаємо на тебе🩷`,

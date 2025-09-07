@@ -9,7 +9,6 @@ import { UserProfileService } from '@app/domain/user-profile'
 import { CommonKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
-import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { MESSAGES_STAFF } from '@app/bot/static/messages'
 
 @Injectable()
@@ -43,7 +42,7 @@ export class VerificationRequestComposer {
 
   private initComposerHandlers() {
     this.composer.hears(BUTTON_PATTERNS.REQUESTS, (ctx: BotContext) => {
-      return this.verificationRequestMenu.initMenu(ctx)
+      return this.verificationRequestMenu.initMenu(ctx )
     })
   }
 

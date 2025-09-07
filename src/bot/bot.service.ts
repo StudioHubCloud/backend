@@ -8,8 +8,8 @@ import { MESSAGES_COMMON } from './static/messages'
 import { MiddlewareService } from './middleware'
 import { StageService } from './stage'
 import { ComposerService } from './composer'
-import { KeyboardService } from './keyboard'
-import { KeyboardHelper, UserHelper } from './helpers'
+import { KeyboardHelper, RegexHelper, UserHelper } from './helpers'
+import { CALLBACK_DATA } from './libs'
 
 @Injectable()
 export class BotService {
@@ -59,10 +59,10 @@ export class BotService {
   }
 
   private initExitGuard() {
-    this.bot.action(/(.*)/, (ctx) => {
+    this.bot.action(RegexHelper.createSimpleRegex(CALLBACK_DATA.CLOSE_MENU), (ctx) => {
       ctx.answerCbQuery()
-      const match = ctx.match[0]
-      this.logger.error('Exit guard triggered with match: %s', match)
+      ctx.deleteMessage()
+      return
     })
 
     this.bot.hears('🚪 Вийти', (ctx) => {
@@ -73,7 +73,13 @@ export class BotService {
       if (ctx.scene.current?.id) {
         ctx.scene.leave()
       }
-      return;
+      return
+    })
+
+    this.bot.action(/(.*)/, (ctx) => {
+      ctx.answerCbQuery()
+      const match = ctx.match[0]
+      this.logger.error('Exit guard triggered with match: %s', match)
     })
   }
 
