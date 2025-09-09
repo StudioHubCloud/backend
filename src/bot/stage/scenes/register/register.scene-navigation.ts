@@ -3,7 +3,7 @@ import { UserProfileRoleEnum } from '@app/libs'
 import { TSceneNavigationExtras, NavigationMapValues, NavigationMapEntries, IRoleNavigationMap } from '@app/bot/libs'
 import { WizardContextWizard } from 'telegraf/typings/scenes'
 
-export class SceneNavigation<T = IRoleNavigationMap, V = NavigationMapEntries> {
+export class RegisterSceneNavigation<K, T = IRoleNavigationMap<K>, V = NavigationMapEntries<K>> {
   private readonly navigationMap: T
 
   constructor(navMap: T) {
@@ -18,12 +18,12 @@ export class SceneNavigation<T = IRoleNavigationMap, V = NavigationMapEntries> {
 
   async handleBack(
     ctx: BotContext,
-    prev?: NavigationMapValues,
-    data?: TSceneNavigationExtras,
+    prev?: NavigationMapValues<K>,
+    data?: TSceneNavigationExtras<K>,
   ): Promise<WizardContextWizard<BotContext>> {
     let message = prev?.message
     if (typeof message === 'function') {
-      message = message(data || ({} as TSceneNavigationExtras))
+      message = message(data || ({} as TSceneNavigationExtras<K>))
     }
 
     await ctx.replyWithHTML(message ?? 'No prev', ...(prev?.keyboard ? [prev.keyboard] : []))
@@ -32,12 +32,12 @@ export class SceneNavigation<T = IRoleNavigationMap, V = NavigationMapEntries> {
 
   async handleNext(
     ctx: BotContext,
-    next?: NavigationMapValues,
-    data?: TSceneNavigationExtras,
+    next?: NavigationMapValues<K>,
+    data?: TSceneNavigationExtras<K>,
   ): Promise<WizardContextWizard<BotContext>> {
     let message = next?.message
     if (typeof message === 'function') {
-      message = message(data || ({} as TSceneNavigationExtras))
+      message = message(data || ({} as TSceneNavigationExtras<K>))
     }
     await ctx.replyWithHTML(message ?? 'No next', ...(next?.keyboard ? [next.keyboard] : []))
     return ctx.wizard.selectStep(next?.cursor || 0)

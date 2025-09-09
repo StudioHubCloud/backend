@@ -14,6 +14,7 @@ import {
 import { PassStatusEnum, UserProfileRoleEnum } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 import { BotContext } from '../bot.context'
+import { EDIT_GROUP_SCENE_ACTIONS, EDIT_PASS_SCENE_ACTIONS } from './constants'
 
 export type TBotStore = {
   user: AuthUserProfile | null
@@ -37,28 +38,28 @@ export type TPaginatedMenuRenderOptions = {
 
 export type TPaginatedMenuOptions = { page?: number; perPage?: number; prefix: string }
 
-export interface TSceneNavigationExtras {
-  data: Record<string, unknown>
+export interface TSceneNavigationExtras<T> {
+  data: T
   role: UserProfileRoleEnum
 }
 
-export interface NavigationMapValues {
-  message: string | ((data: TSceneNavigationExtras) => string)
+export interface NavigationMapValues<T> {
+  message: string | ((data: TSceneNavigationExtras<T>) => string)
   keyboard: TReplyMarkupKeyboard
   cursor: number
 }
 
-export interface NavigationMapEntries {
-  next?: NavigationMapValues
-  prev?: NavigationMapValues
+export interface NavigationMapEntries<T> {
+  next?: NavigationMapValues<T>
+  prev?: NavigationMapValues<T>
 }
 
-export interface IRoleNavigationMap extends Partial<Record<UserProfileRoleEnum, NavigationMapEntries>> {
-  default: NavigationMapEntries
+export interface IRoleNavigationMap<T> extends Partial<Record<UserProfileRoleEnum, NavigationMapEntries<T>>> {
+  default?: NavigationMapEntries<T>
 }
 
-export interface ISceneNavigationMap {
-  [key: number]: IRoleNavigationMap
+export interface ISceneNavigationMap<T> {
+  [key: number]: IRoleNavigationMap<T>
 }
 
 export type TReplyMarkupKeyboard = { reply_markup: ReplyKeyboardMarkup }
@@ -95,3 +96,6 @@ export interface GetTrainingByIdResponse extends TrainingSelectModel {
       })
     | null
 }
+
+export type TEditGroupSceneAction = (typeof EDIT_GROUP_SCENE_ACTIONS)[keyof typeof EDIT_GROUP_SCENE_ACTIONS]
+export type TEditPassSceneAction = (typeof EDIT_PASS_SCENE_ACTIONS)[keyof typeof EDIT_PASS_SCENE_ACTIONS]

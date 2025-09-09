@@ -1,0 +1,1 @@
+ALTER TABLE "pass" ADD COLUMN "capacity_override" smallint;

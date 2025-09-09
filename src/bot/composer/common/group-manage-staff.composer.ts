@@ -6,7 +6,7 @@ import {
   ClientSelectPaginatedMenu,
   GroupSelectPaginatedMenu,
   TrainingSelectStaffPaginatedMenu,
-  CLIENT_SIGNOUT_MENU,
+  CLIENT_SELECT_MENU,
 } from '@app/bot/menus'
 import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
@@ -26,7 +26,7 @@ export class GroupManageStaffComposer {
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly groupSelectPaginatedMenu: GroupSelectPaginatedMenu,
     private readonly trainingSelectStaffPaginatedMenu: TrainingSelectStaffPaginatedMenu,
-    @Inject(CLIENT_SIGNOUT_MENU) private readonly clientSelectSignOutPaginatedMenu: ClientSelectPaginatedMenu,
+    @Inject(CLIENT_SELECT_MENU) private readonly clientSelectSignOutPaginatedMenu: ClientSelectPaginatedMenu,
     private readonly groupService: GroupService,
     private readonly trainingService: TrainingService,
     private readonly trainingSignupService: TrainingSignupService,

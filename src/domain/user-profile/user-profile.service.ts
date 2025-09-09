@@ -7,6 +7,7 @@ import {
   UserProfileSelectModel,
   Transaction,
   staffMember,
+  client,
 } from '@app/infrastructure/database'
 import { RedisCacheService, UserProfileCacheKey } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
@@ -279,5 +280,30 @@ export class UserProfileService {
 
     this.redisCacheService.set(cacheKey, staffMembers)
     return staffMembers
+  }
+
+  async getAllClientsUserProfiles() {
+    const studioId = this.configService.get('STUDIO_ID')
+    const cacheKey = UserProfileCacheKey.allStudioClients(studioId)
+    
+    const clientsCashed = await this.redisCacheService.get<typeof clients>(cacheKey)
+    if (clientsCashed) {
+      return clientsCashed
+    }
+    
+    const clients = await this.databaseService.drizzle.query.userProfile.findMany({
+      where: (userProfile, { eq, and, exists }) =>
+        and(
+          eq(userProfile.studioId, studioId),
+          eq(userProfile.role, UserProfileRoleEnum.CLIENT),
+          exists(this.databaseService.drizzle.select().from(client).where(eq(client.userProfileId, userProfile.id)))
+        ),
+      with: {
+        client: true,
+      },
+    })
+    
+    this.redisCacheService.set(cacheKey, clients)
+    return clients
   }
 }

@@ -116,7 +116,9 @@ export class PassService {
             tx,
           )
           count++
-          this.logger.debug(`Auto-activated pass ${pass.id} for client ${pass.client?.userProfile?.firstName} after 7-day grace period`)
+          this.logger.debug(
+            `Auto-activated pass ${pass.id} for client ${pass.client?.userProfile?.firstName} after 7-day grace period`,
+          )
         }
       })
 
@@ -184,7 +186,7 @@ export class PassService {
       throw new BadRequestException(`Pass with id ${id} not found`)
     }
 
-    await this.redisCacheService.set(PassCacheKey.passByClientId(updatedPass.clientId, this.studioId), updatedPass)
+    await this.redisCacheService.reset()
     return updatedPass
   }
 
@@ -218,5 +220,32 @@ export class PassService {
         },
       },
     })
+  }
+
+  async getPassById(id: string) {
+    const cacheKey = PassCacheKey.passById(id, this.studioId)
+    const cachedPass = await this.redisCacheService.get<typeof foundPass>(cacheKey)
+
+    if (cachedPass) {
+      return cachedPass
+    }
+
+    const foundPass = await this.databaseService.drizzle.query.pass.findFirst({
+      where: (pass, { eq }) => eq(pass.id, id),
+      with: {
+        passTemplate: true,
+        client: {
+          with: {
+            userProfile: true,
+          },
+        },
+      },
+    })
+
+    if (foundPass) {
+      this.redisCacheService.set(cacheKey, foundPass)
+    }
+
+    return foundPass
   }
 }

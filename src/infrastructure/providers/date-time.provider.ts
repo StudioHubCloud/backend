@@ -1,6 +1,16 @@
 import { Inject, Injectable } from '@nestjs/common'
-import { format, addMonths, startOfMonth, endOfMonth, eachDayOfInterval, parse, endOfDay, differenceInYears, addDays, startOfDay } from 'date-fns'
-import { formatInTimeZone, fromZonedTime, toZonedTime } from 'date-fns-tz'
+import {
+  format,
+  addMonths,
+  startOfMonth,
+  endOfMonth,
+  eachDayOfInterval,
+  parse,
+  endOfDay,
+  differenceInYears,
+  startOfDay,
+} from 'date-fns'
+import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { uk } from 'date-fns/locale'
 import { APP, DATE_FORMAT, TDateFormats } from '@app/libs'
 import { TypedConfigService } from '@app/infrastructure/config'
@@ -34,7 +44,7 @@ export class DateTimeProvider {
     return endOfDay(date)
   }
 
-  roundToHours(date? : string): Date {
+  roundToHours(date?: string): Date {
     const newDate = date ? new Date(date) : new Date()
     newDate.setMinutes(0, 0, 0)
     return newDate
@@ -83,10 +93,14 @@ export class DateTimeProvider {
     const endOfDate = date ? endOfDay(new Date(date)) : endOfDay(new Date())
     return endOfDate.toISOString()
   }
-  
+
   toStartOfDateTimeStamp(date?: string): string {
     const startOfDate = date ? startOfDay(new Date(date)) : startOfDay(new Date())
     return startOfDate.toISOString()
+  }
+
+  getTodayDateStringInTz() {
+    return this.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_INPUT)
   }
 }
 

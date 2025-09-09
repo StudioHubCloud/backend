@@ -19,4 +19,7 @@ export class UserProfileCacheKey {
   static allStudioStaffMembers(studioId: string) {
     return `${this.cache_key_prefix}:all-staff:${studioId}`
   }
+  static allStudioClients(studioId: string) {
+    return `${this.cache_key_prefix}:all-clients:${studioId}`
+  }
 }

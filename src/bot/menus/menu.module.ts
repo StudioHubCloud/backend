@@ -6,7 +6,7 @@ import { GroupSelectPaginatedMenu } from './paginated-menus/group-select.paginat
 import { TrainingSelectPaginatedMenu } from './paginated-menus/training-select.paginated-menu'
 import { VerificationInlineMenu } from './inline-menus/verification-requests.inline-menu'
 import { TrainingSelectStaffPaginatedMenu } from './paginated-menus/training-select-staff.paginated-menu'
-import { ClientSelectPaginatedMenu, CLIENT_SIGNOUT_MENU } from './paginated-menus/client-select.paginated-menu'
+import { ClientSelectPaginatedMenu, CLIENT_SELECT_MENU } from './paginated-menus/client-select.paginated-menu'
 import { StaffSelectPaginatedMenu } from './paginated-menus/staff-select.paginated-menu'
 import { ActiveSchedulesPaginatedMenu } from './paginated-menus/active-schedules.paginated-menu'
 import { GroupService } from '@app/domain/group'
@@ -22,7 +22,7 @@ import { GroupService } from '@app/domain/group'
     StaffSelectPaginatedMenu,
     ActiveSchedulesPaginatedMenu,
     {
-      provide: CLIENT_SIGNOUT_MENU,
+      provide: CLIENT_SELECT_MENU,
       useFactory: (groupService: GroupService) => new ClientSelectPaginatedMenu(groupService),
       inject: [GroupService],
       scope: Scope.TRANSIENT,
@@ -36,7 +36,7 @@ import { GroupService } from '@app/domain/group'
     GroupSelectPaginatedMenu,
     ClientSelectPaginatedMenu,
     TrainingSelectPaginatedMenu,
-    CLIENT_SIGNOUT_MENU,
+    CLIENT_SELECT_MENU,
     VerificationInlineMenu,
     TrainingSelectStaffPaginatedMenu,
     StaffSelectPaginatedMenu,

@@ -1,18 +1,13 @@
 import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
+import { SCENES } from '@app/bot/libs'
 import { SceneHelper, BotHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
 import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
-import { PassTemplateService } from '@app/domain/pass-template/pass-template.service'
-import {
-  CommonSceneKeyboards,
-  InitiatePayoutSceneKeyboards,
-  VerifyClientSceneKeyboards,
-} from '@app/bot/keyboard/storage/scene-keyboards'
+import { InitiatePayoutSceneKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
 import { DATE_FORMAT } from '@app/libs'
 import { IInitiatePayoutSceneState, InitiatePayoutSceneHelper } from './initiate-payout.scene-helper'
 import { UserProfileService } from '@app/domain/user-profile'
@@ -132,7 +127,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
         paidAt: state.payoutDate,
         description: payoutDescription,
       })
-      
+
       if (!result) {
         await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_PAYOUT_REGISTER, AdminKeyboards.mainMenu())
       }
@@ -140,7 +135,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       const staffMessage = InitiatePayoutSceneHelper.getStaffInfoMessage(state)
 
       await Promise.all([
-        ctx.telegram.sendMessage(state.staffUserProfile.telegramId, staffMessage, {parse_mode: 'HTML'}),
+        ctx.telegram.sendMessage(state.staffUserProfile.telegramId, staffMessage, { parse_mode: 'HTML' }),
         ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.REGISTER_SUCCESS, AdminKeyboards.mainMenu()),
       ])
       return ctx.scene.leave()
@@ -158,7 +153,10 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       this.configService.get('MAINTAINER_CHAT_ID'),
       `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`,
     )
-    await ctx.replyWithHTML(`❌ Виникла помилка: ${error?.message}. Спробуйте ще раз або зверніться до адміністратора.`, AdminKeyboards.mainMenu() )
+    await ctx.replyWithHTML(
+      `❌ Виникла помилка: ${error?.message}. Спробуйте ще раз або зверніться до адміністратора.`,
+      AdminKeyboards.mainMenu(),
+    )
     return ctx.scene.leave()
   }
 

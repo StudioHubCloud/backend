@@ -1,0 +1,1 @@
+ALTER TABLE "pass" RENAME COLUMN "capacity_override" TO "length_override";

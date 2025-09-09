@@ -24,6 +24,10 @@ export const BUTTON_PATTERNS = {
   REMIND_LATER: '⏰ Нагадати пізніше',
   ACTIVE_SCHEDULES: '✅ Мої активні записи',
   PASS_INFO: '🎫 Інформація про абонемент',
+  PASS: '🎫 Абонемент',
+  PASS_EDIT_START_DATE: '📆 Змінити дату початку',
+  PASS_EDIT_END_DATE: '📆 Змінити дату закінчення',
+  PASS_EDIT_LENGTH: '✏️ Редагувати кількість тренувань', // це кількість доступних тренувань
   PAYMENT: '💳 Оплатити абонемент (реквізити)',
   REGISTER_FINISH: '✅ Завершити реєстрацію',
   REQUESTS: '🔸 Запити на верифікацію',
@@ -50,4 +54,5 @@ export const BUTTON_PATTERNS = {
   INITIATE_PAYOUT: '💸 Виплатити запрлату',
   ACTIVE_SCHEDULES_LIST: '📜 Активні записи',
   CANCELED_SCHEDULES_LIST: '📜 Скасовані записи',
+  
 } as const

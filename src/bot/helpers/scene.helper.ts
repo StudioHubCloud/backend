@@ -1,4 +1,7 @@
+import { TypedConfigService } from '@app/infrastructure/config'
 import { BotContext } from '../bot.context'
+import { AdminKeyboards } from '../keyboard/storage'
+import { MESSAGES_SCENE } from '../static/messages'
 
 export class SceneHelper<T extends Record<string, any>> {
   constructor() {}
@@ -14,18 +17,38 @@ export class SceneHelper<T extends Record<string, any>> {
     return ctx.scene.state as T
   }
 
+  getState<K extends keyof T>(ctx: BotContext, key: K): Pick<T, K>
+  getState<K extends keyof T>(ctx: BotContext, keys: K[]): Pick<T, K>
+  getState<K extends keyof T>(ctx: BotContext): T
   getState<K extends keyof T>(ctx: BotContext, key?: K | K[]) {
     const scene_state = ctx.scene.state as T
 
     if (Array.isArray(key)) {
-      return key.reduce((acc, k) => {
-        acc[k] = scene_state[k]
-        return acc
-      }, {} as T)
+      return key.reduce(
+        (acc, k) => {
+          acc[k] = scene_state[k]
+          return acc
+        },
+        {} as Pick<T, K>,
+      )
     }
-    if (typeof key === 'string') {
-      return { [key]: scene_state[key] } as unknown as Partial<T>
+    if (key !== undefined) {
+      return { [key]: scene_state[key] } as Pick<T, K>
     }
     return scene_state
+  }
+
+  async handleAdminSceneError(ctx: BotContext, error: any, mainTainerChatId: string) {
+    await ctx.telegram.sendMessage(mainTainerChatId, `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`)
+    await ctx.replyWithHTML(
+      `❌ Виникла помилка, ми вже повіломлені про неї. Спробуйте ще раз або зверніться до адміністратора.`,
+      AdminKeyboards.mainMenu(),
+    )
+    return ctx.scene.leave()
+  }
+
+  async handleAdminSceneExit(ctx: BotContext) {
+    await ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.EXIT, AdminKeyboards.mainMenu())
+    return ctx.scene.leave()
   }
 }

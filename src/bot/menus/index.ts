@@ -1,6 +1,6 @@
 export { GroupSelectPaginatedMenu } from './paginated-menus/group-select.paginated-menu'
 export { TrainingSelectPaginatedMenu } from './paginated-menus/training-select.paginated-menu'
-export { ClientSelectPaginatedMenu, CLIENT_SIGNOUT_MENU } from './paginated-menus/client-select.paginated-menu'
+export { ClientSelectPaginatedMenu, CLIENT_SELECT_MENU } from './paginated-menus/client-select.paginated-menu'
 export { VerificationInlineMenu } from './inline-menus/verification-requests.inline-menu'
 export { TrainingSelectStaffPaginatedMenu } from './paginated-menus/training-select-staff.paginated-menu'
 export { StaffSelectPaginatedMenu } from './paginated-menus/staff-select.paginated-menu'

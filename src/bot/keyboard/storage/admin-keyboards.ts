@@ -223,4 +223,71 @@ export class AdminKeyboards {
       ],
     ])
   }
+
+  static clientManageMenu(clientUserId: string): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: BUTTON_PATTERNS.PASS,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.MANAGE, clientUserId),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.BACK,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_CLIENT_LIST,
+            clientUserId,
+          ),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.CLOSE,
+          callback_data: CALLBACK_DATA.CLOSE_MENU,
+        },
+      ],
+    ])
+  }
+
+  static passManageMenu(clientUserId: string): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: BUTTON_PATTERNS.PASS_EDIT_LENGTH,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_LENGTH, clientUserId),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.PASS_EDIT_START_DATE,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_START_DATE,
+            clientUserId,
+          ),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.PASS_EDIT_END_DATE,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_END_DATE, clientUserId),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.BACK,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_CLIENT_LIST,
+            clientUserId,
+          ),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.CLOSE,
+          callback_data: CALLBACK_DATA.CLOSE_MENU,
+        },
+      ],
+    ])
+  }
 }

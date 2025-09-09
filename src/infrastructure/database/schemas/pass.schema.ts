@@ -13,6 +13,7 @@ export const pass = table(
   {
     id: uuid('id').primaryKey().defaultRandom(),
     availableSlots: smallint('available_slots').notNull().default(0),
+    lengthOverride: smallint('length_override'),
     saleDate: date('sale_date', { mode: 'string' }).notNull(),
     startDate: date('start_date', { mode: 'string' }),
     endDate: date('end_date', { mode: 'string' }),

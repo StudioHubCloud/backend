@@ -1,7 +1,7 @@
 import { CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { UserProfileRoleEnum } from '@app/libs'
-import { ISceneNavigationMap } from '@app/bot/libs'
+import { IRegisterSceneState, ISceneNavigationMap } from '@app/bot/libs'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 export const REGISTER_SCENE_CURSOR_MAP = {
@@ -12,7 +12,7 @@ export const REGISTER_SCENE_CURSOR_MAP = {
   COMPLETE_HANDLER: 4,
 } as const
 
-export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap = {
+export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneState> = {
   [REGISTER_SCENE_CURSOR_MAP.ENTER_HANDLER]: {
     default: {
       next: {

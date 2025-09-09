@@ -69,6 +69,10 @@ export class UserHelper {
     return lastName ? `${firstName} ${lastName}` : firstName
   }
 
+  static getFullNameFromProfile(user: UserProfileSelectModel): string {
+    return this.getFullName(user.firstName, user.lastName)
+  }
+
   static isStaffMember(user: UserProfileSelectModel & { staffMember: StaffMemberSelectModel | null }): boolean {
     return (user.role === UserProfileRoleEnum.ADMIN || user.role === UserProfileRoleEnum.TRAINER) && user.staffMember !== null
   }

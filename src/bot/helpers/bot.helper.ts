@@ -17,7 +17,7 @@ export class BotHelper {
     return from
   }
 
-  static getUpdatePayload(ctx: BotContext): [string, any] {
+  static getUpdatePayload(ctx: BotContext): [string, { isTextUpdate: boolean; isCallbackQueryUpdate: boolean; isInlineQueryUpdate: boolean }] {
     const update = deunionize(ctx.update)
 
     let payloadData: string | null = ''
@@ -42,6 +42,6 @@ export class BotHelper {
       default:
         break
     }
-    return [payloadData, { isTextUpdate, isCallbackQueryUpdate, isInlineQueryUpdate }]
+    return [payloadData.trim(), { isTextUpdate, isCallbackQueryUpdate, isInlineQueryUpdate }]
   }
 }

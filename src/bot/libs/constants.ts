@@ -14,11 +14,13 @@ export const SCENES = {
   VERIFY_TRAINER: 'verify_trainer',
   SIGN_IN_CLIENT: 'sign_in_client',
   INITIATE_PAYOUT: 'initiate_payout',
+  EDIT_GROUP: 'edit_group',
+  EDIT_PASS: 'edit_pass',
 } as const
 
 export const CALLBACK_DATA = {
   DISABLED: '_disabled_',
-  CLOSE_MENU:'__close_menu__',
+  CLOSE_MENU: '__close_menu__',
   PAGINATION_KEY: 'pagination',
   ITEM_KEY: 'item',
   VERIFY_USER: 'verify',
@@ -67,7 +69,7 @@ export const CALLBACK_PREFIX = {
       REMOVE_GROUP: 'm.r.g.st',
       ASSIGN_GROUP: 'm.as.g.st',
       DEASSIGN_GROUP: 'm.de.g.st',
-    }
+    },
   },
   CLIENT: {
     TRAINING: {
@@ -77,6 +79,16 @@ export const CALLBACK_PREFIX = {
     GROUP: {
       SELECT: 'g.s.cl',
       BACK_TO_SELECT: 'g.s.b.cl',
+    },
+    MANAGE: {
+      MENU: 'm.m.cl',
+      BACK_TO_CLIENT_LIST: 'm.m.b.cl.l',
+      PASS: {
+        MANAGE: 'm.p.m.cl',
+        EDIT_START_DATE: 'm.p.e.s.cl',
+        EDIT_END_DATE: 'm.p.e.e.cl',
+        EDIT_LENGTH: 'm.p.e.l.cl',
+      },
     },
   },
   SCENES: {
@@ -91,4 +103,16 @@ export const CALLBACK_PREFIX = {
   COMMON: {
     AGREE_TO_RULES: 'cmn.agree.to.rules',
   },
+} as const
+
+export const EDIT_GROUP_SCENE_ACTIONS = {
+  EDIT_LENGTH: 'edit_length',
+  EDIT_START_DATE: 'edit_start_date',
+  EDIT_END_DATE: 'edit_end_date',
+} as const
+
+export const EDIT_PASS_SCENE_ACTIONS = {
+  EDIT_LENGTH: 'edit_length',
+  EDIT_START_DATE: 'edit_start_date',
+  EDIT_END_DATE: 'edit_end_date',
 } as const

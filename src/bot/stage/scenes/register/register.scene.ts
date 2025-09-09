@@ -5,7 +5,7 @@ import { DATE_FORMAT, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/li
 import { IRegisterSceneState, SCENES, TNextFunction } from '@app/bot/libs'
 import { SceneHelper, BotHelper, UserHelper, TextHelper, KeyboardHelper, NameHelper } from '@app/bot/helpers'
 import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
-import { SceneNavigation } from '../scene.navigation'
+import { RegisterSceneNavigation } from './register.scene-navigation'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { UserProfileService } from '@app/domain/user-profile'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
@@ -17,7 +17,7 @@ import { MessageHelper } from '@app/bot/helpers/message.helper'
 @Injectable()
 export class RegisterScene extends Scenes.WizardScene<BotContext> {
   private readonly registerScene = new SceneHelper<IRegisterSceneState>()
-  private readonly sceneNavigation = new SceneNavigation(REGISTER_SCENE_NAVIGATION_MAP)
+  private readonly sceneNavigation = new RegisterSceneNavigation<IRegisterSceneState>(REGISTER_SCENE_NAVIGATION_MAP)
   private REQUESTED_ROLE: UserProfileRoleEnum
 
   constructor(
