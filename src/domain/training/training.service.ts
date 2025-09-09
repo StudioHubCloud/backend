@@ -234,6 +234,9 @@ export class TrainingService {
     const training = await this.databaseService.drizzle.query.training.findFirst({
       where: (training, { eq }) => eq(training.id, trainingId),
       with: {
+        trainer: {
+          with: { userProfile: true },
+        },
         group: {
           columns: {
             status: true,
@@ -269,10 +272,7 @@ export class TrainingService {
       studio.groups.forEach((group) => {
         group.groupSchedules.forEach((schedule) => {
           const trainingDates = this.dateTimeProvider.getEachDayOfIntervalForDayIndex(interval, schedule.groupScheduleDays.dayIndex)
-          trainingsToInsert = [
-            ...trainingsToInsert,
-            ...this.generateTrainingsRecords(trainingDates, group.id, schedule, group.staffMemberId),
-          ]
+          trainingsToInsert = [...trainingsToInsert, ...this.generateTrainingsRecords(trainingDates, group.id, schedule)]
         })
       })
     })
@@ -340,6 +340,20 @@ export class TrainingService {
     })
   }
 
+  async assignSubstituteTrainer(trainingId: number, staffUserId: string) {
+    const trainerProfile = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: staffUserId })
+
+    if (!trainerProfile) {
+      throw new NotFoundException(`Staff member with userProfileId: ${staffUserId} not found`)
+    }
+
+    return this.updateTraining(trainingId, { trainerId: trainerProfile.id })
+  }
+
+  async deassignSubstituteTrainer(trainingId: number) {
+    return this.updateTraining(trainingId, { trainerId: null })
+  }
+
   private staffMemberTrainingFilter(staffMemberId: string) {
     return (tr: typeof training._.columns, { eq, and, exists, or, isNull }) =>
       exists(
@@ -361,12 +375,7 @@ export class TrainingService {
       )
   }
 
-  private generateTrainingsRecords(
-    trainingDates: Date[],
-    groupId: number,
-    schedule: GroupScheduleSelectModel,
-    trainerId: string | null,
-  ) {
+  private generateTrainingsRecords(trainingDates: Date[], groupId: number, schedule: GroupScheduleSelectModel) {
     const trainingsToInsert: TrainingInsertModel[] = []
 
     trainingDates.forEach((date) => {
@@ -374,7 +383,6 @@ export class TrainingService {
         date: this.dateTimeProvider.getUtcStringTz(this.dateTimeProvider.addTimeToDate(date, schedule.time)),
         groupId: groupId,
         groupScheduleId: schedule.id,
-        trainerId: trainerId,
       }
       trainingsToInsert.push(trainingRecord)
     })

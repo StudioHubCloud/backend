@@ -7,8 +7,9 @@ import {
   GroupSelectPaginatedMenu,
   TrainingSelectStaffPaginatedMenu,
   CLIENT_SELECT_MENU,
+  StaffSelectPaginatedMenu,
 } from '@app/bot/menus'
-import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
+import { CALLBACK_PREFIX, GetTrainingByIdResponse, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
@@ -17,15 +18,19 @@ import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { API, TrainingSignupStatusEnum } from '@app/libs'
+import { transcode } from 'buffer'
+import { PinoLogger } from 'nestjs-pino'
 
 @Injectable()
 export class GroupManageStaffComposer {
   private readonly composer: Composer<BotContext>
 
   constructor(
+    private readonly logger: PinoLogger,
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly groupSelectPaginatedMenu: GroupSelectPaginatedMenu,
     private readonly trainingSelectStaffPaginatedMenu: TrainingSelectStaffPaginatedMenu,
+    private readonly staffSelectPaginatedMenu: StaffSelectPaginatedMenu,
     @Inject(CLIENT_SELECT_MENU) private readonly clientSelectSignOutPaginatedMenu: ClientSelectPaginatedMenu,
     private readonly groupService: GroupService,
     private readonly trainingService: TrainingService,
@@ -64,6 +69,15 @@ export class GroupManageStaffComposer {
         promptMessage: '👤 Оберіть клієнта для скасування запису:',
         noOptionsMessage: '📋 На це тренування немає активних записів',
         onItemSelect: this.handleClientSignOutPaginatedSelect,
+      }),
+    )
+
+    this.composer.use(
+      this.staffSelectPaginatedMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.STAFF.TRAINING.ASSIGN_SUBSTITUTE_SELECT,
+        promptMessage: '👤 Оберіть тренера який проведе тренування:',
+        noOptionsMessage: '📋 Немає доступних тренерів для заміни',
+        onItemSelect: this.handleStaffSelectPaginatedSelect,
       }),
     )
   }
@@ -248,6 +262,58 @@ export class GroupManageStaffComposer {
     })
 
     this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.ASSIGN_SUBSTITUTE_LIST),
+      async (ctx: BotContext) => {
+        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+          const backButtonCbData = RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
+            trainingId,
+            staffUserId ?? backButtonCallbackData,
+          )
+
+          const training = await this.trainingService.getTrainingById(+trainingId)
+          if (!training) {
+            ctx.answerCbQuery('❗️ Не вдалося завантажити тренування. Спробуйте ще раз.', { show_alert: true })
+            ctx.deleteMessage()
+            return
+          }
+          const group = await this.groupService.getGroupById(training.groupId)
+
+          const currentTrainerId = group.staffMemberId
+
+          return this.staffSelectPaginatedMenu.initMenu(
+            ctx,
+            { targetTrainingId: trainingId },
+            {
+              context: {
+                fromUpcomingTrainingsMenu: !!backButtonCallbackData,
+                staffUserId,
+                trainingId,
+                excludeStaffMemberId: currentTrainerId,
+              },
+              backButtonCallbackData: backButtonCbData,
+              shouldEdit: true,
+            },
+          )
+        })
+      },
+    )
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.DEASSIGN_SUBSTITUTE_LIST),
+      async (ctx: BotContext) => {
+        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+          await this.trainingService.deassignSubstituteTrainer(+trainingId)
+          await this.notifyClientsAboutSubstituteTrainer(ctx, trainingId, 'deassign')
+          ctx.answerCbQuery('✅ Заміна тренера скасована.')
+          return this.renderTrainingManageMenu(ctx, trainingId, {
+            fromUpcomingTrainingsMenu: !!backButtonCallbackData,
+            staffUserId,
+          })
+        })
+      },
+    )
+
+    this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST),
       async (ctx: BotContext) => {
         return this.renderUpcomingTrainingsMenu(ctx, { shouldEdit: true, withExitButton: true })
@@ -311,6 +377,8 @@ export class GroupManageStaffComposer {
     const training = await this.trainingService.getTrainingById(+trainingId)
     const group = await this.groupService.getGroupById(training.groupId)
 
+    const hasSubstituteTrainer = !!training.trainer
+
     const { fromUpcomingTrainingsMenu, staffUserId } = context
 
     const isAdmin = UserHelper.isAdminRole(ctx)
@@ -320,7 +388,7 @@ export class GroupManageStaffComposer {
     return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
       parse_mode: 'HTML',
       ...(isAdmin
-        ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId)
+        ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer)
         : TrainerKeyboards.trainingManageMenu(training, backButtonCallbackData)),
     })
   }
@@ -371,6 +439,22 @@ export class GroupManageStaffComposer {
     }
   }
 
+  private handleStaffSelectPaginatedSelect = async (ctx: BotContext, staffUserId: string, context: Record<string, any> = {}) => {
+    if (!context.trainingId) {
+      ctx.answerCbQuery('❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    }
+
+    await this.trainingService.assignSubstituteTrainer(+context.trainingId, staffUserId)
+
+    await this.notifyClientsAboutSubstituteTrainer(ctx, context.trainingId, 'assign')
+
+    ctx.answerCbQuery('✅ Тренер успішно призначений на тренування.')
+
+    return this.renderTrainingManageMenu(ctx, context.trainingId, context)
+  }
+
   private getStaffMemberMessages(ctx: BotContext, messageType: 'noOptions' | 'prompt' | 'trainings') {
     const role = UserHelper.getUserRole(ctx)
     return MessageHelper.getStaffMemberMessages(role, messageType)
@@ -391,5 +475,36 @@ export class GroupManageStaffComposer {
     }
 
     return action(trainingId, staffUserId ? null : backButtonCallbackData, staffUserId)
+  }
+
+  private async notifyClientsAboutSubstituteTrainer(ctx: BotContext, trainingId: string, action: 'assign' | 'deassign') {
+    const training = await this.trainingService.getTrainingById(+trainingId)
+    const group = await this.groupService.getGroupById(training.groupId)
+    const activeSignUps = training.trainingSignups?.filter((signup) => signup.status === TrainingSignupStatusEnum.ACTIVE) || []
+
+    const message = MessageHelper.constructSubstituteTrainerMessage(action, group, training, this.dateTimeProvider)
+
+    const results = await Promise.allSettled(
+      activeSignUps
+        .map(async (signup) => {
+          if (!signup.userProfile?.telegramId) return
+
+          try {
+            await ctx.telegram.sendMessage(String(signup.userProfile.telegramId), message, { parse_mode: 'HTML' })
+            return { success: true, telegramId: signup.userProfile.telegramId }
+          } catch (error) {
+            console.error(`Failed to send substitute trainer notification to ${signup.userProfile.telegramId}:`, error)
+            return { success: false, telegramId: signup.userProfile.telegramId, error }
+          }
+        })
+        .filter(Boolean),
+    )
+
+    const successful = results.filter((result) => result.status === 'fulfilled' && result.value?.success).length
+    const failed = results.filter(
+      (result) => result.status === 'rejected' || (result.status === 'fulfilled' && !result.value?.success),
+    ).length
+
+    this.logger.debug(`Substitute trainer notifications sent. Successful: ${successful}, Failed: ${failed}`)
   }
 }

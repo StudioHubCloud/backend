@@ -10,6 +10,7 @@ import {
   GroupScheduleSelectModel,
   GroupStyleVariantSelectModel,
   TrainingSignupSelectModel,
+  StaffMemberSelectModel,
 } from '@app/infrastructure/database/models'
 import { PassStatusEnum, UserProfileRoleEnum } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
@@ -82,12 +83,14 @@ export interface IRegisterSceneState {
 }
 
 export interface GetGroupByIdResponse extends GroupSelectModel {
+  trainer: (StaffMemberSelectModel & { userProfile: UserProfileSelectModel | null }) | null
   groupStyle: GroupStyleSelectModel
   groupAgeRestrictions: GroupAgeRestrictionSelectModel | null
   groupAgeRestrictionExeptions?: GroupAgeRestrictionExceptionSelectModel[] | null
 }
 
 export interface GetTrainingByIdResponse extends TrainingSelectModel {
+  trainer: (StaffMemberSelectModel & { userProfile: UserProfileSelectModel | null }) | null
   group: Pick<GroupSelectModel, 'status'>
   trainingSignups: (TrainingSignupSelectModel & { userProfile: UserProfileSelectModel | null })[]
   groupSchedule:

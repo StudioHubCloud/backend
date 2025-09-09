@@ -112,6 +112,9 @@ export class GroupService {
     const groupFound = await this.databaseService.drizzle.query.group.findFirst({
       where: (group, { eq }) => eq(group.id, groupId),
       with: {
+        trainer: {
+          with: { userProfile: true },
+        },
         groupStyle: true,
         groupAgeRestrictions: true,
         groupAgeRestrictionExeptions: true,

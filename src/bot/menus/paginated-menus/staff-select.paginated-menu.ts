@@ -12,9 +12,14 @@ export class StaffSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{}> 
   }
 
   protected async loadOptions(): Promise<TNormalizedOption[]> {
+    const { excludeStaffMemberId } = this.renderOptions.context || {}
     const staffMembersUserProfiles = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
 
-    return KeyboardHelper.prepareInlineMenuOptions(staffMembersUserProfiles, {
+    const filteredStaff = excludeStaffMemberId
+      ? staffMembersUserProfiles.filter((profile) => profile.staffMember?.id !== excludeStaffMemberId)
+      : staffMembersUserProfiles
+
+    return KeyboardHelper.prepareInlineMenuOptions(filteredStaff, {
       labelKey: ['firstName', 'lastName'],
       valueKey: 'id',
       emoji: '▫️',

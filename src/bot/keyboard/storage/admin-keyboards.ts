@@ -53,6 +53,7 @@ export class AdminKeyboards {
     training: GetTrainingByIdResponse,
     backButtonCallbackData?: string | null,
     staffUserId?: string,
+    hasSubstituteTrainer: boolean = false,
   ): TReplyInlineKeyboard {
     const { id: trainingId, groupId, isCancelled } = training
 
@@ -92,7 +93,18 @@ export class AdminKeyboards {
 
     return KeyboardHelper.createInlineKeyboard([
       [isCancelled ? canceledSignupsButton : activeSignupsButton],
-      [isCancelled ? makeActiveButton : cancelButton],
+      [
+        {
+          text: hasSubstituteTrainer ? BUTTON_PATTERNS.DEASSIGN_SUBSTITUTE : BUTTON_PATTERNS.ASSIGN_SUBSTITUTE,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            hasSubstituteTrainer
+              ? CALLBACK_PREFIX.STAFF.TRAINING.DEASSIGN_SUBSTITUTE_LIST
+              : CALLBACK_PREFIX.STAFF.TRAINING.ASSIGN_SUBSTITUTE_LIST,
+            trainingId,
+            staffUserId ?? backButtonCallbackData,
+          ),
+        },
+      ],
       [
         {
           text: BUTTON_PATTERNS.SCHEDULE_TO_TRAINING,
@@ -102,9 +114,6 @@ export class AdminKeyboards {
             staffUserId ?? backButtonCallbackData,
           ),
         },
-      ],
-
-      [
         {
           text: BUTTON_PATTERNS.DESCHEDULE_FROM_TRAINING,
           callback_data: RegexHelper.createButtonActionCallbackData(
@@ -114,6 +123,7 @@ export class AdminKeyboards {
           ),
         },
       ],
+      [isCancelled ? makeActiveButton : cancelButton],
       [
         {
           text: BUTTON_PATTERNS.BACK_TO_TRAINING_LIST,

@@ -16,6 +16,7 @@ import {
 } from '@app/infrastructure/database'
 import { PassHelper } from './pass.helper'
 import { DateTimeProvider } from '@app/infrastructure/providers'
+import { UserHelper } from './user.helper'
 
 export class MessageHelper {
   static getAgeRestrictionMessage(minAge: number | null = null, maxAge: number | null = null): string {
@@ -98,18 +99,27 @@ export class MessageHelper {
       { activeSignUpsCount: 0, cancelledSignupsCount: 0 },
     )
 
+    const groupTrainer = group.trainer?.userProfile ? UserHelper.getFullNameFromProfile(group.trainer.userProfile) : null
+    const trainingTrainer = training.trainer?.userProfile ? UserHelper.getFullNameFromProfile(training.trainer.userProfile) : null
+
+    const assignedTrainer = trainingTrainer || groupTrainer
+
     const statusString = training.isCancelled ? '🚫 Тренування Скасоване' : '✅ Тренування Активне'
     const countString = training.isCancelled
       ? `📍 Скасованих Записів: <b>${cancelledSignupsCount}</b>\n\n`
       : `📍 Активних Записів: <b>${activeSignUpsCount}</b>\n\n`
+
+    const trainerString = assignedTrainer
+      ? `👤 Тренер: <b>${assignedTrainer}</b>${trainingTrainer ? ` <i>(Заміна)</i>` : ''}\n\n`
+      : ''
 
     return (
       `<b>${statusString}</b>\n\n` +
       `${group.groupStyle.emoji ?? '⚪️'} Cтиль: <b>${group.groupStyle.title}</b>\n` +
       `${training.groupSchedule?.groupStyleVariant ? `🎇 Тип: <b>${training.groupSchedule.groupStyleVariant.title}</b>\n` : '\n'}` +
       `${countString}` +
-      `📅 Дата: <b>${formattedDate}</b>\n` +
-      `🌝 День: <b>${formattedDay}</b>\n` +
+      `${trainerString}` +
+      `📅 Дата: <b>${formattedDate}</b> (<i>${formattedDay})</i>\n` +
       `🕓 Час: <b>${formattedTime}</b>\n`
     )
   }
@@ -144,7 +154,9 @@ export class MessageHelper {
       status === TrainingSignupStatusEnum.ACTIVE ? '✅ Активні записи на тренування:' : '❌ Скасовані записи на тренування:'
 
     const noSignupMessage =
-      status === TrainingSignupStatusEnum.ACTIVE ? '📋 Немає активних записів на тренування' : '📋 Немає скасованих записів на тренування'
+      status === TrainingSignupStatusEnum.ACTIVE
+        ? '📋 Немає активних записів на тренування'
+        : '📋 Немає скасованих записів на тренування'
 
     if (!trainingSignup.length) {
       return noSignupMessage
@@ -278,5 +290,40 @@ ${trainingLines}`
     })
 
     return `${groupMessages.join('\n\n')}`
+  }
+
+  static constructSubstituteTrainerMessage(
+    action: 'assign' | 'deassign',
+    group: GetGroupByIdResponse,
+    training: GetTrainingByIdResponse,
+    dateTimeProvider: DateTimeProvider,
+  ): string {
+    const formattedDate = dateTimeProvider.formatDateStringInTz(training.date, 'dd MMMM')
+    const formattedTime = dateTimeProvider.formatDateStringInTz(training.date, 'HH:mm')
+    const formattedDay =
+      dateTimeProvider.formatDateStringInTz(training.date, 'EEEE').charAt(0).toUpperCase() +
+      dateTimeProvider.formatDateStringInTz(training.date, 'EEEE').slice(1)
+
+    if (action === 'assign') {
+      const substituteTrainer = training.trainer?.userProfile
+        ? UserHelper.getFullNameFromProfile(training.trainer.userProfile)
+        : null
+
+      return (
+        `<b>🔄 Зміна Тренера</b>\n\n` +
+        `${group.groupStyle.emoji ?? '⚪️'} <b>${group.groupStyle.title}</b>\n` +
+        `📅 ${formattedDate} (${formattedDay})  ${formattedTime}\n\n` +
+        `👤 Новий тренер: <b><u>${substituteTrainer}</u></b>`
+      )
+    } else {
+      const regularTrainer = group.trainer?.userProfile ? UserHelper.getFullNameFromProfile(group.trainer.userProfile) : null
+
+      return (
+        `<b>✅ Скасування Заміни</b>\n\n` +
+        `${group.groupStyle.emoji ?? '⚪️'} <b>${group.groupStyle.title}</b>\n` +
+        `📅 ${formattedDate} (${formattedDay})  ${formattedTime}\n\n` +
+        `👤 Тренер: <b><u>${regularTrainer}</u></b>`
+      )
+    }
   }
 }
