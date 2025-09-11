@@ -3,6 +3,7 @@ import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
 import { CALLBACK_DATA, CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
+import { COMMON_BUTTONS } from './common-keyboards'
 
 export class AdminKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {
@@ -27,6 +28,7 @@ export class AdminKeyboards {
           ),
         },
       ],
+      [COMMON_BUTTONS.CLOSE],
     ])
   }
 
@@ -134,6 +136,7 @@ export class AdminKeyboards {
           ),
         },
       ],
+      [COMMON_BUTTONS.CLOSE],
     ])
   }
 
@@ -165,6 +168,8 @@ export class AdminKeyboards {
         ),
       },
     ])
+
+    keyboard.push([COMMON_BUTTONS.CLOSE])
 
     return KeyboardHelper.createInlineKeyboard(keyboard)
   }
@@ -231,6 +236,7 @@ export class AdminKeyboards {
           ),
         },
       ],
+      [COMMON_BUTTONS.CLOSE],
     ])
   }
 
@@ -266,12 +272,7 @@ export class AdminKeyboards {
           ),
         },
       ],
-      [
-        {
-          text: BUTTON_PATTERNS.CLOSE,
-          callback_data: CALLBACK_DATA.CLOSE_MENU,
-        },
-      ],
+      [COMMON_BUTTONS.CLOSE],
     ])
   }
 
@@ -292,24 +293,19 @@ export class AdminKeyboards {
       [
         {
           text: BUTTON_PATTERNS.EDIT_DATE_OF_BIRTH,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_DATE_OF_BIRTH, clientUserId),
-        },
-      ],
-      [
-        {
-          text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(
-            CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_MENU,
+            CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_DATE_OF_BIRTH,
             clientUserId,
           ),
         },
       ],
       [
         {
-          text: BUTTON_PATTERNS.CLOSE,
-          callback_data: CALLBACK_DATA.CLOSE_MENU,
+          text: BUTTON_PATTERNS.BACK,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_MENU, clientUserId),
         },
       ],
+      [COMMON_BUTTONS.CLOSE],
     ])
   }
 
@@ -339,18 +335,10 @@ export class AdminKeyboards {
       [
         {
           text: BUTTON_PATTERNS.BACK,
-          callback_data: RegexHelper.createButtonActionCallbackData(
-            CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_CLIENT_LIST,
-            clientUserId,
-          ),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_MENU, clientUserId),
         },
       ],
-      [
-        {
-          text: BUTTON_PATTERNS.CLOSE,
-          callback_data: CALLBACK_DATA.CLOSE_MENU,
-        },
-      ],
+      [COMMON_BUTTONS.CLOSE],
     ])
   }
 }

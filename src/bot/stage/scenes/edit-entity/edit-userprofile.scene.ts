@@ -60,7 +60,12 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
     this.mainTainerChatId = this.configService.get('MAINTAINER_CHAT_ID')
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
-      return this.scene.handleAdminSceneExit(ctx)
+      const { promptMessageId, clientUserProfile } = this.scene.getState(ctx, ['promptMessageId', 'clientUserProfile'])
+
+      const action = async () => {
+        await ClientHelper.renderClientManageMenu(ctx, clientUserProfile, false)
+      }
+      return this.scene.handleAdminSceneExit(ctx, promptMessageId, action)
     })
 
     this.enter(async (ctx, next) => {

@@ -1,7 +1,13 @@
 import { BotContext } from '@app/bot/bot.context'
 import { Injectable } from '@nestjs/common'
 import { Scenes } from 'telegraf'
-import { EDIT_PASS_SCENE_ACTIONS, SCENES, TEditEntitySceneMetaData, TEditGroupSceneAction, TEditPassSceneAction } from '@app/bot/libs'
+import {
+  EDIT_PASS_SCENE_ACTIONS,
+  SCENES,
+  TEditEntitySceneMetaData,
+  TEditGroupSceneAction,
+  TEditPassSceneAction,
+} from '@app/bot/libs'
 import { BotHelper, PassHelper, SceneHelper, TextHelper, UserHelper } from '@app/bot/helpers'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { PassService } from '@app/domain/pass'
@@ -57,7 +63,12 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
     this.mainTainerChatId = this.configService.get('MAINTAINER_CHAT_ID')
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
-      return this.scene.handleAdminSceneExit(ctx)
+      const { promptMessageId } = this.scene.getState(ctx, ['promptMessageId'])
+
+      const action = async () => {
+        await this.renderPassManageMenu(ctx)
+      }
+      return this.scene.handleAdminSceneExit(ctx, promptMessageId, action)
     })
 
     this.enter(async (ctx, next) => {
@@ -189,23 +200,26 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
     try {
       this.scene.setState(ctx, { isInitialRun: false })
 
-      const { action, originalPass, clientUserId, clientUserProfile, promptMessageId } = this.scene.getState(ctx)
+      const { action, promptMessageId } = this.scene.getState(ctx)
       ctx.deleteMessage(promptMessageId).catch(() => {})
 
-      const [pass] = await Promise.all([
-        this.passService.getPassById(originalPass.id),
-        ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, AdminKeyboards.mainMenu()),
-      ])
-
-      await PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
-        pass: pass as typeof originalPass,
-        fullName: UserHelper.getDisplayName(clientUserProfile),
-        clientUserId,
-        shouldEdit: false,
-      })
+      await ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, AdminKeyboards.mainMenu()),
+        await this.renderPassManageMenu(ctx)
       return ctx.scene.leave()
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
     }
+  }
+
+  private renderPassManageMenu = async (ctx: BotContext) => {
+    const { originalPass, clientUserId, clientUserProfile } = this.scene.getState(ctx)
+    const pass = await this.passService.getPassById(originalPass.id)
+
+    await PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
+      pass: pass as typeof originalPass,
+      fullName: UserHelper.getDisplayName(clientUserProfile),
+      clientUserId,
+      shouldEdit: false,
+    })
   }
 }

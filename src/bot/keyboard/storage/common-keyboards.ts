@@ -4,6 +4,13 @@ import { KEYBOARDS_COMMON } from '@app/bot/static/keyboards'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { UserProfileRoleEnum } from '@app/libs'
 
+export const COMMON_BUTTONS = {
+  CLOSE: {
+    text: BUTTON_PATTERNS.CLOSE,
+    callback_data: CALLBACK_DATA.CLOSE_MENU
+  }
+} as const
+
 export class CommonKeyboards {
   static verifyActions(id: string, role: UserProfileRoleEnum): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([

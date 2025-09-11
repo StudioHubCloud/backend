@@ -47,8 +47,12 @@ export class SceneHelper<T extends Record<string, any>> {
     return ctx.scene.leave()
   }
 
-  async handleAdminSceneExit(ctx: BotContext) {
+  async handleAdminSceneExit(ctx: BotContext, promptMessageId: number, action?: Function) {
+    ctx.deleteMessage(promptMessageId).catch(() => {})
     await ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.EXIT, AdminKeyboards.mainMenu())
+    if (action) {
+      await action()
+    }
     return ctx.scene.leave()
   }
 }

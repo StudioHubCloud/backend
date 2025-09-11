@@ -4,6 +4,7 @@ import { BotHelper, KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { CALLBACK_DATA, ISelectInlineMenuConfig, TNormalizedOption, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram'
+import { COMMON_BUTTONS } from '@app/bot/keyboard/storage/common-keyboards'
 
 export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any>> {
   protected readonly composer = new Composer<BotContext>()
@@ -129,12 +130,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
 
   private appendExitButton(menu: InlineKeyboardMarkup) {
     if (this.renderOptions.withExitButton) {
-      menu.inline_keyboard.push([
-        {
-          text: BUTTON_PATTERNS.CLOSE,
-          callback_data: CALLBACK_DATA.CLOSE_MENU,
-        },
-      ])
+      menu.inline_keyboard.push([COMMON_BUTTONS.CLOSE])
     }
   }
 
