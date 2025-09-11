@@ -11,8 +11,8 @@ import { InitiatePayoutSceneKeyboards } from '@app/bot/keyboard/storage/scene-ke
 import { DATE_FORMAT } from '@app/libs'
 import { IInitiatePayoutSceneState, InitiatePayoutSceneHelper } from './initiate-payout.scene-helper'
 import { UserProfileService } from '@app/domain/user-profile'
-import { PaymentService } from '@app/domain/payment'
 import { TypedConfigService } from '@app/infrastructure/config'
+import { StaffMemberPayoutService } from '@app/domain/staff-member-payout'
 
 @Injectable()
 export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
@@ -20,7 +20,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
 
   constructor(
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
-    private readonly paymentService: PaymentService,
+    private readonly staffMemberPayoutService: StaffMemberPayoutService,
     private readonly userProfileService: UserProfileService,
     private readonly configService: TypedConfigService,
   ) {
@@ -78,13 +78,16 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       this.initiatePayoutScene.setState(ctx, { payoutDate })
       const state = this.initiatePayoutScene.getStateAll(ctx)
 
-      const salaryResult = await this.paymentService.calculateStaffPayoutSalary(state.staffUserId, state.payoutDate)
+      const salaryResult = await this.staffMemberPayoutService.calculateStaffPayoutSalary(state.staffUserId, state.payoutDate)
 
       if (!salaryResult) {
         await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_PAYOUT_CALCULATION, AdminKeyboards.mainMenu())
         return ctx.scene.leave()
       }
-      this.initiatePayoutScene.setState(ctx, { payoutAmount: salaryResult.statistics.totalPayout })
+      this.initiatePayoutScene.setState(ctx, {
+        payoutAmount: salaryResult.statistics.totalPayout,
+        trainingIds: salaryResult.trainingIds,
+      })
 
       await ctx.replyWithHTML(
         InitiatePayoutSceneHelper.getConfirmPayoutMessage({ ...state, payoutAmount: salaryResult.statistics.totalPayout }),
@@ -117,15 +120,16 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
         return
       }
 
-      const state = this.initiatePayoutScene.getStateAll(ctx)
-
+      const state = this.initiatePayoutScene.getState(ctx)
+      const { payoutAmount, payoutDate, staffUserId, trainingIds } = state
       const payoutDescription = InitiatePayoutSceneHelper.getPayoutDescriptionMessage(state)
 
-      const result = await this.paymentService.registerStaffPayment({
-        amount: String(state.payoutAmount),
-        staffUserId: state.staffUserId,
-        paidAt: state.payoutDate,
+      const result = await this.staffMemberPayoutService.initiateStaffPayout({
+        amount: String(payoutAmount),
+        staffUserId: staffUserId,
+        paidAt: payoutDate,
         description: payoutDescription,
+        trainingIds,
       })
 
       if (!result) {

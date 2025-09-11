@@ -15,7 +15,6 @@ export const UserProfileRolePgEnum = pgEnum('userprofile_role_enum', enumToPgEnu
 export const UserProfileStatusPgEnum = pgEnum('userprofile_status_enum', enumToPgEnum(ENUMS.UserProfileStatusEnum))
 export const PassTemplateTypePgEnum = pgEnum('pass_template_type_enum', enumToPgEnum(ENUMS.PassTemplateTypeEnum))
 export const StudioPriceTypePgEnum = pgEnum('studio_price_type_enum', enumToPgEnum(ENUMS.StudioPriceTypeEnum))
-export const PaymentTypePgEnum = pgEnum('payment_type_enum', enumToPgEnum(ENUMS.PaymentTypeEnum))
 export const PaymentStatusPgEnum = pgEnum('payment_status_enum', enumToPgEnum(ENUMS.PaymentStatusEnum))
 export const PaymentMethodPgEnum = pgEnum('payment_method_enum', enumToPgEnum(ENUMS.PaymentMethodEnum))
 export const StudioPayoutRuleTypePgEnum = pgEnum('studio_payout_rule_type_enum', enumToPgEnum(ENUMS.StudioPayoutRuleTypeEnum))

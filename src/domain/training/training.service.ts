@@ -42,8 +42,10 @@ export class TrainingService {
       return cachedTrainings
     }
 
+    const edgeDate = addDays(new Date(), -COMMON.TRAINING_MANAGE_SUBSTRACT_DAYS_THRESHOLD).toISOString()
+
     const trainings = await this.databaseService.drizzle.query.training.findMany({
-      where: (training, { eq, and, gte }) => and(eq(training.groupId, groupId), gte(training.date, new Date().toISOString())),
+      where: (training, { eq, and, gte }) => and(eq(training.groupId, groupId), gte(training.date, edgeDate)),
       limit: API.DEFAULT_LIMIT,
       with: {
         group: true,
@@ -311,7 +313,7 @@ export class TrainingService {
   async getAllTrainingsForStaffMemberSalary(staffMemberId: string, startDate: string, endDate: string) {
     return this.databaseService.drizzle.query.training.findMany({
       where: (training, helpers) => {
-        const { and, gte, eq, exists } = helpers
+        const { and, gte, eq, exists, inArray } = helpers
         return and(
           gte(training.date, startDate),
           lte(training.date, endDate),
@@ -321,14 +323,20 @@ export class TrainingService {
             this.databaseService.drizzle
               .select()
               .from(trainingSignup)
-              .where(and(eq(trainingSignup.trainingId, training.id), eq(trainingSignup.status, TrainingSignupStatusEnum.ACTIVE))),
+              .where(
+                and(
+                  eq(trainingSignup.trainingId, training.id),
+                  inArray(trainingSignup.status, [TrainingSignupStatusEnum.ACTIVE, TrainingSignupStatusEnum.ARCHIVED]),
+                ),
+              ),
           ),
         )
       },
       with: {
         group: true,
         trainingSignups: {
-          where: (signup, { eq }) => eq(signup.status, TrainingSignupStatusEnum.ACTIVE),
+          where: (signup, { inArray }) =>
+            inArray(signup.status, [TrainingSignupStatusEnum.ACTIVE, TrainingSignupStatusEnum.ARCHIVED]),
           with: {
             userProfile: {
               columns: { firstName: true, lastName: true, fullName: true },

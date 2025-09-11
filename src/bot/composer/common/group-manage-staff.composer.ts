@@ -18,7 +18,7 @@ import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
-import { API, TrainingSignupStatusEnum, UserProfileStatusEnum } from '@app/libs'
+import { API, TrainingSignupStatusEnum } from '@app/libs'
 import { PinoLogger } from 'nestjs-pino'
 
 @Injectable()

@@ -25,6 +25,7 @@ export { studioPrice, studio_price_relations } from './studio-price.schema'
 export { feedbackNotification, feedback_notification_relations } from './feedback-notification.schema'
 export { payment, payment_relations } from './payment.schema'
 export { studioPayoutRule, studio_payout_rule_relations } from './studio-payout-rule.schema'
+export { staffMemberPayout, staff_member_payout_relations } from './staff-member-payout.schema'
 
 export {
   PassStatusPgEnum,
@@ -39,6 +40,5 @@ export {
   StudioPriceTypePgEnum,
   PaymentMethodPgEnum,
   PaymentStatusPgEnum,
-  PaymentTypePgEnum,
   StudioPayoutRuleTypePgEnum,
 } from '../database.enums'

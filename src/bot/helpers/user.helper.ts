@@ -81,7 +81,7 @@ export class UserHelper {
 
   static getFullName(firstName: string, lastName?: string | null): string {
     const result = lastName ? `${firstName} ${lastName}` : firstName
-    return result.trim() || 'Без імені'
+    return result?.trim() || 'Видалений клієнт'
   }
 
   static getDisplayName(user: UserProfileSelectModel | UserProfileWithClient | null): string {

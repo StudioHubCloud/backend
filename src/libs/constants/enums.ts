@@ -62,11 +62,6 @@ export enum StudioPriceTypeEnum {
   TRIO= 'trio',
 }
 
-export enum PaymentTypeEnum {
-  INCOMING = 'incoming',
-  OUTGOING = 'outgoing',
-}
-
 export enum PaymentStatusEnum {
   PENDING = 'pending',
   COMPLETED = 'completed',

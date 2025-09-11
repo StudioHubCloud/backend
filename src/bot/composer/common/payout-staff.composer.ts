@@ -2,18 +2,18 @@ import { BotContext } from '@app/bot/bot.context'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
-import { PaymentService } from '@app/domain/payment'
 import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
+import { StaffMemberPayoutService } from '@app/domain/staff-member-payout'
 
 @Injectable()
 export class PayoutStaffComposer {
   private readonly composer: Composer<BotContext>
   constructor(
-    private readonly paymentService: PaymentService,
+    private readonly staffMemberPayoutService: StaffMemberPayoutService,
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     this.composer = new Composer<BotContext>()
@@ -56,13 +56,13 @@ export class PayoutStaffComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.INITIATE), async (ctx: BotContext) => {
       return this.handlePaymentAction(ctx, async (userId) => {
         ctx.scene.enter(SCENES.INITIATE_PAYOUT, { staffUserId: userId })
-        return;
+        return
       })
     })
   }
 
   private async renderStaffMemberPayoutSummaryMenu(ctx: BotContext, userId: string, isAdmin: boolean, isEdit: boolean = true) {
-    const result = await this.paymentService.calculateStaffPayoutSalary(userId)
+    const result = await this.staffMemberPayoutService.calculateStaffPayoutSalary(userId)
 
     const isEmpty = result.statistics.totalTrainings === 0
 
@@ -83,8 +83,15 @@ export class PayoutStaffComposer {
   }
 
   private async renderStaffMemberPayoutDetailsMenu(ctx: BotContext, userId: string, isAdmin: boolean) {
-    const result = await this.paymentService.calculateStaffPayoutSalary(userId)
+    const result = await this.staffMemberPayoutService.calculateStaffPayoutSalary(userId)
     const message = MessageHelper.getStaffPayoutDetailsMessage(result, this.dateTimeProvider)
+
+    if (!message) {
+      BotHelper.safeAnswerCbQuery(ctx, '❓ Немає даних для відображення', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    }
+
     const keyboard = isAdmin
       ? AdminKeyboards.staffmemberPayoutDetailsMenu(userId)
       : TrainerKeyboards.staffmemberPayoutDetailsMenu(userId)
@@ -93,7 +100,7 @@ export class PayoutStaffComposer {
   }
 
   private async renderStaffMemberPayoutClientInfoMenu(ctx: BotContext, userId: string, isAdmin: boolean) {
-    const result = await this.paymentService.calculateStaffPayoutSalary(userId)
+    const result = await this.staffMemberPayoutService.calculateStaffPayoutSalary(userId)
     const message = MessageHelper.getStaffPayoutClientInfoMessage(result, this.dateTimeProvider)
     const keyboard = isAdmin
       ? AdminKeyboards.staffmemberPayoutClientInfoMenu(userId)

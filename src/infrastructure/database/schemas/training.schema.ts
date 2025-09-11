@@ -4,6 +4,7 @@ import { group } from './group.schema'
 import { staffMember } from './staff-member.schema'
 import { trainingSignup } from './training-signup.schema'
 import { groupSchedule } from './group-schedule.schema'
+import { staffMemberPayout } from './staff-member-payout.schema'
 
 export const training = table(
   'training',
@@ -17,13 +18,16 @@ export const training = table(
     trainerId: uuid('trainer_id').references(() => staffMember.id, { onDelete: 'set null' }),
     groupScheduleId: uuid('group_schedule_id').references(() => groupSchedule.id, { onDelete: 'set null' }),
     reminderSent: boolean('reminder_sent').notNull().default(false),
+    staffMemberPayoutId: uuid('staff_member_payout_id').references(() => staffMemberPayout.id, { onDelete: 'set null' }),
   },
   (table) => [
     uniqueIndex().on(table.date, table.groupId),
     index().on(table.groupId),
     index().on(table.trainerId),
     index().on(table.date, table.isCancelled),
-    index().on(table.isCancelled).where(sql`${table.isCancelled} = true`),
+    index()
+      .on(table.isCancelled)
+      .where(sql`${table.isCancelled} = true`),
   ],
 )
 

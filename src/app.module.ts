@@ -11,7 +11,8 @@ import {
   FeedbackNotificationModule,
   PaymentModule,
   StaffMemberModule,
-  StudioPayoutRuleModule
+  StudioPayoutRuleModule,
+  StaffMemberPayoutModule
 } from '@app/domain'
 import { LoggerModule, ConfigModule, DatabaseModule, RedisCacheModule, CronModule, HealthModule } from '@app/infrastructure'
 import { BotModule } from 'src/bot/bot.module'
@@ -36,7 +37,8 @@ import { BotModule } from 'src/bot/bot.module'
     FeedbackNotificationModule,
     PaymentModule,
     StaffMemberModule,
-    StudioPayoutRuleModule
+    StudioPayoutRuleModule,
+    StaffMemberPayoutModule
   ],
   providers: [],
 })

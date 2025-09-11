@@ -1,0 +1,1 @@
+ALTER TABLE "training_signup" ADD COLUMN "deleted_user_name" text;

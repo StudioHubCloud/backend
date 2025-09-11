@@ -190,6 +190,27 @@
       "when": 1757539845316,
       "tag": "0053_change user profile enum",
       "breakpoints": true
+    },
+    {
+      "idx": 54,
+      "version": "7",
+      "when": 1757603704425,
+      "tag": "0054_add additional composite FK to group",
+      "breakpoints": true
+    },
+    {
+      "idx": 55,
+      "version": "7",
+      "when": 1757615844394,
+      "tag": "0055_add backup user name",
+      "breakpoints": true
+    },
+    {
+      "idx": 56,
+      "version": "7",
+      "when": 1757621046826,
+      "tag": "0056_change payment table structure",
+      "breakpoints": true
     }
   ]
 }

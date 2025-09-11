@@ -1,4 +1,3 @@
-import { TypedConfigService } from '@app/infrastructure/config'
 import { BotContext } from '../bot.context'
 import { AdminKeyboards } from '../keyboard/storage'
 import { MESSAGES_SCENE } from '../static/messages'

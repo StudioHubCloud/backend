@@ -1,4 +1,4 @@
-import { index, smallint, integer, pgTable as table, uuid, varchar, serial } from 'drizzle-orm/pg-core'
+import { index, smallint, integer, pgTable as table, uuid, varchar, serial, foreignKey } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { training } from './training.schema'
 import { pass } from './pass.schema'
@@ -32,6 +32,12 @@ export const group = table(
     index().on(table.staffMemberId, table.status),
     index().on(table.studioId, table.groupStyleId),
     index().on(table.studioId, table.staffMemberId),
+    foreignKey({
+      columns: [table.studioId, table.groupStyleId],
+      foreignColumns: [groupStyle.studioId, groupStyle.id],
+      name: 'fk_group_studio_style'
+    })
+    
   ],
 )
 
@@ -44,5 +50,5 @@ export const group_relations = relations(group, ({ one, many }) => ({
   trainingSignups: many(trainingSignup),
   passes: many(pass),
   groupSchedules: many(groupSchedule),
-  groupAgeRestrictionExeptions: many(groupAgeRestrictionException)
+  groupAgeRestrictionExeptions: many(groupAgeRestrictionException),
 }))

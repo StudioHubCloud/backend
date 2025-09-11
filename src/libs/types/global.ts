@@ -22,6 +22,7 @@ export interface TSalaryPayoutResult {
     }
   >
   statistics: TPayoutStatistics
+  trainingIds: number[]
 }
 
 export type TPayoutStatistics = {

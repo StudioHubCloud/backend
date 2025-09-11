@@ -276,8 +276,7 @@ ${trainingLines}`
             .map((signup, index) => {
               const name =
                 signup.userProfile?.fullName ||
-                `${UserHelper.getFullName(signup.userProfile?.firstName!, signup.userProfile?.lastName)}` ||
-                'Невідомий клієнт'
+                `${UserHelper.getFullName(signup.userProfile?.firstName!, signup.userProfile?.lastName)}`
               return `    <i>${index + 1}. ${name}</i>`
             })
             .join('\n')

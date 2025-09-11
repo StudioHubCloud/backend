@@ -6,6 +6,7 @@ export interface IInitiatePayoutSceneState {
   staffUserId: string
   payoutDate: string
   payoutAmount: number
+  trainingIds: number[]
 }
 
 export class InitiatePayoutSceneHelper {

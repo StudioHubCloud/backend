@@ -1,0 +1,2 @@
+CREATE UNIQUE INDEX "group_style_studio_id_id_index" ON "group_style" USING btree ("studio_id","id");
+ALTER TABLE "group" ADD CONSTRAINT "fk_group_studio_style" FOREIGN KEY ("studio_id","group_style_id") REFERENCES "public"."group_style"("studio_id","id") ON DELETE no action ON UPDATE no action;--> statement-breakpoint
