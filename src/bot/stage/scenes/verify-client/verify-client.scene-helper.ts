@@ -1,4 +1,4 @@
-import { PassHelper } from '@app/bot/helpers'
+import { PassHelper, UserHelper } from '@app/bot/helpers'
 import { PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 
 export interface IVerifyClientSceneState {
@@ -12,7 +12,7 @@ export class VerifyClientSceneHelper {
     const { userProfile, passTemplate } = data
     return (
       `Ви підтверджуєте реєстрацію клієнта:\n\n` +
-      `👤 Ім'я: <b>${userProfile.firstName} ${userProfile.lastName}</b>\n` +
+      `👤 Ім'я: <b>${UserHelper.getDisplayName(userProfile)}</b>\n` +
       `📞 Номер телефону: <b>${userProfile.phoneNumber}</b>\n` +
       `🎂 Дата народження: <b>${userProfile.dateOfBirth}</b>\n\n` +
       `🎫 Абонемент:\n` +

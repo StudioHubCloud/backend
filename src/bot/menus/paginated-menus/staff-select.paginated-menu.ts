@@ -20,7 +20,7 @@ export class StaffSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{}> 
       : staffMembersUserProfiles
 
     return KeyboardHelper.prepareInlineMenuOptions(filteredStaff, {
-      labelKey: ['firstName', 'lastName'],
+      labelKey: ['fullName'],
       valueKey: 'id',
       emoji: '▫️',
     })

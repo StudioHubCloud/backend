@@ -16,6 +16,7 @@ export const SCENES = {
   INITIATE_PAYOUT: 'initiate_payout',
   EDIT_GROUP: 'edit_group',
   EDIT_PASS: 'edit_pass',
+  EDIT_USER_PROFILE: 'edit_profile_name',
 } as const
 
 export const CALLBACK_DATA = {
@@ -88,6 +89,7 @@ export const CALLBACK_PREFIX = {
     },
     MANAGE: {
       MENU: 'm.m.cl',
+      BACK_TO_MENU: 'm.m.b.cl',
       BACK_TO_CLIENT_LIST: 'm.m.b.cl.l',
       ARCHIVE: 'm.a.cl',
       UNARCHIVE: 'm.ua.cl',
@@ -129,6 +131,12 @@ export const EDIT_PASS_SCENE_ACTIONS = {
   EDIT_LENGTH: 'edit_length',
   EDIT_START_DATE: 'edit_start_date',
   EDIT_END_DATE: 'edit_end_date',
+} as const
+
+export const EDIT_USER_PROFILE_SCENE_ACTIONS = {
+  EDIT_NAME: 'edit_name',
+  EDIT_PHONE: 'edit_phone',
+  EDIT_DATE_OF_BIRTH: 'edit_date_of_birth',
 } as const
 
 export const CLIENT_STATUS_CHANGE_ACTIONS = {

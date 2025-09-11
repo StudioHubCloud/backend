@@ -81,7 +81,7 @@ export class MiddlewareService {
       firstName: first_name,
       lastName: last_name,
       telegramUsername: username,
-      fullName: `${first_name}${last_name ? ` ${last_name}` : ''}`,
+      fullName: `${UserHelper.getFullName(first_name, last_name)}`,
       role: UserProfileRoleEnum.GUEST,
       status: UserProfileStatusEnum.UNVERIFIED,
       studioId,

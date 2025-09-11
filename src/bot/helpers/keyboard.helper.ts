@@ -8,6 +8,7 @@ import {
 import { AutocompletableString, UserProfileRoleEnum } from '@app/libs'
 import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, TReplyInlineKeyboard } from '@app/bot/libs'
 import { AdminKeyboards, ClientKeyboards, GuestKeyboards, TrainerKeyboards } from '../keyboard/storage'
+import { BUTTON_PATTERNS } from '../static/button-patterns'
 
 export class KeyboardHelper {
   constructor() {}
@@ -149,5 +150,15 @@ export class KeyboardHelper {
 
   private static isObject(value: any): value is object {
     return typeof value === 'object' && value !== null
+  }
+
+  static addCloseButton(keyboard: TReplyInlineKeyboard): TReplyInlineKeyboard {
+    const newButtons = [...keyboard.reply_markup.inline_keyboard, [{ text: BUTTON_PATTERNS.CLOSE, callback_data: CALLBACK_DATA.CLOSE_MENU }]]
+
+    return {
+      reply_markup: {
+        inline_keyboard: newButtons,
+      },
+    }
   }
 }

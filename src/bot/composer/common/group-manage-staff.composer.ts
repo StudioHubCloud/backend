@@ -259,7 +259,7 @@ export class GroupManageStaffComposer {
       return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
         const data = activeSignUps.map((signup) => ({
-          name: `${signup.userProfile?.firstName} ${signup.userProfile?.lastName}`,
+          name: `${UserHelper.getDisplayName(signup.userProfile!)}`,
           status: signup.userProfile?.status,
           id: signup.id,
         }))
@@ -453,7 +453,7 @@ export class GroupManageStaffComposer {
       }
 
       const data = activeSignUps.map((signup) => ({
-        name: `${signup.userProfile?.firstName} ${signup.userProfile?.lastName}`,
+        name: `${UserHelper.getDisplayName(signup.userProfile)}`,
         id: signup.id,
       }))
 

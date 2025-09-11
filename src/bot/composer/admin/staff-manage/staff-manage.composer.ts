@@ -120,7 +120,7 @@ export class StaffManageComposer {
 
     BotHelper.safeAnswerCbQuery(ctx)
 
-    return ctx.editMessageText(`👤 Обраний тренер: ${UserHelper.getFullName(user.firstName, user.lastName)}`, {
+    return ctx.editMessageText(`👤 Обраний тренер: ${UserHelper.getDisplayName(user)}`, {
       parse_mode: 'HTML',
       ...AdminKeyboards.staffmemberManageMenu(user.id),
     })

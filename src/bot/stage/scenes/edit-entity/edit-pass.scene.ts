@@ -1,7 +1,7 @@
 import { BotContext } from '@app/bot/bot.context'
 import { Injectable } from '@nestjs/common'
 import { Scenes } from 'telegraf'
-import { EDIT_PASS_SCENE_ACTIONS, SCENES, TEditGroupSceneAction, TEditPassSceneAction } from '@app/bot/libs'
+import { EDIT_PASS_SCENE_ACTIONS, SCENES, TEditEntitySceneMetaData, TEditGroupSceneAction, TEditPassSceneAction } from '@app/bot/libs'
 import { BotHelper, PassHelper, SceneHelper, TextHelper, UserHelper } from '@app/bot/helpers'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { PassService } from '@app/domain/pass'
@@ -12,7 +12,7 @@ import { AdminKeyboards, CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { DATE_FORMAT } from '@app/libs/constants/global'
 import { PassSelectModel, PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 
-export interface IEditPassSceneState {
+export interface IEditPassSceneState extends TEditEntitySceneMetaData {
   action: TEditPassSceneAction
   passId: string
   clientUserProfile: UserProfileSelectModel
@@ -21,9 +21,6 @@ export interface IEditPassSceneState {
     client: { userProfile: UserProfileSelectModel | null } | null
     passTemplate: PassTemplateSelectModel
   }
-  // meta data
-  isInitialRun: boolean
-  promptMessageId: number
 }
 
 @Injectable()
@@ -202,7 +199,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
 
       await PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
         pass: pass as typeof originalPass,
-        fullName: UserHelper.getFullNameFromProfile(clientUserProfile),
+        fullName: UserHelper.getDisplayName(clientUserProfile),
         clientUserId,
         shouldEdit: false,
       })

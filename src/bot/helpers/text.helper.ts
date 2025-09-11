@@ -56,6 +56,11 @@ export class TextHelper {
     return Buffer.from(hex, 'hex').toString('base64')
   }
 
+  static telLink(phoneNumber: string, modifier: 'bold'): string {
+    const sanitizedNumber = phoneNumber.replace(/\D/g, '')
+    return `<a href="tel:${sanitizedNumber}">${modifier === 'bold' ? TextHelper.bold(sanitizedNumber) : sanitizedNumber}</a>`
+  }
+
   static decodeUuid(encoded?: string) {
     if (!encoded) return ''
     const hex = Buffer.from(encoded, 'base64').toString('hex')

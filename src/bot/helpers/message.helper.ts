@@ -45,7 +45,7 @@ export class MessageHelper {
       ? `${role === UserProfileRoleEnum.CLIENT ? 'Клієнт' : 'Тренер'} відправив запит на реєстрацію: ✅\n\n`
       : `🔍 Перевір, чи все вірно:\n\n`
 
-    const mainContent = `👤 Ім'я: ${TextHelper.bold(`${firstName}${lastName ? ` ${lastName}` : ''}\n`)}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${telegramUsername ? `\n➡️ Telegram: ${TextHelper.bold(`@${telegramUsername}`)}` : ''}`
+    const mainContent = `👤 Ім'я: ${TextHelper.bold(`${UserHelper.getFullName(firstName!, lastName)}\n`)}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${telegramUsername ? `\n➡️ Telegram: ${TextHelper.bold(`@${telegramUsername}`)}` : ''}`
 
     return !completed
       ? `${modeText}${mainContent}\n\n👌 Якщо все правильно — тисни “✅ Підтвердити”\n❌ А якщо щось хочеш змінити — просто натисни "⬅️ Назад"`
@@ -100,8 +100,8 @@ export class MessageHelper {
       { activeSignUpsCount: 0, cancelledSignupsCount: 0 },
     )
 
-    const groupTrainer = group.trainer?.userProfile ? UserHelper.getFullNameFromProfile(group.trainer.userProfile) : null
-    const trainingTrainer = training.trainer?.userProfile ? UserHelper.getFullNameFromProfile(training.trainer.userProfile) : null
+    const groupTrainer = group.trainer?.userProfile ? UserHelper.getDisplayName(group.trainer.userProfile) : null
+    const trainingTrainer = training.trainer?.userProfile ? UserHelper.getDisplayName(training.trainer.userProfile) : null
 
     const assignedTrainer = trainingTrainer || groupTrainer
 
@@ -167,9 +167,7 @@ export class MessageHelper {
       const { type } = signup
 
       const emoji = type === TrainingSignupTypeEnum.TRIAL ? '🆓' : type === TrainingSignupTypeEnum.RESERVE ? '⏳' : `🔘`
-      const user = signup.userProfile
-        ? `${signup.userProfile.firstName}${signup.userProfile.lastName ? ` ${signup.userProfile.lastName}` : ''}`
-        : 'Невідомий користувач'
+      const user = signup.userProfile ? `${UserHelper.getDisplayName(signup.userProfile)}` : 'Невідомий користувач'
       return `${emoji} ${TextHelper.bold(user)}`
     })
 
@@ -278,7 +276,7 @@ ${trainingLines}`
             .map((signup, index) => {
               const name =
                 signup.userProfile?.fullName ||
-                `${signup.userProfile?.firstName || ''} ${signup.userProfile?.lastName || ''}`.trim() ||
+                `${UserHelper.getFullName(signup.userProfile?.firstName!, signup.userProfile?.lastName)}` ||
                 'Невідомий клієнт'
               return `    <i>${index + 1}. ${name}</i>`
             })
@@ -309,9 +307,7 @@ ${trainingLines}`
       dateTimeProvider.formatDateStringInTz(training.date, 'EEEE').slice(1)
 
     if (action === 'assign') {
-      const substituteTrainer = training.trainer?.userProfile
-        ? UserHelper.getFullNameFromProfile(training.trainer.userProfile)
-        : null
+      const substituteTrainer = training.trainer?.userProfile ? UserHelper.getDisplayName(training.trainer.userProfile) : null
 
       return (
         `<b>🔄 Зміна Тренера</b>\n\n` +
@@ -320,7 +316,7 @@ ${trainingLines}`
         `👤 Новий тренер: <b><u>${substituteTrainer}</u></b>`
       )
     } else {
-      const regularTrainer = group.trainer?.userProfile ? UserHelper.getFullNameFromProfile(group.trainer.userProfile) : null
+      const regularTrainer = group.trainer?.userProfile ? UserHelper.getDisplayName(group.trainer.userProfile) : null
 
       return (
         `<b>✅ Скасування Заміни</b>\n\n` +
@@ -332,9 +328,9 @@ ${trainingLines}`
   }
 
   static getClientManageHeaderMessage(userProfile: UserProfileSelectModel): string {
-    const fullName = UserHelper.getFullNameFromProfile(userProfile)
+    const fullName = UserHelper.getDisplayName(userProfile)
 
-    const phone = userProfile.phoneNumber ? `\n\n📞 Телефон: ${TextHelper.bold(userProfile.phoneNumber)}` : ''
+    const phone = userProfile.phoneNumber ? `\n\n📞 Телефон: ${TextHelper.telLink(userProfile.phoneNumber, 'bold')}` : ''
     const telegram = userProfile.telegramUsername ? `\n✉️ Telegram: ${TextHelper.bold(`@${userProfile.telegramUsername}`)}` : ''
     const dateOfBirth = userProfile.dateOfBirth ? `\n🎂 Дата народження: ${TextHelper.bold(userProfile.dateOfBirth)}` : ''
     const statusMap: Record<string, string> = {

@@ -1,5 +1,5 @@
 import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
-import { AuthUserProfile } from '@app/bot/libs'
+import { AuthUserProfile, UserProfileWithClient } from '@app/bot/libs'
 import { BotContext } from '../bot.context'
 import { StaffMemberSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 
@@ -80,11 +80,15 @@ export class UserHelper {
   }
 
   static getFullName(firstName: string, lastName?: string | null): string {
-    return lastName ? `${firstName} ${lastName}` : firstName
+    const result = lastName ? `${firstName} ${lastName}` : firstName
+    return result.trim() || 'Без імені'
   }
 
-  static getFullNameFromProfile(user: UserProfileSelectModel): string {
-    return this.getFullName(user.firstName, user.lastName)
+  static getDisplayName(user: UserProfileSelectModel | UserProfileWithClient | null): string {
+    if (!user) return 'Без імені'
+
+    const result = user.fullName || this.getFullName(user.firstName, user.lastName)
+    return result.trim()
   }
 
   static isArchivedProfile(userProfile: UserProfileSelectModel): boolean {
@@ -92,6 +96,11 @@ export class UserHelper {
   }
 
   static isStaffMember(user: UserProfileSelectModel & { staffMember: StaffMemberSelectModel | null }): boolean {
-    return (user.role === UserProfileRoleEnum.ADMIN || user.role === UserProfileRoleEnum.TRAINER || user.role === UserProfileRoleEnum.MAINTAINER) && user.staffMember !== null
+    return (
+      (user.role === UserProfileRoleEnum.ADMIN ||
+        user.role === UserProfileRoleEnum.TRAINER ||
+        user.role === UserProfileRoleEnum.MAINTAINER) &&
+      user.staffMember !== null
+    )
   }
 }

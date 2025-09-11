@@ -13,7 +13,7 @@ export class InitiatePayoutSceneHelper {
     const { staffUserProfile, payoutDate, payoutAmount } = data
     return (
       `💼 Інформація про виплату:\n\n` +
-      `👤 Працівник: <b>${UserHelper.getFullName(staffUserProfile.firstName, staffUserProfile.lastName)}</b>\n` +
+      `👤 Працівник: <b>${UserHelper.getDisplayName(staffUserProfile)}</b>\n` +
       `📅 Дата виплати: <b>${payoutDate}</b>\n` +
       `💰 Сума виплати: <b>${PassHelper.toDisplayPrice(payoutAmount)}</b>\n`
     )
@@ -32,7 +32,7 @@ export class InitiatePayoutSceneHelper {
     const { staffUserProfile, payoutDate, payoutAmount } = data
     return (
       `💼 Підтвердження виплати:\n\n` +
-      `👤 Працівник: <b>${UserHelper.getFullName(staffUserProfile.firstName, staffUserProfile.lastName)}</b>\n` +
+      `👤 Працівник: <b>${UserHelper.getDisplayName(staffUserProfile)}</b>\n` +
       `📅 Дата виплати: <b>${payoutDate}</b>\n` +
       `💰 Сума виплати: <b>${PassHelper.toDisplayPrice(payoutAmount)}</b>\n`
     )

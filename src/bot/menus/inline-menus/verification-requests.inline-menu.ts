@@ -31,7 +31,7 @@ export class VerificationInlineMenu {
     userProfiles.forEach((user) => {
       if (user.role === UserProfileRoleEnum.CLIENT || user.role === UserProfileRoleEnum.TRAINER) {
         result[user.role].push([
-          { text: `${user.firstName}${user.lastName ? ` ${user.lastName}` : ''}`, callback_data: `verify:${user.id}` },
+          { text: `${UserHelper.getDisplayName(user)}`, callback_data: `verify:${user.id}` },
         ])
       }
     })
@@ -45,8 +45,11 @@ export class VerificationInlineMenu {
       const buttons = result[role]
       if (buttons.length > 0) {
         const keyboard = KeyboardHelper.createInlineKeyboard(buttons)
+
+        const keyboardWithClose = KeyboardHelper.addCloseButton(keyboard)
+
         const message = `✉️ Активні запити на підтвердження ${UserHelper.isClientRole(role) ? 'клієнтів' : 'тренерів'}`
-        await ctx.reply(message, keyboard)
+        await ctx.reply(message, keyboardWithClose)
       }
     })
   }
@@ -56,10 +59,17 @@ export class VerificationInlineMenu {
 
     this.composer.action(regexp, async (ctx) => {
       const userId = ctx.match[1]
-      const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id } = await this.userProfileService.getUserProfileById(userId)
+      const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id, fullName } =
+        await this.userProfileService.getUserProfileById(userId)
       return ctx.editMessageText(
         MessageHelper.getVerifyRequestMessage(
-          { date_of_birth: dateOfBirth ?? '', firstName, lastName: lastName ?? '', phone: phoneNumber ?? '', telegramUsername: telegramUsername ?? '' },
+          {
+            date_of_birth: dateOfBirth ?? '',
+            firstName,
+            lastName: lastName ?? '',
+            phone: phoneNumber ?? '',
+            telegramUsername: telegramUsername ?? '',
+          },
           { completed: true, role },
         ),
         {

@@ -15,7 +15,7 @@ import {
 import { PassStatusEnum, UserProfileRoleEnum } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 import { BotContext } from '../bot.context'
-import { CLIENT_STATUS_CHANGE_ACTIONS, EDIT_GROUP_SCENE_ACTIONS, EDIT_PASS_SCENE_ACTIONS } from './constants'
+import { CLIENT_STATUS_CHANGE_ACTIONS, EDIT_GROUP_SCENE_ACTIONS, EDIT_PASS_SCENE_ACTIONS, EDIT_USER_PROFILE_SCENE_ACTIONS } from './constants'
 
 export type TBotStore = {
   user: AuthUserProfile | null
@@ -106,6 +106,13 @@ export interface GetTrainingByIdResponse extends TrainingSelectModel {
     | null
 }
 
+export interface TEditEntitySceneMetaData {
+  // meta data
+  isInitialRun: boolean
+  promptMessageId: number
+}
+
 export type TEditGroupSceneAction = (typeof EDIT_GROUP_SCENE_ACTIONS)[keyof typeof EDIT_GROUP_SCENE_ACTIONS]
 export type TEditPassSceneAction = (typeof EDIT_PASS_SCENE_ACTIONS)[keyof typeof EDIT_PASS_SCENE_ACTIONS]
 export type TClientStatusChangeAction = (typeof CLIENT_STATUS_CHANGE_ACTIONS)[keyof typeof CLIENT_STATUS_CHANGE_ACTIONS]
+export type TEditUserProfileSceneAction = (typeof EDIT_USER_PROFILE_SCENE_ACTIONS)[keyof typeof EDIT_USER_PROFILE_SCENE_ACTIONS]

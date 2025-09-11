@@ -10,9 +10,11 @@ import {
   CALLBACK_PREFIX,
   CLIENT_STATUS_CHANGE_ACTIONS,
   EDIT_PASS_SCENE_ACTIONS,
+  EDIT_USER_PROFILE_SCENE_ACTIONS,
   SCENES,
   TClientStatusChangeAction,
   TEditPassSceneAction,
+  TEditUserProfileSceneAction,
   TPaginatedMenuRenderOptions,
   UserProfileWithClient,
   UserProfileWithRoleRelations,
@@ -21,6 +23,7 @@ import { ClientSelectPaginatedMenu } from '@app/bot/menus'
 import { AdminKeyboards } from '@app/bot/keyboard/storage/admin-keyboards'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { UserProfileStatusEnum } from '@app/libs'
+import { ClientHelper } from '@app/bot/helpers/client.helper'
 
 @Injectable()
 export class ClientManageComposer {
@@ -91,6 +94,29 @@ export class ClientManageComposer {
         this.handleChangeStatusAction(ctx, clientUserProfile, CLIENT_STATUS_CHANGE_ACTIONS.ARCHIVE),
       )
     })
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_MENU), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) => this.renderClientManageMenu(ctx, clientUserProfile.id))
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) => this.renderClientEditMenu(ctx, clientUserProfile))
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_NAME), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) =>
+        this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_NAME),
+      )
+    })
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_PHONE), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) =>
+        this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_PHONE),
+      )
+    })
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_DATE_OF_BIRTH), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) =>
+        this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_DATE_OF_BIRTH),
+      )
+    })
   }
 
   private renderClientSelectPaginatedMenu = async (
@@ -101,7 +127,7 @@ export class ClientManageComposer {
 
     const data = allClients.map((client) => ({
       id: client.id,
-      name: UserHelper.getFullNameFromProfile(client),
+      name: UserHelper.getDisplayName(client),
       status: client.status,
     }))
 
@@ -109,11 +135,16 @@ export class ClientManageComposer {
   }
 
   private renderClientManageMenu = async (ctx: BotContext, clientUserId: string) => {
-    BotHelper.safeAnswerCbQuery(ctx)
     const userProfile = await this.userProfileService.getUserProfileById(clientUserId)
-    const isArchived = UserHelper.isArchivedProfile(userProfile)
-    const message = MessageHelper.getClientManageHeaderMessage(userProfile)
-    return ctx.editMessageText(message, { ...AdminKeyboards.clientManageMenu(clientUserId, isArchived), parse_mode: 'HTML' })
+
+    if (!userProfile?.client) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Користувач не є клієнтом.', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    }
+    BotHelper.safeAnswerCbQuery(ctx)
+
+    return ClientHelper.renderClientManageMenu(ctx, userProfile as UserProfileWithClient)
   }
 
   private renderPassManageMenu = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
@@ -128,7 +159,7 @@ export class ClientManageComposer {
 
     return PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
       pass: clientPass,
-      fullName: UserHelper.getFullNameFromProfile(clientUserProfile),
+      fullName: UserHelper.getDisplayName(clientUserProfile),
       clientUserId: clientUserProfile.id,
     })
   }
@@ -154,6 +185,18 @@ export class ClientManageComposer {
       clientUserId: clientUserProfile.id,
       clientUserProfile,
       originalPass,
+    })
+  }
+  private handleUserProfileEditAction = async (
+    ctx: BotContext,
+    clientUserProfile: UserProfileWithClient,
+    action: TEditUserProfileSceneAction,
+  ) => {
+    BotHelper.safeAnswerCbQuery(ctx)
+    ctx.deleteMessage()
+    return ctx.scene.enter(SCENES.EDIT_USER_PROFILE, {
+      action,
+      clientUserProfile,
     })
   }
 
@@ -191,6 +234,11 @@ export class ClientManageComposer {
     if (canRenderMenu) {
       return this.renderClientManageMenu(ctx, clientUserProfile.id)
     }
+  }
+
+  private renderClientEditMenu = async (ctx: BotContext, clientUserProfile: UserProfileWithRoleRelations) => {
+    const message = MessageHelper.getClientManageHeaderMessage(clientUserProfile)
+    return ctx.editMessageText(message, { ...AdminKeyboards.userProfileEditMenu(clientUserProfile.id), parse_mode: 'HTML' })
   }
 
   withClientIdAction = async (ctx: BotContext, action: (userProfile: UserProfileWithClient) => Promise<any>) => {

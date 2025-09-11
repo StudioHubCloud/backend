@@ -257,12 +257,49 @@ export class AdminKeyboards {
           ),
         },
       ],
-
       [
         {
           text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_CLIENT_LIST,
+            clientUserId,
+          ),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.CLOSE,
+          callback_data: CALLBACK_DATA.CLOSE_MENU,
+        },
+      ],
+    ])
+  }
+
+  static userProfileEditMenu(clientUserId: string): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: BUTTON_PATTERNS.EDIT_NAME,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_NAME, clientUserId),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.EDIT_PHONE,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_PHONE, clientUserId),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.EDIT_DATE_OF_BIRTH,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_DATE_OF_BIRTH, clientUserId),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.BACK,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_MENU,
             clientUserId,
           ),
         },
