@@ -1,6 +1,6 @@
 import { BotContext } from '@app/bot/bot.context'
 import { RulesConsentGuard } from '@app/bot/guards/rules-consent.guard'
-import { RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
 import { RULES } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
@@ -30,7 +30,7 @@ export class RulesGuardComposer {
       const { id } = UserHelper.getUser(ctx)
       await this.userProfileService.consentToRules(id)
       await ctx.deleteMessage()
-      return ctx.answerCbQuery('Дякуємо за згоду з правилами! ❤️', { show_alert: true })
+      return BotHelper.safeAnswerCbQuery(ctx, 'Дякуємо за згоду з правилами! ❤️', { show_alert: true })
     })
   }
 

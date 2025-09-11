@@ -213,14 +213,14 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
   private initNameConfirmationActions() {
     this.action('name_confirm_keep', async (ctx) => {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       await ctx.deleteMessage()
       const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
       return await this.sceneNavigation.handleNext(ctx, next)
     })
 
     this.action('name_confirm_swap', async (ctx) => {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       await ctx.deleteMessage()
 
       const state = this.registerScene.getState(ctx)
@@ -237,7 +237,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     })
 
     this.action('name_confirm_retry', async (ctx) => {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       await ctx.deleteMessage()
       return ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.PROVIDE_NAME, CommonSceneKeyboards.exit())
     })

@@ -28,7 +28,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
 
     const response = await this.loadOptions()
     if (typeof response === 'object' && 'message' in response) {
-      return await ctx.answerCbQuery(response.message, { show_alert: true })
+      return await BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
     } else {
       this.options = response
     }
@@ -42,7 +42,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
 
     if (!this.options.length) {
       if (isCallbackQueryUpdate) {
-        await ctx.answerCbQuery(this.getMessageText(ctx, this.config.noOptionsMessage || 'Нічого не знайдено'))
+        await BotHelper.safeAnswerCbQuery(ctx, this.getMessageText(ctx, this.config.noOptionsMessage || 'Нічого не знайдено'))
       } else {
         await ctx.reply(this.getMessageText(ctx, this.config.noOptionsMessage || 'Нічого не знайдено'), { parse_mode: 'HTML' })
       }
@@ -50,7 +50,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     }
 
     if (isCallbackQueryUpdate) {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
     }
 
     const promptMessage = this.getMessageText(ctx, this.config.promptMessage || 'Виберіть елемент зі списку')
@@ -77,7 +77,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     })
 
     this.composer.action(this.paginationRegex, async (ctx) => {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       const page = parseInt(ctx.match[1])
 
       if (!this.options.length) {

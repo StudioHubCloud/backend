@@ -11,16 +11,19 @@ import {
 } from '@app/infrastructure/database'
 import { RedisCacheService, UserProfileCacheKey } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { PassStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { DATE_FORMAT, PassStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { ClientService } from '../client/client.service'
 import { PassService } from '../pass/pass.service'
 import { IVerifyClientSceneState } from '@app/bot/stage/scenes/verify-client/verify-client.scene-helper'
 import { StaffMemberService } from '../staff-member'
+import { UserProfileWithRoleRelations } from '@app/bot/libs'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 
 @Injectable()
 export class UserProfileService {
   private readonly studioId: string
   constructor(
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly redisCacheService: RedisCacheService,
     private readonly databaseService: DatabaseService,
     private readonly configService: TypedConfigService,
@@ -33,7 +36,7 @@ export class UserProfileService {
 
   async findStudioAdmins() {
     return await this.databaseService.drizzle.query.userProfile.findMany({
-      where: (userProfile, { eq, and }) =>
+      where: (userProfile, { eq, and, }) =>
         and(
           eq(userProfile.studioId, this.studioId),
           eq(userProfile.role, UserProfileRoleEnum.ADMIN),
@@ -42,7 +45,7 @@ export class UserProfileService {
     })
   }
 
-  async findTelegramAuthenticatedUser(telegramId: string) {
+  async findTelegramAuthenticatedUser(telegramId: string, username?: string) {
     const cacheKey = UserProfileCacheKey.telegramAuthUser(this.studioId, telegramId)
     const authUserCashed = await this.redisCacheService.get<typeof authUserFound>(cacheKey)
     if (authUserCashed) {
@@ -94,7 +97,7 @@ export class UserProfileService {
     return userProfileFound
   }
 
-  async getUserProfileById(id: string) {
+  async getUserProfileById(id: string): Promise<UserProfileWithRoleRelations> {
     const user = await this.findUserProfileByCondition({ id })
     if (!user) {
       throw new NotFoundException(`User with id: ${id} not found`)
@@ -115,6 +118,7 @@ export class UserProfileService {
   async updateUserProfile(id: string, data: Partial<UserProfileInsertModel>, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
     const [user] = await dbProvider.update(userProfile).set(data).where(eq(userProfile.id, id)).returning()
+    await this.redisCacheService.reset()
     return user
   }
 
@@ -130,13 +134,13 @@ export class UserProfileService {
   }
 
   async rejectVerificationRequest(id: string) {
-    await this.updateUserProfile(id, { status: UserProfileStatusEnum.UNVERIVIED, role: UserProfileRoleEnum.GUEST })
-    this.redisCacheService.reset()
+    this.updateUserProfile(id, { status: UserProfileStatusEnum.UNVERIFIED, role: UserProfileRoleEnum.GUEST })
+    return true
   }
 
   async rejectVerificationRequestAndBlockUser(id: string) {
-    await this.updateUserProfile(id, { status: UserProfileStatusEnum.BLOCKED, role: UserProfileRoleEnum.GUEST })
-    this.redisCacheService.reset()
+    this.updateUserProfile(id, { status: UserProfileStatusEnum.BLOCKED, role: UserProfileRoleEnum.GUEST })
+    return true
   }
 
   async verifyClient(data: IVerifyClientSceneState) {
@@ -171,7 +175,6 @@ export class UserProfileService {
         ),
       ])
     })
-    await this.redisCacheService.reset()
     return true
   }
 
@@ -188,7 +191,6 @@ export class UserProfileService {
       ])
     })
 
-    await this.redisCacheService.reset()
     return true
   }
 
@@ -199,7 +201,6 @@ export class UserProfileService {
     }
 
     await this.updateUserProfile(userId, { consentToRules: true })
-    await this.redisCacheService.reset()
     return true
   }
 
@@ -282,7 +283,28 @@ export class UserProfileService {
     return staffMembers
   }
 
-  async getAllClientsUserProfiles() {
+  async expireAllPastPasses() {
+    const now = new Date()
+    const todayDateString = this.dateTimeProvider.formatDateStringInTz(now.toISOString(), DATE_FORMAT.DATE_MAIN)
+
+    const expiredPasses = await this.databaseService.drizzle.query.pass.findMany({
+      where: (pass, { and, lt }) => and(eq(pass.status, PassStatusEnum.ACTIVE), lt(pass.endDate, todayDateString)),
+    })
+    if (expiredPasses.length) {
+      await this.databaseService.drizzle.transaction(async (tx) => {
+        for (const pass of expiredPasses) {
+          await Promise.all([
+            this.passService.updatePass(pass.id, { status: PassStatusEnum.EXPIRED }, tx),
+            this.updateUserProfile(pass.clientId, { status: UserProfileStatusEnum.ARCHIVED }, tx),
+          ])
+        }
+      })
+      await this.redisCacheService.reset()
+    }
+    return expiredPasses
+  }
+
+  async getClientsUserProfilesForManage() {
     const studioId = this.configService.get('STUDIO_ID')
     const cacheKey = UserProfileCacheKey.allStudioClients(studioId)
 
@@ -292,10 +314,11 @@ export class UserProfileService {
     }
 
     const clients = await this.databaseService.drizzle.query.userProfile.findMany({
-      where: (userProfile, { eq, and, exists }) =>
+      where: (userProfile, { eq, and, exists, or }) =>
         and(
           eq(userProfile.studioId, studioId),
           eq(userProfile.role, UserProfileRoleEnum.CLIENT),
+          or(eq(userProfile.status, UserProfileStatusEnum.ACTIVE), eq(userProfile.status, UserProfileStatusEnum.ARCHIVED)),
           exists(this.databaseService.drizzle.select().from(client).where(eq(client.userProfileId, userProfile.id))),
         ),
       with: {

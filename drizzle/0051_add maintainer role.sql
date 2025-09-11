@@ -1,0 +1,1 @@
+ALTER TYPE "public"."userprofile_role_enum" ADD VALUE 'maintainer';

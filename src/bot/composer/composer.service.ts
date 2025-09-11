@@ -33,6 +33,7 @@ export class ComposerService {
       client: this.clientRootComposer.middleware(),
       trainer: this.trainerRootComposer.middleware(),
       admin: this.adminRootComposer.middleware(),
+      maintainer: this.adminRootComposer.middleware(),
     }
   }
 

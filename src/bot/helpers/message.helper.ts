@@ -4,6 +4,7 @@ import {
   TrainingSignupTypeEnum,
   TSalaryPayoutResult,
   UserProfileRoleEnum,
+  UserProfileStatusEnum,
 } from '@app/libs'
 import { TextHelper } from './text.helper'
 import { GetGroupByIdResponse, GetTrainingByIdResponse, IRegisterSceneState } from '../libs'
@@ -39,12 +40,12 @@ export class MessageHelper {
     data: Partial<IRegisterSceneState>,
     { completed = false, role }: { completed?: boolean; role: UserProfileRoleEnum },
   ) {
-    const { firstName, date_of_birth, lastName, phone } = data
+    const { firstName, date_of_birth, lastName, phone, telegramUsername } = data
     const modeText = completed
       ? `${role === UserProfileRoleEnum.CLIENT ? 'Клієнт' : 'Тренер'} відправив запит на реєстрацію: ✅\n\n`
       : `🔍 Перевір, чи все вірно:\n\n`
 
-    const mainContent = `➡️ Ім'я: ${TextHelper.bold(`${firstName}${lastName ? ` ${lastName}` : ''}`)}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}`
+    const mainContent = `👤 Ім'я: ${TextHelper.bold(`${firstName}${lastName ? ` ${lastName}` : ''}\n`)}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${telegramUsername ? `\n➡️ Telegram: ${TextHelper.bold(`@${telegramUsername}`)}` : ''}`
 
     return !completed
       ? `${modeText}${mainContent}\n\n👌 Якщо все правильно — тисни “✅ Підтвердити”\n❌ А якщо щось хочеш змінити — просто натисни "⬅️ Назад"`
@@ -223,14 +224,17 @@ export class MessageHelper {
     const messages: Record<typeof messageType, Record<string, string>> = {
       noOptions: {
         [UserProfileRoleEnum.ADMIN]: '⚠️ Поки що немає активних груп для керування.',
+        [UserProfileRoleEnum.MAINTAINER]: '⚠️ Поки що немає активних груп для керування.',
         [UserProfileRoleEnum.TRAINER]: `🤷‍♂️ У вас ще не призначено жодної групи.\n💬 Будь ласка, зверніться до адміністратора.`,
       },
       prompt: {
         [UserProfileRoleEnum.ADMIN]: '📋 Оберіть групу для керування:',
+        [UserProfileRoleEnum.MAINTAINER]: '📋 Оберіть групу для керування:',
         [UserProfileRoleEnum.TRAINER]: '📋 Ваші групи:',
       },
       trainings: {
         [UserProfileRoleEnum.ADMIN]: '📝 В цій групі ще немає доступних тренувань.',
+        [UserProfileRoleEnum.MAINTAINER]: '📝 В цій групі ще немає доступних тренувань.',
         [UserProfileRoleEnum.TRAINER]: '📝 У вас немає заплановanih тренувань в цій групі.',
       },
     }
@@ -325,5 +329,20 @@ ${trainingLines}`
         `👤 Тренер: <b><u>${regularTrainer}</u></b>`
       )
     }
+  }
+
+  static getClientManageHeaderMessage(userProfile: UserProfileSelectModel): string {
+    const fullName = UserHelper.getFullNameFromProfile(userProfile)
+
+    const phone = userProfile.phoneNumber ? `\n\n📞 Телефон: ${TextHelper.bold(userProfile.phoneNumber)}` : ''
+    const telegram = userProfile.telegramUsername ? `\n✉️ Telegram: ${TextHelper.bold(`@${userProfile.telegramUsername}`)}` : ''
+    const dateOfBirth = userProfile.dateOfBirth ? `\n🎂 Дата народження: ${TextHelper.bold(userProfile.dateOfBirth)}` : ''
+    const statusMap: Record<string, string> = {
+      [UserProfileStatusEnum.ACTIVE]: '✅ Активний',
+      [UserProfileStatusEnum.ARCHIVED]: '📦 В архіві',
+    }
+    const status = statusMap[userProfile.status] || 'Невідомий статус'
+
+    return `👤 Клієнт: ${TextHelper.bold(fullName)}\n\n` + `${status}` + `${phone}` + `${telegram}` + `${dateOfBirth}`
   }
 }

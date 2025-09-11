@@ -56,10 +56,10 @@ export class VerificationInlineMenu {
 
     this.composer.action(regexp, async (ctx) => {
       const userId = ctx.match[1]
-      const { dateOfBirth, firstName, lastName, phoneNumber, role, id } = await this.userProfileService.getUserProfileById(userId)
+      const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id } = await this.userProfileService.getUserProfileById(userId)
       return ctx.editMessageText(
         MessageHelper.getVerifyRequestMessage(
-          { date_of_birth: dateOfBirth ?? '', firstName, lastName: lastName ?? '', phone: phoneNumber ?? '' },
+          { date_of_birth: dateOfBirth ?? '', firstName, lastName: lastName ?? '', phone: phoneNumber ?? '', telegramUsername: telegramUsername ?? '' },
           { completed: true, role },
         ),
         {

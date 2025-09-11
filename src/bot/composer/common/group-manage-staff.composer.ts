@@ -6,19 +6,19 @@ import {
   ClientSelectPaginatedMenu,
   GroupSelectPaginatedMenu,
   TrainingSelectStaffPaginatedMenu,
-  CLIENT_SELECT_MENU,
   StaffSelectPaginatedMenu,
+  CLIENT_SIGNOUT_MENU,
+  CLIENT_SIGNIN_MENU,
 } from '@app/bot/menus'
-import { CALLBACK_PREFIX, GetTrainingByIdResponse, TPaginatedMenuRenderOptions } from '@app/bot/libs'
+import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
-import { API, TrainingSignupStatusEnum } from '@app/libs'
-import { transcode } from 'buffer'
+import { API, TrainingSignupStatusEnum, UserProfileStatusEnum } from '@app/libs'
 import { PinoLogger } from 'nestjs-pino'
 
 @Injectable()
@@ -31,7 +31,8 @@ export class GroupManageStaffComposer {
     private readonly groupSelectPaginatedMenu: GroupSelectPaginatedMenu,
     private readonly trainingSelectStaffPaginatedMenu: TrainingSelectStaffPaginatedMenu,
     private readonly staffSelectPaginatedMenu: StaffSelectPaginatedMenu,
-    @Inject(CLIENT_SELECT_MENU) private readonly clientSelectSignOutPaginatedMenu: ClientSelectPaginatedMenu,
+    @Inject(CLIENT_SIGNOUT_MENU) private readonly clientSelectSignOutPaginatedMenu: ClientSelectPaginatedMenu,
+    @Inject(CLIENT_SIGNIN_MENU) private readonly clientSignInPaginatedMenu: ClientSelectPaginatedMenu,
     private readonly groupService: GroupService,
     private readonly trainingService: TrainingService,
     private readonly trainingSignupService: TrainingSignupService,
@@ -69,6 +70,14 @@ export class GroupManageStaffComposer {
         promptMessage: '👤 Оберіть клієнта для скасування запису:',
         noOptionsMessage: '📋 На це тренування немає активних записів',
         onItemSelect: this.handleClientSignOutPaginatedSelect,
+      }),
+    )
+    this.composer.use(
+      this.clientSignInPaginatedMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.STAFF.TRAINING.CLIENT_SIGNIN_SELECT,
+        promptMessage: '👤 Оберіть клієнта для запису на тренування:',
+        noOptionsMessage: '👤 Немає доступних клієнтів для запису',
+        onItemSelect: this.handleClientSignInPaginatedSelect,
       }),
     )
 
@@ -117,7 +126,7 @@ export class GroupManageStaffComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.MANAGE.GROUPS_LIST), async (ctx: BotContext) => {
       const [userId, isAdmin] = RegexHelper.getMatchGroupValue(ctx)
       if (!userId) {
-        ctx.answerCbQuery('❗️ Помилка при виборі тренера. Спробуйте ще раз.')
+        BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка при виборі тренера. Спробуйте ще раз.')
         ctx.deleteMessage()
         return
       }
@@ -144,7 +153,7 @@ export class GroupManageStaffComposer {
         const [groupId, staffUserId] = RegexHelper.getMatchGroupValue(ctx)
 
         if (!groupId) {
-          ctx.answerCbQuery('Не вдалося повернутися до групи.', { show_alert: true })
+          BotHelper.safeAnswerCbQuery(ctx, 'Не вдалося повернутися до групи.', { show_alert: true })
           ctx.deleteMessage()
           return
         }
@@ -213,7 +222,7 @@ export class GroupManageStaffComposer {
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE),
       async (ctx: BotContext) => {
         return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
-          ctx.answerCbQuery()
+          BotHelper.safeAnswerCbQuery(ctx)
           const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
           return ctx.editMessageText(MessageHelper.constructSignupListMessage(activeSignUps, TrainingSignupStatusEnum.ACTIVE), {
             parse_mode: 'HTML',
@@ -227,7 +236,7 @@ export class GroupManageStaffComposer {
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED),
       async (ctx: BotContext) => {
         return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
-          ctx.answerCbQuery()
+          BotHelper.safeAnswerCbQuery(ctx)
           const canceledSignups = await this.trainingSignupService.getTrainingCancelledSignups(+trainingId)
           return ctx.editMessageText(MessageHelper.constructSignupListMessage(canceledSignups, TrainingSignupStatusEnum.CANCELED), {
             parse_mode: 'HTML',
@@ -239,7 +248,7 @@ export class GroupManageStaffComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN), async (ctx: BotContext) => {
       return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
-        ctx.answerCbQuery()
+        BotHelper.safeAnswerCbQuery(ctx)
         ctx.reply('В процеці розробки...)')
         // return ctx.scene.enter(SCENES.SIGN_IN_CLIENT, { trainingId })
         // console.log('Sign in action triggered for trainingId:', trainingId)
@@ -251,6 +260,7 @@ export class GroupManageStaffComposer {
         const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
         const data = activeSignUps.map((signup) => ({
           name: `${signup.userProfile?.firstName} ${signup.userProfile?.lastName}`,
+          status: signup.userProfile?.status,
           id: signup.id,
         }))
         return this.clientSelectSignOutPaginatedMenu.initMenu(
@@ -273,7 +283,7 @@ export class GroupManageStaffComposer {
 
           const training = await this.trainingService.getTrainingById(+trainingId)
           if (!training) {
-            ctx.answerCbQuery('❗️ Не вдалося завантажити тренування. Спробуйте ще раз.', { show_alert: true })
+            BotHelper.safeAnswerCbQuery(ctx, '❗️ Не вдалося завантажити тренування. Спробуйте ще раз.', { show_alert: true })
             ctx.deleteMessage()
             return
           }
@@ -304,7 +314,7 @@ export class GroupManageStaffComposer {
         return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
           await this.trainingService.deassignSubstituteTrainer(+trainingId)
           await this.notifyClientsAboutSubstituteTrainer(ctx, trainingId, 'deassign')
-          ctx.answerCbQuery('✅ Заміна тренера скасована.')
+          BotHelper.safeAnswerCbQuery(ctx, '✅ Заміна тренера скасована.')
           return this.renderTrainingManageMenu(ctx, trainingId, {
             fromUpcomingTrainingsMenu: !!backButtonCallbackData,
             staffUserId,
@@ -326,7 +336,14 @@ export class GroupManageStaffComposer {
     options: TPaginatedMenuRenderOptions = { shouldEdit: false, withExitButton: true },
   ) => {
     const { id } = UserHelper.getUser(ctx)
+    const isMaintainer = UserHelper.isMaintainerRole(ctx)
+
+    if (isMaintainer) {
+      return ctx.reply('⚠️  Для цієї ролі функціонал недоступний')
+    }
+
     const upcomingTrainings = await this.trainingService.getUpcomingTrainingsForStaff(id)
+
     return this.trainingSelectStaffPaginatedMenu.initMenu(
       ctx,
       { trainings: upcomingTrainings },
@@ -355,7 +372,7 @@ export class GroupManageStaffComposer {
   private renderTrainingSelectMenu = async (ctx: BotContext, { shouldEdit }: TPaginatedMenuRenderOptions) => {
     const [groupId, staffUserId] = RegexHelper.getMatchGroupValue(ctx)
     if (!groupId) {
-      ctx.answerCbQuery('❗️ Не вдалося завантажити тренування. Спробуйте ще раз.', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Не вдалося завантажити тренування. Спробуйте ще раз.', { show_alert: true })
       ctx.deleteMessage()
       return
     }
@@ -373,7 +390,7 @@ export class GroupManageStaffComposer {
   }
 
   private renderTrainingManageMenu = async (ctx: BotContext, trainingId: string, context: Record<string, any> = {}) => {
-    await ctx.answerCbQuery()
+    await BotHelper.safeAnswerCbQuery(ctx)
     const training = await this.trainingService.getTrainingById(+trainingId)
     const group = await this.groupService.getGroupById(training.groupId)
 
@@ -394,7 +411,7 @@ export class GroupManageStaffComposer {
   }
 
   private renderGroupManageMenu = async (ctx: BotContext, groupId: string, context: Record<string, any> = {}) => {
-    ctx.answerCbQuery()
+    BotHelper.safeAnswerCbQuery(ctx)
     const group = await this.groupService.getGroupById(+groupId)
     return ctx.editMessageText(MessageHelper.constructGroupSelectMessage(group), {
       parse_mode: 'HTML',
@@ -406,7 +423,7 @@ export class GroupManageStaffComposer {
     const response = await this.trainingSignupService.signOutFromTrainingAsAdminViaTelegram(signupId)
 
     if (response.status === API.RESPONSE.ERROR_STRING) {
-      return ctx.answerCbQuery(response.message, { show_alert: true })
+      return BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
     }
 
     if (response.status === API.RESPONSE.SUCCESS_STRING) {
@@ -435,13 +452,20 @@ export class GroupManageStaffComposer {
         return ctx.editMessageText('✅ На це тренування більше немає активних записів.')
       }
 
-      return this.clientSelectSignOutPaginatedMenu.initMenu(ctx, { data: activeSignUps }, { shouldEdit: true })
+      const data = activeSignUps.map((signup) => ({
+        name: `${signup.userProfile?.firstName} ${signup.userProfile?.lastName}`,
+        id: signup.id,
+      }))
+
+      return this.clientSelectSignOutPaginatedMenu.initMenu(ctx, { data }, { shouldEdit: true })
     }
   }
 
+  async handleClientSignInPaginatedSelect(ctx: BotContext, userId: string, context: Record<string, any> = {}) {}
+
   private handleStaffSelectPaginatedSelect = async (ctx: BotContext, staffUserId: string, context: Record<string, any> = {}) => {
     if (!context.trainingId) {
-      ctx.answerCbQuery('❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
       ctx.deleteMessage()
       return
     }
@@ -450,7 +474,7 @@ export class GroupManageStaffComposer {
 
     await this.notifyClientsAboutSubstituteTrainer(ctx, context.trainingId, 'assign')
 
-    ctx.answerCbQuery('✅ Тренер успішно призначений на тренування.')
+    BotHelper.safeAnswerCbQuery(ctx, '✅ Тренер успішно призначений на тренування.')
 
     return this.renderTrainingManageMenu(ctx, context.trainingId, context)
   }
@@ -469,7 +493,7 @@ export class GroupManageStaffComposer {
     const staffUserId = RegexHelper.isValidUuid(backButtonCallbackData) ? backButtonCallbackData : undefined
 
     if (!trainingId) {
-      ctx.answerCbQuery('⚠️ Не вдалося повернутися до тренування.', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '⚠️ Не вдалося повернутися до тренування.', { show_alert: true })
       ctx.deleteMessage()
       return
     }

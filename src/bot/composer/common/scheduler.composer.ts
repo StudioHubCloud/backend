@@ -5,7 +5,7 @@ import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { API, PassStatusEnum } from '@app/libs'
 import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { TrainingSelectPaginatedMenu, GroupSelectPaginatedMenu, ActiveSchedulesPaginatedMenu } from '@app/bot/menus'
-import { UserHelper } from '@app/bot/helpers'
+import { BotHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
 import { MESSAGES_CLIENT } from '@app/bot/static/messages'
@@ -93,7 +93,7 @@ export class SchedulerComposer {
 
     if (isUserClient) {
       if (!client || !currentActivePass) {
-        return ctx.answerCbQuery(MESSAGES_CLIENT.NO_ACTIVE_PASS, { show_alert: true })
+        return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_CLIENT.NO_ACTIVE_PASS, { show_alert: true })
       }
       const response = await this.trainingSignupService.signUpForTrainingAsClientViaTelegram({
         trainingId: +trainingId,
@@ -102,20 +102,20 @@ export class SchedulerComposer {
       })
 
       if (response.status === API.RESPONSE.ERROR_STRING) {
-        return ctx.answerCbQuery(response.message, { show_alert: true })
+        return BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
       }
 
       switch (response.availableSlots) {
         case 1:
-          return ctx.answerCbQuery(MESSAGES_CLIENT.ONE_SCHEDULE_REMAINING, { show_alert: true })
+          return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_CLIENT.ONE_SCHEDULE_REMAINING, { show_alert: true })
         default:
-          return ctx.answerCbQuery(response.message, { show_alert: true })
+          return BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
       }
     } else if (isUserGuest) {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       //add later for guests
     } else {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
     }
   }
 
@@ -133,10 +133,10 @@ export class SchedulerComposer {
     const response = await this.trainingSignupService.signOutFromTrainingAsClientViaTelegram(signupId)
 
     if (response.status === API.RESPONSE.ERROR_STRING) {
-      return ctx.answerCbQuery(response.message, { show_alert: true })
+      return BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
     }
 
-    ctx.answerCbQuery(response.message, { show_alert: true })
+    BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
 
     return this.renderActiveSchedulesMenu(ctx, { shouldEdit: true, withExitButton: true })
   }

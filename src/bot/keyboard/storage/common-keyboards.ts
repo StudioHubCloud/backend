@@ -1,5 +1,5 @@
 import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
-import { CALLBACK_PREFIX, TReplyInlineKeyboard } from '@app/bot/libs'
+import { CALLBACK_DATA, CALLBACK_PREFIX, TReplyInlineKeyboard } from '@app/bot/libs'
 import { KEYBOARDS_COMMON } from '@app/bot/static/keyboards'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { UserProfileRoleEnum } from '@app/libs'
@@ -23,6 +23,12 @@ export class CommonKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.BLOCK, id, role),
         },
       ],
+      [
+        {
+          text: BUTTON_PATTERNS.CLOSE,
+          callback_data: CALLBACK_DATA.CLOSE_MENU
+        }
+      ]
     ])
   }
 

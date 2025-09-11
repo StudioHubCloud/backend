@@ -1,6 +1,7 @@
 import { deunionize } from 'telegraf'
 import { BotContext } from '../bot.context'
 import { User } from '@telegraf/types'
+import { ExtraAnswerCbQuery } from 'telegraf/typings/telegram-types'
 
 export class BotHelper {
   static getFrom(ctx: BotContext) {
@@ -17,7 +18,9 @@ export class BotHelper {
     return from
   }
 
-  static getUpdatePayload(ctx: BotContext): [string, { isTextUpdate: boolean; isCallbackQueryUpdate: boolean; isInlineQueryUpdate: boolean }] {
+  static getUpdatePayload(
+    ctx: BotContext,
+  ): [string, { isTextUpdate: boolean; isCallbackQueryUpdate: boolean; isInlineQueryUpdate: boolean }] {
     const update = deunionize(ctx.update)
 
     let payloadData: string | null = ''
@@ -43,5 +46,22 @@ export class BotHelper {
         break
     }
     return [payloadData.trim(), { isTextUpdate, isCallbackQueryUpdate, isInlineQueryUpdate }]
+  }
+
+  static async safeAnswerCbQuery(ctx: BotContext, text?: string, options?: ExtraAnswerCbQuery) {
+    const { callbackQuery } = ctx
+    if (!callbackQuery) return false
+
+    try {
+      await ctx.answerCbQuery(text, options)
+      return true
+    } catch (error: any) {
+      if (error.description?.includes('query is too old') || error.description?.includes('query ID is invalid')) {
+        console.error('Callback query expired or invalid:', error.message)
+      } else {
+        console.error('Error answering callback query:', error.message)
+      }
+      return false
+    }
   }
 }

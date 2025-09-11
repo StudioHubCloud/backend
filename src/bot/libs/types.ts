@@ -15,7 +15,7 @@ import {
 import { PassStatusEnum, UserProfileRoleEnum } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 import { BotContext } from '../bot.context'
-import { EDIT_GROUP_SCENE_ACTIONS, EDIT_PASS_SCENE_ACTIONS } from './constants'
+import { CLIENT_STATUS_CHANGE_ACTIONS, EDIT_GROUP_SCENE_ACTIONS, EDIT_PASS_SCENE_ACTIONS } from './constants'
 
 export type TBotStore = {
   user: AuthUserProfile | null
@@ -25,6 +25,11 @@ export type TBotStore = {
 export type AuthUserProfile = UserProfileSelectModel & {
   client: (ClientSelectModel & { pass: { id: string; status: PassStatusEnum; groupId: number | null }[] }) | null
 }
+
+export type UserProfileWithRoleRelations = UserProfileSelectModel & { client: ClientSelectModel | null } & {
+  staffMember: StaffMemberSelectModel | null
+}
+export type UserProfileWithClient = UserProfileWithRoleRelations & { client: NonNullable<UserProfileWithRoleRelations['client']> }
 
 export type TNextFunction = () => Promise<void>
 
@@ -76,6 +81,7 @@ export interface ISelectInlineMenuConfig<T> {
 export interface IRegisterSceneState {
   firstName: string
   lastName?: string
+  telegramUsername?: string
   firstNameAlt?: string
   lastNameAlt?: string
   phone?: string
@@ -102,3 +108,4 @@ export interface GetTrainingByIdResponse extends TrainingSelectModel {
 
 export type TEditGroupSceneAction = (typeof EDIT_GROUP_SCENE_ACTIONS)[keyof typeof EDIT_GROUP_SCENE_ACTIONS]
 export type TEditPassSceneAction = (typeof EDIT_PASS_SCENE_ACTIONS)[keyof typeof EDIT_PASS_SCENE_ACTIONS]
+export type TClientStatusChangeAction = (typeof CLIENT_STATUS_CHANGE_ACTIONS)[keyof typeof CLIENT_STATUS_CHANGE_ACTIONS]

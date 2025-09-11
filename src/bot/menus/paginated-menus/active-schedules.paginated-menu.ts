@@ -5,7 +5,6 @@ import { BasePaginatedSelectInlineMenu } from './base.paginated-menu'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSelectModel, TrainingSignupSelectModel } from '@app/infrastructure/database'
 
-export const CLIENT_SELECT_MENU = Symbol('client-signout-menu')
 
 @Injectable({ scope: Scope.TRANSIENT })
 export class ActiveSchedulesPaginatedMenu extends BasePaginatedSelectInlineMenu<{

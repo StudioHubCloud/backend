@@ -68,7 +68,7 @@ export class CronService {
   })
   async expireAllPastPasses() {
     this.logger.debug('Expire All Past Passes Cron job executed on the first day of the month at midnight')
-    const result = await this.passService.expireAllPastPasses()
+    const result = await this.userProfileService.expireAllPastPasses()
     this.logger.debug(`Expire All Past Passes Cron job completed. Total expired passes: ${result.length}`)
   }
 

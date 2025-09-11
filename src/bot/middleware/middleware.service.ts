@@ -63,8 +63,9 @@ export class MiddlewareService {
     if (user) {
       return await next()
     }
+    
+    const { first_name, last_name, id, username } = from
 
-    const { first_name, last_name, id } = from
 
     const studioId = this.configService.get('STUDIO_ID')
 
@@ -79,9 +80,10 @@ export class MiddlewareService {
       telegramId: id.toString(),
       firstName: first_name,
       lastName: last_name,
+      telegramUsername: username,
       fullName: `${first_name}${last_name ? ` ${last_name}` : ''}`,
       role: UserProfileRoleEnum.GUEST,
-      status: UserProfileStatusEnum.UNVERIVIED,
+      status: UserProfileStatusEnum.UNVERIFIED,
       studioId,
     })
 

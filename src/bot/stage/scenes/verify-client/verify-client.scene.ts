@@ -67,7 +67,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       const [data, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
 
       if (isCallbackQueryUpdate) {
-        return ctx.answerCbQuery()
+        return BotHelper.safeAnswerCbQuery(ctx)
       }
 
       switch (data) {
@@ -142,7 +142,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
     const selectTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_SELECT, data)
 
     if (previewTemplateActionMatch) {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       const [id] = previewTemplateActionMatch
       const passTemplateData = await this.passTemplateService.getById(id)
       return ctx.replyWithHTML(
@@ -171,15 +171,12 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
                 ? `від ${minAge} років`
                 : `до ${maxAge} років`
 
-          ctx.answerCbQuery(
-            `Клієнт не відповідає віковим обмеженням для цього абонементу.\n\nВік: ${age} років\nВікові обмеження: ${ageRangeText}`,
-            { show_alert: true },
-          )
+          BotHelper.safeAnswerCbQuery(ctx, `Клієнт не відповідає віковим обмеженням для цього абонементу.\n\nВік: ${age} років\nВікові обмеження: ${ageRangeText}`, { show_alert: true })
           return ctx.deleteMessage()
         }
       }
 
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       this.verifyClientScene.setState(ctx, { passTemplate: passTemplateData })
 
       const state = this.verifyClientScene.getState(ctx) as IVerifyClientSceneState

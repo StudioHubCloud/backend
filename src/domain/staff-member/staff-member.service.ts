@@ -1,4 +1,3 @@
-import { TypedConfigService } from '@app/infrastructure/config'
 import { Injectable, NotFoundException } from '@nestjs/common'
 import { DatabaseService, staffMember, StaffMemberSelectModel, Transaction } from '@app/infrastructure/database'
 import { RedisCacheService, StaffMemberCacheKey } from '@app/infrastructure/redis'

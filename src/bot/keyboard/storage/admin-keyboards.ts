@@ -234,7 +234,7 @@ export class AdminKeyboards {
     ])
   }
 
-  static clientManageMenu(clientUserId: string): TReplyInlineKeyboard {
+  static clientManageMenu(clientUserId: string, isArchived: boolean): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
@@ -242,6 +242,22 @@ export class AdminKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.MANAGE, clientUserId),
         },
       ],
+      [
+        {
+          text: BUTTON_PATTERNS.EDIT_PROFILE,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT, clientUserId),
+        },
+      ],
+      [
+        {
+          text: isArchived ? BUTTON_PATTERNS.UNARCHIVE : BUTTON_PATTERNS.ARCHIVE,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.CLIENT.MANAGE[isArchived ? 'UNARCHIVE' : 'ARCHIVE'],
+            clientUserId,
+          ),
+        },
+      ],
+
       [
         {
           text: BUTTON_PATTERNS.BACK,

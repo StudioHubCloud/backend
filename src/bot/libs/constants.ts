@@ -50,6 +50,7 @@ export const CALLBACK_PREFIX = {
       ACTIVATE: 'tr.a.st',
       BACK_TO_MANAGE: 'tr.m.b.st',
       CLIENT_SIGNOUT_SELECT: 'tr.c.so.s.st',
+      CLIENT_SIGNIN_SELECT: 'tr.c.si.s.st',
       BACK_TO_CLOSEST_TRAINING_LIST: 'tr.cl.s.b.st',
     },
     USER: {
@@ -69,7 +70,9 @@ export const CALLBACK_PREFIX = {
       LIST: 'm.l.st',
       GROUPS_LIST: 'm.s.g.l.st',
       ADD_GROUP: 'm.a.g.st',
+      ADD_GROUP_SELECT: 'm.a.g.s.st',
       REMOVE_GROUP: 'm.r.g.st',
+      REMOVE_GROUP_SELECT: 'm.r.g.s.st',
       ASSIGN_GROUP: 'm.as.g.st',
       DEASSIGN_GROUP: 'm.de.g.st',
     },
@@ -86,6 +89,14 @@ export const CALLBACK_PREFIX = {
     MANAGE: {
       MENU: 'm.m.cl',
       BACK_TO_CLIENT_LIST: 'm.m.b.cl.l',
+      ARCHIVE: 'm.a.cl',
+      UNARCHIVE: 'm.ua.cl',
+      PROFILE: {
+        EDIT: 'm.p.e.cl',
+        EDIT_NAME: 'm.p.e.n.cl',
+        EDIT_DATE_OF_BIRTH: 'm.p.e.dob.cl',
+        EDIT_PHONE: 'm.p.e.ph.cl',
+      },
       PASS: {
         MANAGE: 'm.p.m.cl',
         EDIT_START_DATE: 'm.p.e.s.cl',
@@ -118,4 +129,11 @@ export const EDIT_PASS_SCENE_ACTIONS = {
   EDIT_LENGTH: 'edit_length',
   EDIT_START_DATE: 'edit_start_date',
   EDIT_END_DATE: 'edit_end_date',
+} as const
+
+export const CLIENT_STATUS_CHANGE_ACTIONS = {
+  ARCHIVE: 'archive',
+  UNARCHIVE: 'unarchive',
+  DELETE: 'delete',
+  DELETE_AND_BLOCK: 'delete_and_block',
 } as const

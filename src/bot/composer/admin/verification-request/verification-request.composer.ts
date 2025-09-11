@@ -1,7 +1,7 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { VerificationInlineMenu } from '@app/bot/menus'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
@@ -69,7 +69,7 @@ export class VerificationRequestComposer {
     await this.handleUserProfileAction(ctx, async (userProfile) => {
       if (userProfile.role === UserProfileRoleEnum.CLIENT) {
         ctx.scene.enter(SCENES.VERIFY_CLIENT, { userProfile })
-        ctx.answerCbQuery()
+        BotHelper.safeAnswerCbQuery(ctx)
         ctx.deleteMessage()
         return
       }
@@ -77,13 +77,13 @@ export class VerificationRequestComposer {
         const result = await this.userProfileService.verifyTrainer(userProfile.id)
 
         if (!result) {
-          await ctx.answerCbQuery('Цей користувач не є тренером або він вже верифікований', { show_alert: true })
+          await BotHelper.safeAnswerCbQuery(ctx, 'Цей користувач не є тренером або він вже верифікований', { show_alert: true })
           return
         }
 
         await ctx.telegram.sendMessage(userProfile.telegramId, MESSAGES_STAFF.VERIFY_SUCCESS, TrainerKeyboards.mainMenu())
 
-        await ctx.answerCbQuery('Тренер успішно верифікований', { show_alert: true })
+        await BotHelper.safeAnswerCbQuery(ctx, 'Тренер успішно верифікований', { show_alert: true })
         ctx.deleteMessage()
         return
       }
@@ -96,7 +96,7 @@ export class VerificationRequestComposer {
       await this.userProfileService.rejectVerificationRequest(id)
       await Promise.all([
         ctx.telegram.sendMessage(telegramId, `Ваша заявка на підтвердження була відхилена.`, CommonKeyboards.registerAs()),
-        ctx.answerCbQuery('Ви відхилили запит на реєстрацію'),
+        BotHelper.safeAnswerCbQuery(ctx, 'Ви відхилили запит на реєстрацію'),
       ])
       await ctx.deleteMessage()
     })
@@ -108,7 +108,7 @@ export class VerificationRequestComposer {
       await this.userProfileService.rejectVerificationRequestAndBlockUser(id)
       await Promise.all([
         ctx.telegram.sendMessage(telegramId, `Доступ до боту було обмежено`, KeyboardHelper.removeReplyMarkupKeyboard()),
-        ctx.answerCbQuery('Ви заблокували користувача'),
+        BotHelper.safeAnswerCbQuery(ctx, 'Ви заблокували користувача'),
       ])
       await ctx.deleteMessage()
     })

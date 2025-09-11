@@ -1,8 +1,13 @@
 import { Composer } from 'telegraf'
-import { Injectable } from '@nestjs/common'
+import { Inject, Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { RegexHelper, UserHelper } from '@app/bot/helpers'
-import { GroupSelectPaginatedMenu, StaffSelectPaginatedMenu } from '@app/bot/menus'
+import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import {
+  GroupSelectPaginatedMenu,
+  StaffSelectPaginatedMenu,
+  REMOVE_GROUP_FROM_STAFF_MENU,
+  ASSIGN_GROUP_TO_STAFF_MENU,
+} from '@app/bot/menus'
 import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { NextFunction } from 'express'
@@ -17,8 +22,8 @@ export class StaffManageComposer {
 
   constructor(
     private readonly staffSelectPaginatedMenu: StaffSelectPaginatedMenu,
-    private readonly groupSelectAddPaginatedMenu: GroupSelectPaginatedMenu,
-    private readonly groupSelectRemovePaginatedMenu: GroupSelectPaginatedMenu,
+    @Inject(ASSIGN_GROUP_TO_STAFF_MENU) private readonly groupSelectAddPaginatedMenu: GroupSelectPaginatedMenu,
+    @Inject(REMOVE_GROUP_FROM_STAFF_MENU) private readonly groupSelectRemovePaginatedMenu: GroupSelectPaginatedMenu,
     private readonly userProfileService: UserProfileService,
     private readonly groupService: GroupService,
   ) {
@@ -45,19 +50,19 @@ export class StaffManageComposer {
 
     this.composer.use(
       this.groupSelectAddPaginatedMenu.middleware({
-        callbackPrefix: CALLBACK_PREFIX.STAFF.MANAGE.ADD_GROUP,
-        promptMessage: '👥 Оберіть групу зі списку:',
-        noOptionsMessage: '👥 Немає доступних груп.',
-        onItemSelect: this.handleGroupSelectAction,
+        callbackPrefix: CALLBACK_PREFIX.STAFF.MANAGE.ADD_GROUP_SELECT,
+        promptMessage: '➕ Оберіть групу для призначення тренеру:',
+        noOptionsMessage: '📋 Немає доступних груп для призначення',
+        onItemSelect: this.handleAssignGroupToStaff,
       }),
     )
 
     this.composer.use(
       this.groupSelectRemovePaginatedMenu.middleware({
-        callbackPrefix: CALLBACK_PREFIX.STAFF.MANAGE.REMOVE_GROUP,
-        promptMessage: '👥 Оберіть групу зі списку:',
-        noOptionsMessage: '👥 Немає доступних груп.',
-        onItemSelect: this.handleGroupSelectAction,
+        callbackPrefix: CALLBACK_PREFIX.STAFF.MANAGE.REMOVE_GROUP_SELECT,
+        promptMessage: '➖ Оберіть групу для видалення з тренера:',
+        noOptionsMessage: '📋 У тренера немає призначених груп',
+        onItemSelect: this.handleDeAssignGroupFromStaff,
       }),
     )
   }
@@ -100,7 +105,7 @@ export class StaffManageComposer {
     const user = await this.userProfileService.getUserProfileById(userId)
 
     if (!user) {
-      ctx.answerCbQuery('❗️ Помилка при виборі тренера. Спробуйте ще раз.')
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка при виборі тренера. Спробуйте ще раз.')
       ctx.deleteMessage()
       return
     }
@@ -108,12 +113,12 @@ export class StaffManageComposer {
     const isStaffMember = UserHelper.isStaffMember(user)
 
     if (!isStaffMember) {
-      ctx.answerCbQuery('❗️ Обраний користувач не є тренером або адміністратором.')
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Обраний користувач не є тренером або адміністратором.')
       ctx.deleteMessage()
       return
     }
 
-    ctx.answerCbQuery()
+    BotHelper.safeAnswerCbQuery(ctx)
 
     return ctx.editMessageText(`👤 Обраний тренер: ${UserHelper.getFullName(user.firstName, user.lastName)}`, {
       parse_mode: 'HTML',
@@ -133,7 +138,7 @@ export class StaffManageComposer {
     )
 
     const state = { userId: staffUserId, role: UserProfileRoleEnum.ADMIN, data: availableGroups }
-    const renderOptions = { shouldEdit: true, backButtonCallbackData, context: { action, staffUserId } }
+    const renderOptions = { shouldEdit: true, backButtonCallbackData, context: { staffUserId } }
 
     if (action === API.GROUP_ACTION.ASSIGN) {
       return this.groupSelectAddPaginatedMenu.initMenu(ctx, state, renderOptions)
@@ -146,7 +151,7 @@ export class StaffManageComposer {
     const staffUserId = ctx['match']?.[1]
 
     if (!staffUserId) {
-      ctx.answerCbQuery('❗️Відсутній ідентифікатор тренера. Спробуйте ще раз.')
+      BotHelper.safeAnswerCbQuery(ctx, '❗️Відсутній ідентифікатор тренера. Спробуйте ще раз.')
       ctx.deleteMessage()
       return
     }
@@ -154,36 +159,38 @@ export class StaffManageComposer {
     return callback(staffUserId)
   }
 
-  private handleGroupSelectAction = async (ctx: BotContext, groupId: string, context = { action: null, staffUserId: null }) => {
-    if (!groupId || !context?.staffUserId) {
-      ctx.answerCbQuery('❗️Відсутній ідентифікатор групи або тренера. Спробуйте ще раз.', { show_alert: true })
+  private handleAssignGroupToStaff = async (ctx: BotContext, groupId: string, context: Record<string, any>) => {
+    const { staffUserId } = context
+
+    if (!groupId || !staffUserId) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️Відсутній ідентифікатор групи або тренера. Спробуйте ще раз.', { show_alert: true })
       ctx.deleteMessage()
       return
     }
 
-    if (context.action === API.GROUP_ACTION.ASSIGN) {
-      return this.handleAssignGroupToStaff(ctx, groupId, context.staffUserId)
-    } else if (context.action === API.GROUP_ACTION.DEASSIGN) {
-      return this.handleDeAssignGroupFromStaff(ctx, groupId, context.staffUserId)
-    }
-  }
-
-  private handleAssignGroupToStaff = async (ctx: BotContext, groupId: string, staffUserId: string) => {
     const result = await this.groupService.manageGroupStaffMember(+groupId, staffUserId, API.GROUP_ACTION.ASSIGN)
     if (result) {
-      ctx.answerCbQuery('✅ Групу успішно призначено тренеру.', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '✅ Групу успішно призначено тренеру.', { show_alert: true })
     } else {
-      ctx.answerCbQuery('❗️ Помилка при призначенні групи. Спробуйте ще раз.', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка при призначенні групи. Спробуйте ще раз.', { show_alert: true })
     }
     return this.renderStaffMemberManageMenu(ctx, staffUserId)
   }
 
-  private handleDeAssignGroupFromStaff = async (ctx: BotContext, groupId: string, staffUserId: string) => {
+  private handleDeAssignGroupFromStaff = async (ctx: BotContext, groupId: string, context: Record<string, any>) => {
+    const { staffUserId } = context
+
+    if (!groupId || !staffUserId) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️Відсутній ідентифікатор групи або тренера. Спробуйте ще раз.', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    }
+
     const result = await this.groupService.manageGroupStaffMember(+groupId, staffUserId, API.GROUP_ACTION.DEASSIGN)
     if (result) {
-      ctx.answerCbQuery('✅ Групу успішно знято з тренера.', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '✅ Групу успішно знято з тренера.', { show_alert: true })
     } else {
-      ctx.answerCbQuery('❗️ Помилка при знятті групи. Спробуйте ще раз.', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка при знятті групи. Спробуйте ще раз.', { show_alert: true })
     }
 
     return this.renderStaffMemberManageMenu(ctx, staffUserId)

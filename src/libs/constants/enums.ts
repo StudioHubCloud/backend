@@ -33,13 +33,14 @@ export enum UserProfileRoleEnum {
   TRAINER = 'trainer',
   GUEST = 'guest',
   CLIENT = 'client',
+  MAINTAINER = 'maintainer',
 }
 
 export enum UserProfileStatusEnum {
   ACTIVE = 'active',
-  INACTIVE = 'inactive',
+  ARCHIVED = 'archived',
   BLOCKED = 'blocked',
-  UNVERIVIED = 'unverified',
+  UNVERIFIED = 'unverified',
   VERIFICATION_REQUESTED = 'verification_requested',
 }
 

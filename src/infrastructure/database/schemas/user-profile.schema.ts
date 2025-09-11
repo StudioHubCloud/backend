@@ -15,6 +15,7 @@ export const userProfile = table(
     fullName: varchar('full_name').notNull(),
     phoneNumber: varchar('phone_number'),
     telegramId: varchar('telegram_id').notNull(),
+    telegramUsername: varchar('telegram_username'),
     dateOfBirth: date('date_of_birth', { mode: 'string' }),
     consentToRules: boolean('consent_to_rules').notNull().default(false),
     role: UserProfileRolePgEnum().notNull().notNull(),

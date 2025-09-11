@@ -73,7 +73,7 @@ export class PayoutStaffComposer {
     const [_, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
 
     if (isCallbackQueryUpdate) {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
     }
 
     if (isEdit) {
@@ -88,7 +88,7 @@ export class PayoutStaffComposer {
     const keyboard = isAdmin
       ? AdminKeyboards.staffmemberPayoutDetailsMenu(userId)
       : TrainerKeyboards.staffmemberPayoutDetailsMenu(userId)
-    ctx.answerCbQuery()
+    BotHelper.safeAnswerCbQuery(ctx)
     return ctx.editMessageText(message, { parse_mode: 'HTML', ...keyboard })
   }
 
@@ -98,7 +98,7 @@ export class PayoutStaffComposer {
     const keyboard = isAdmin
       ? AdminKeyboards.staffmemberPayoutClientInfoMenu(userId)
       : TrainerKeyboards.staffmemberPayoutClientInfoMenu(userId)
-    ctx.answerCbQuery()
+    BotHelper.safeAnswerCbQuery(ctx)
     return ctx.editMessageText(message, { parse_mode: 'HTML', ...keyboard })
   }
 
@@ -106,7 +106,7 @@ export class PayoutStaffComposer {
     const [userId, isAdmin] = RegexHelper.getMatchGroupValue(ctx)
 
     if (!userId) {
-      ctx.answerCbQuery('❓ Відсутня інформація про користувача', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '❓ Відсутня інформація про користувача', { show_alert: true })
       ctx.deleteMessage()
       return
     }

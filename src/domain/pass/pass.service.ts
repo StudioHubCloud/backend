@@ -1,6 +1,8 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
+import { add, addDays, subDays } from 'date-fns'
 import { TypedConfigService } from '@app/infrastructure/config'
+import { PinoLogger } from 'nestjs-pino'
 import {
   DatabaseService,
   pass,
@@ -12,10 +14,9 @@ import {
 } from '@app/infrastructure/database'
 import { PassCacheKey, RedisCacheService } from '@app/infrastructure/redis'
 import { DATE_FORMAT, PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
-import { add, addDays, subDays } from 'date-fns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { PASS_CONFIG } from '@app/bot/libs'
-import { PinoLogger } from 'nestjs-pino'
+import { UserProfileService } from '../user-profile'
 
 @Injectable()
 export class PassService {
@@ -52,24 +53,6 @@ export class PassService {
       }
       return await this.createNewPass(newPassData, tx)
     })
-  }
-
-  async expireAllPastPasses() {
-    const now = new Date()
-    const todayDateString = this.dateTimeProvider.formatDateStringInTz(now.toISOString(), DATE_FORMAT.DATE_MAIN)
-
-    const expiredPasses = await this.databaseService.drizzle.query.pass.findMany({
-      where: (pass, { and, lt }) => and(eq(pass.status, PassStatusEnum.ACTIVE), lt(pass.endDate, todayDateString)),
-    })
-    if (expiredPasses.length) {
-      await this.databaseService.drizzle.transaction(async (tx) => {
-        for (const pass of expiredPasses) {
-          await this.updatePass(pass.id, { status: PassStatusEnum.EXPIRED }, tx)
-        }
-      })
-      await this.redisCacheService.reset()
-    }
-    return expiredPasses
   }
 
   async activatePassesAfterGracePeriod() {

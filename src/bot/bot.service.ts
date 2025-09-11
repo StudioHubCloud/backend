@@ -8,7 +8,7 @@ import { MESSAGES_COMMON } from './static/messages'
 import { MiddlewareService } from './middleware'
 import { StageService } from './stage'
 import { ComposerService } from './composer'
-import { KeyboardHelper, RegexHelper, UserHelper } from './helpers'
+import { BotHelper, KeyboardHelper, RegexHelper, UserHelper } from './helpers'
 import { CALLBACK_DATA } from './libs'
 
 @Injectable()
@@ -60,7 +60,7 @@ export class BotService {
 
   private initExitGuard() {
     this.bot.action(RegexHelper.createSimpleRegex(CALLBACK_DATA.CLOSE_MENU), (ctx) => {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       ctx.deleteMessage()
       return
     })
@@ -77,7 +77,7 @@ export class BotService {
     })
 
     this.bot.action(/(.*)/, (ctx) => {
-      ctx.answerCbQuery()
+      BotHelper.safeAnswerCbQuery(ctx)
       const match = ctx.match[0]
       this.logger.error('Exit guard triggered with match: %s', match)
     })

@@ -140,8 +140,9 @@ export class KeyboardHelper {
     const KeyboardsMap = {
       [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu(),
       [UserProfileRoleEnum.GUEST]: GuestKeyboards.mainMenu(),
-      [UserProfileRoleEnum.ADMIN]: AdminKeyboards.mainMenu(),
       [UserProfileRoleEnum.TRAINER]: TrainerKeyboards.mainMenu(),
+      [UserProfileRoleEnum.ADMIN]: AdminKeyboards.mainMenu(),
+      [UserProfileRoleEnum.MAINTAINER]: AdminKeyboards.mainMenu(),
     }
     return KeyboardsMap[role]
   }
