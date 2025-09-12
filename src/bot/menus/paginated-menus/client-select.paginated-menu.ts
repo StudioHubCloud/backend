@@ -19,17 +19,19 @@ export class ClientSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
   protected async loadOptions(): Promise<TNormalizedOption[]> {
     const { data = [] } = this.sessionParams
 
-    const dataWithEmoji = data.map((item) => {
-      let emoji = '⚠️'
+    const dataWithEmoji = data
+      .sort((a, b) => (a?.status === UserProfileStatusEnum.ARCHIVED ? 1 : 0) - (b?.status === UserProfileStatusEnum.ARCHIVED ? 1 : 0))
+      .map((item) => {
+        let emoji = '⚠️'
 
-      if (item.status === UserProfileStatusEnum.ACTIVE) {
-        emoji = '🧚'
-      } else if (item.status === UserProfileStatusEnum.ARCHIVED) {
-        emoji = '📦'
-      }
+        if (item.status === UserProfileStatusEnum.ACTIVE) {
+          emoji = '🧚'
+        } else if (item.status === UserProfileStatusEnum.ARCHIVED) {
+          emoji = '📦'
+        }
 
-      return { ...item, emoji }
-    })
+        return { ...item, emoji }
+      })
 
     return KeyboardHelper.prepareInlineMenuOptions(dataWithEmoji, {
       labelKey: ['name'],

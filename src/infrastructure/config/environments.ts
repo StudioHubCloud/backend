@@ -14,6 +14,7 @@ export const environmentsSchema = z.object({
   LOG_LEVEL_HTTP: z.enum(['debug', 'info', 'warn', 'error', 'trace']).default('debug'),
   NODE_ENV: z.enum(['development', 'production']).default('development'),
   STUDIO_ID: z.string(),
+  STUDIO_ID_TEST: z.string(),
   GOOGLE_PLACE_ID: z.string(),
 })
 
