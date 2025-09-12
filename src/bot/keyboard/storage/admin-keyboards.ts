@@ -4,10 +4,39 @@ import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyM
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { COMMON_BUTTONS } from './common-keyboards'
+import { UserProfileRoleEnum } from '@app/libs'
 
 export class AdminKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_ADMIN.MAIN_MENU)
+  }
+
+  static verifyActions(id: string, role: UserProfileRoleEnum): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: BUTTON_PATTERNS.VERIFY,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.VERIFY_YES, id, role),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.VERIFY_WITHOUT_PASS,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.VERIFY_WITHOUT_PASS, id, role),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.REJECT,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.VERIFY_NO, id, role),
+        },
+        {
+          text: BUTTON_PATTERNS.BLOCK,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.BLOCK, id, role),
+        },
+      ],
+      [COMMON_BUTTONS.CLOSE],
+    ])
   }
 
   static groupManageMenu(groupId: number, staffUserId?: string): TReplyInlineKeyboard {

@@ -7,38 +7,11 @@ import { UserProfileRoleEnum } from '@app/libs'
 export const COMMON_BUTTONS = {
   CLOSE: {
     text: BUTTON_PATTERNS.CLOSE,
-    callback_data: CALLBACK_DATA.CLOSE_MENU
-  }
+    callback_data: CALLBACK_DATA.CLOSE_MENU,
+  },
 } as const
 
 export class CommonKeyboards {
-  static verifyActions(id: string, role: UserProfileRoleEnum): TReplyInlineKeyboard {
-    return KeyboardHelper.createInlineKeyboard([
-      [
-        {
-          text: BUTTON_PATTERNS.VERIFY,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.VERIFY_YES, id, role),
-        },
-      ],
-      [
-        {
-          text: BUTTON_PATTERNS.REJECT,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.VERIFY_NO, id, role),
-        },
-        {
-          text: BUTTON_PATTERNS.BLOCK,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.BLOCK, id, role),
-        },
-      ],
-      [
-        {
-          text: BUTTON_PATTERNS.CLOSE,
-          callback_data: CALLBACK_DATA.CLOSE_MENU
-        }
-      ]
-    ])
-  }
-
   static registerAs() {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_COMMON.REGISTER_AS)
   }

@@ -14,6 +14,7 @@ export const BUTTON_PATTERNS = {
   ARCHIVE: '📦 Архівувати',
   UNARCHIVE: '📤 Розархівувати',
   START: '🏠 Головне меню',
+  VERIFY_WITHOUT_PASS: '🟡 Верифікувати без абонементу',
   RULES: '‼️ПРАВИЛА ТА УМОВИ‼️',
   CANCEL_TRAINING: '🚫 Відмінити тренування',
   ACTIVATE_TRAINING: '✅ Активувати тренування',
@@ -37,7 +38,7 @@ export const BUTTON_PATTERNS = {
   PASS_EDIT_START_DATE: '📆 Змінити дату початку',
   PASS_EDIT_END_DATE: '📆 Змінити дату закінчення',
   PASS_EDIT_LENGTH: '✏️ Редагувати кількість тренувань', // це кількість доступних тренувань
-  PAYMENT: '💳 Оплатити абонемент (реквізити)',
+  PAYMENT: '💳 Реквізити для оплати',
   REGISTER_FINISH: '✅ Завершити реєстрацію',
   REQUESTS: '🔸 Запити на верифікацію',
   BACK_TO_MAIN_ADMIN_MENU: '🔙 Назад до меню адміністратора',
@@ -63,5 +64,6 @@ export const BUTTON_PATTERNS = {
   INITIATE_PAYOUT: '💸 Виплатити запрлату',
   ACTIVE_SCHEDULES_LIST: '📜 Активні записи',
   CANCELED_SCHEDULES_LIST: '📜 Скасовані записи',
-  
+  CLIENT_PASS_BUY: '💵 Купити абонемент',
+  CLIENT_PASS_RENEW: '🔁 Поновити абонемент',
 } as const

@@ -5,7 +5,7 @@ import { UserProfileService } from '@app/domain/user-profile'
 import { UserProfileRoleEnum } from '@app/libs'
 import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
-import { CommonKeyboards } from '@app/bot/keyboard/storage'
+import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 @Injectable()
@@ -30,9 +30,7 @@ export class VerificationInlineMenu {
 
     userProfiles.forEach((user) => {
       if (user.role === UserProfileRoleEnum.CLIENT || user.role === UserProfileRoleEnum.TRAINER) {
-        result[user.role].push([
-          { text: `${UserHelper.getDisplayName(user)}`, callback_data: `verify:${user.id}` },
-        ])
+        result[user.role].push([{ text: `${UserHelper.getDisplayName(user)}`, callback_data: `verify:${user.id}` }])
       }
     })
 
@@ -73,8 +71,8 @@ export class VerificationInlineMenu {
           { completed: true, role },
         ),
         {
+          ...AdminKeyboards.verifyActions(id, role),
           parse_mode: 'HTML',
-          ...CommonKeyboards.verifyActions(id, role),
         },
       )
     })

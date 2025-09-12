@@ -57,6 +57,7 @@ export const CALLBACK_PREFIX = {
     },
     USER: {
       VERIFY_YES: 'u.vy.st',
+      VERIFY_WITHOUT_PASS: 'u.vw.st',
       VERIFY_NO: 'u.vn.st',
       BLOCK: 'u.b.st',
     },

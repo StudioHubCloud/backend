@@ -18,6 +18,7 @@ import {
 import { PassHelper } from './pass.helper'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { UserHelper } from './user.helper'
+import { BUTTON_PATTERNS } from '../static/button-patterns'
 
 export class MessageHelper {
   static getAgeRestrictionMessage(minAge: number | null = null, maxAge: number | null = null): string {
@@ -339,5 +340,14 @@ ${trainingLines}`
     const status = statusMap[userProfile.status] || 'Невідомий статус'
 
     return `👤 Клієнт: ${TextHelper.bold(fullName)}\n\n` + `${status}` + `${phone}` + `${telegram}` + `${dateOfBirth}`
+  }
+
+  static getClientWithoutPassVerifySuccess(firstName: string): string {
+    return (
+      `🎉 Вітаємо, ${firstName}! 🎉\n` +
+      `Твій клієнтський профіль активовано! 💫\n\n` +
+      `Щоб розпочати тренування в різних групах та напрямках, придбай абонемент. 💃\n\n` +
+      `Тисни ${BUTTON_PATTERNS.CLIENT_PASS_BUY} і вперед створювати свою найкращу версію разом з нами! 🌸`
+    )
   }
 }

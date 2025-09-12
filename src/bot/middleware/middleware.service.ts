@@ -12,6 +12,8 @@ import { TypedConfigService } from '@app/infrastructure/config'
 
 @Injectable()
 export class MiddlewareService {
+  private STUDIO_ID: string
+
   constructor(
     private readonly logger: PinoLogger,
     private readonly studioService: StudioService,
@@ -19,6 +21,7 @@ export class MiddlewareService {
     private readonly userProfileService: UserProfileService,
   ) {
     this.logger.setContext(MiddlewareService.name)
+    this.STUDIO_ID = this.configService.get('STUDIO_ID')
   }
 
   loggingMiddleware = async (ctx: BotContext, next: TNextFunction) => {
@@ -66,13 +69,10 @@ export class MiddlewareService {
     
     const { first_name, last_name, id, username } = from
 
-
-    const studioId = this.configService.get('STUDIO_ID')
-
-    const studio = await this.studioService.getStudioById(studioId)
+    const studio = await this.studioService.getStudioById(this.STUDIO_ID)
 
     if (!studio) {
-      this.logger.error('Studio with id %s not found', studioId)
+      this.logger.error('Studio with id %s not found', this.STUDIO_ID)
       return ctx.reply('Invalid invite link')
     }
 
@@ -84,7 +84,7 @@ export class MiddlewareService {
       fullName: `${UserHelper.getFullName(first_name, last_name)}`,
       role: UserProfileRoleEnum.GUEST,
       status: UserProfileStatusEnum.UNVERIFIED,
-      studioId,
+      studioId: this.STUDIO_ID,
     })
 
     if (!createdUser) {

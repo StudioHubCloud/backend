@@ -6,10 +6,11 @@ import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { VerificationInlineMenu } from '@app/bot/menus'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
 import { UserProfileService } from '@app/domain/user-profile'
-import { CommonKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
+import { ClientKeyboards, CommonKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
 import { MESSAGES_STAFF } from '@app/bot/static/messages'
+import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 @Injectable()
 export class VerificationRequestComposer {
@@ -35,38 +36,23 @@ export class VerificationRequestComposer {
   }
 
   private initComposerActions() {
-    this.setupAction(CALLBACK_PREFIX.STAFF.USER.VERIFY_YES, this.verifyUserAction)
-    this.setupAction(CALLBACK_PREFIX.STAFF.USER.VERIFY_NO, this.rejectUserVerifyAction)
-    this.setupAction(CALLBACK_PREFIX.STAFF.USER.BLOCK, this.blockUserAction)
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.VERIFY_YES), this.handleVerifyWithPass)
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.VERIFY_WITHOUT_PASS),
+      this.handleVerifyWithoutPass,
+    )
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.VERIFY_NO), this.rejectUserVerifyAction)
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.BLOCK), this.blockUserAction)
   }
 
   private initComposerHandlers() {
     this.composer.hears(BUTTON_PATTERNS.REQUESTS, (ctx: BotContext) => {
-      return this.verificationRequestMenu.initMenu(ctx )
+      return this.verificationRequestMenu.initMenu(ctx)
     })
   }
 
-  private setupAction(prefix: string, action: (ctx: BotContext) => Promise<void>) {
-    this.composer.action(RegexHelper.createButtonActionRegex(prefix), action)
-  }
-
-  private async handleUserProfileAction(
-    ctx: BotContext,
-    action: (userProfile: UserProfileSelectModel) => Promise<void>,
-  ): Promise<void | boolean> {
-    const [_, id] = ctx['match']
-    const userProfile = await this.userProfileService.getUserProfileById(id)
-
-    if (userProfile.status !== UserProfileStatusEnum.VERIFICATION_REQUESTED) {
-      await ctx.reply('Запит на підтвердження цього користувача не актуальний')
-      return ctx.deleteMessage()
-    }
-
-    await action(userProfile)
-  }
-
-  private verifyUserAction = async (ctx: BotContext) => {
-    await this.handleUserProfileAction(ctx, async (userProfile) => {
+  private handleVerifyWithPass = async (ctx: BotContext) => {
+    await this.handleVerifyUserProfileAction(ctx, async (userProfile) => {
       if (userProfile.role === UserProfileRoleEnum.CLIENT) {
         ctx.scene.enter(SCENES.VERIFY_CLIENT, { userProfile })
         BotHelper.safeAnswerCbQuery(ctx)
@@ -77,26 +63,46 @@ export class VerificationRequestComposer {
         const result = await this.userProfileService.verifyTrainer(userProfile.id)
 
         if (!result) {
-          await BotHelper.safeAnswerCbQuery(ctx, 'Цей користувач не є тренером або він вже верифікований', { show_alert: true })
+          await BotHelper.safeAnswerCbQuery(ctx, 'Цей користувач не є тренером або він вже верифікований ⚠️', { show_alert: true })
           return
         }
 
         await ctx.telegram.sendMessage(userProfile.telegramId, MESSAGES_STAFF.VERIFY_SUCCESS, TrainerKeyboards.mainMenu())
 
-        await BotHelper.safeAnswerCbQuery(ctx, 'Тренер успішно верифікований', { show_alert: true })
+        await BotHelper.safeAnswerCbQuery(ctx, 'Тренер успішно верифікований ✅', { show_alert: true })
         ctx.deleteMessage()
         return
       }
     })
   }
 
+  private handleVerifyWithoutPass = async (ctx: BotContext) => {
+    return await this.handleVerifyUserProfileAction(ctx, async (userProfile) => {
+      const result = await this.userProfileService.verifyClientWithoutPass(userProfile.id)
+      if (!result) {
+        await BotHelper.safeAnswerCbQuery(ctx, 'Цей користувач не є клієнтом, або він вже верифікований ⚠️', { show_alert: true })
+        return
+      }
+
+      await ctx.telegram.sendMessage(
+        userProfile.telegramId,
+        MessageHelper.getClientWithoutPassVerifySuccess(userProfile.firstName),
+        ClientKeyboards.mainMenu({ withoutPass: true }),
+      )
+
+      await BotHelper.safeAnswerCbQuery(ctx, 'Клієнт успішно верифікований ✅', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    })
+  }
+
   //todo: add are you sure?
   private rejectUserVerifyAction = async (ctx: BotContext) => {
-    await this.handleUserProfileAction(ctx, async ({ id, telegramId }) => {
+    await this.handleVerifyUserProfileAction(ctx, async ({ id, telegramId }) => {
       await this.userProfileService.rejectVerificationRequest(id)
       await Promise.all([
-        ctx.telegram.sendMessage(telegramId, `Ваша заявка на підтвердження була відхилена.`, CommonKeyboards.registerAs()),
-        BotHelper.safeAnswerCbQuery(ctx, 'Ви відхилили запит на реєстрацію'),
+        ctx.telegram.sendMessage(telegramId, `Ваша заявка на підтвердження була відхилена ❌`, CommonKeyboards.registerAs()),
+        BotHelper.safeAnswerCbQuery(ctx, 'Ви відхилили запит на реєстрацію ❌'),
       ])
       await ctx.deleteMessage()
     })
@@ -104,13 +110,28 @@ export class VerificationRequestComposer {
 
   //todo: add are you sure?
   private blockUserAction = async (ctx: BotContext) => {
-    await this.handleUserProfileAction(ctx, async ({ id, telegramId }) => {
+    await this.handleVerifyUserProfileAction(ctx, async ({ id, telegramId }) => {
       await this.userProfileService.rejectVerificationRequestAndBlockUser(id)
       await Promise.all([
-        ctx.telegram.sendMessage(telegramId, `Доступ до боту було обмежено`, KeyboardHelper.removeReplyMarkupKeyboard()),
-        BotHelper.safeAnswerCbQuery(ctx, 'Ви заблокували користувача'),
+        ctx.telegram.sendMessage(telegramId, `Доступ до боту було обмежено 🚫`, KeyboardHelper.removeReplyMarkupKeyboard()),
+        BotHelper.safeAnswerCbQuery(ctx, 'Ви заблокували користувача 🚫'),
       ])
       await ctx.deleteMessage()
     })
+  }
+
+  private async handleVerifyUserProfileAction(
+    ctx: BotContext,
+    action: (userProfile: UserProfileSelectModel) => Promise<void>,
+  ): Promise<void | boolean> {
+    const [_, id] = ctx['match']
+    const userProfile = await this.userProfileService.getUserProfileById(id)
+
+    if (userProfile.status !== UserProfileStatusEnum.VERIFICATION_REQUESTED) {
+      await BotHelper.safeAnswerCbQuery(ctx, 'Запит на підтвердження цього користувача не актуальний ⏰', { show_alert: true })
+      return ctx.deleteMessage()
+    }
+
+    await action(userProfile)
   }
 }

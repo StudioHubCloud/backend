@@ -11,7 +11,7 @@ import { UserProfileService } from '@app/domain/user-profile'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { RedisCacheService } from '@app/infrastructure/redis'
 import { REGISTER_SCENE_CURSOR_MAP, REGISTER_SCENE_NAVIGATION_MAP } from './register.navigation-map'
-import { CommonKeyboards, CommonSceneKeyboards, GuestKeyboards } from '@app/bot/keyboard/storage'
+import { AdminKeyboards, CommonKeyboards, CommonSceneKeyboards, GuestKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 @Injectable()
@@ -194,7 +194,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
           MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
           {
             parse_mode: 'HTML',
-            ...CommonKeyboards.verifyActions(id, this.REQUESTED_ROLE),
+            ...AdminKeyboards.verifyActions(id, this.REQUESTED_ROLE),
           },
         )
       })

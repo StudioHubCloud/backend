@@ -39,7 +39,7 @@ export class KeyboardHelper {
     const paginatedData = data.slice(startIndex, endIndex)
 
     const dataButtons = paginatedData.map(({ label, value }) => [
-      { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` }
+      { text: label, callback_data: `${prefix}:${CALLBACK_DATA.ITEM_KEY}:${value}` },
     ])
     const paginationRow = data.length > perPage ? this.createPaginationRow(prefix, { page, totalPages }) : []
 
@@ -137,9 +137,9 @@ export class KeyboardHelper {
     })
   }
 
-  static getRoleBasedMainMenuKeyboard(role: UserProfileRoleEnum) {
+  static getRoleBasedMainMenuKeyboard(role: UserProfileRoleEnum, { withoutPass = false }: { withoutPass?: boolean } = {}) {
     const KeyboardsMap = {
-      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu(),
+      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu({ withoutPass }),
       [UserProfileRoleEnum.GUEST]: GuestKeyboards.mainMenu(),
       [UserProfileRoleEnum.TRAINER]: TrainerKeyboards.mainMenu(),
       [UserProfileRoleEnum.ADMIN]: AdminKeyboards.mainMenu(),
@@ -153,7 +153,10 @@ export class KeyboardHelper {
   }
 
   static addCloseButton(keyboard: TReplyInlineKeyboard): TReplyInlineKeyboard {
-    const newButtons = [...keyboard.reply_markup.inline_keyboard, [{ text: BUTTON_PATTERNS.CLOSE, callback_data: CALLBACK_DATA.CLOSE_MENU }]]
+    const newButtons = [
+      ...keyboard.reply_markup.inline_keyboard,
+      [{ text: BUTTON_PATTERNS.CLOSE, callback_data: CALLBACK_DATA.CLOSE_MENU }],
+    ]
 
     return {
       reply_markup: {

@@ -179,6 +179,20 @@ export class UserProfileService {
     return true
   }
 
+  async verifyClientWithoutPass(userProfileId: string) {
+    const user = await this.getUserProfileById(userProfileId)
+    if (user.role !== UserProfileRoleEnum.CLIENT || user.status !== UserProfileStatusEnum.VERIFICATION_REQUESTED) {
+      return false
+    }
+    await this.databaseService.drizzle.transaction(async (tx) => {
+      await Promise.all([
+        this.updateUserProfile(userProfileId, { status: UserProfileStatusEnum.ACTIVE }, tx),
+        this.clientService.createNewClient({ userProfileId }, tx),
+      ])
+    })
+    return true
+  }
+
   async verifyTrainer(userProfileId: string) {
     const user = await this.getUserProfileById(userProfileId)
     if (user.role !== UserProfileRoleEnum.TRAINER || user.status !== UserProfileStatusEnum.VERIFICATION_REQUESTED) {
