@@ -26,6 +26,7 @@ import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-r
 import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
 import { COMMON, PASS_CONFIG } from '@app/bot/libs'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+import { UserProfileService } from '../user-profile'
 
 @Injectable()
 export class TrainingSignupService {
@@ -38,6 +39,7 @@ export class TrainingSignupService {
     private readonly passService: PassService,
     private readonly groupAgeRestrictionService: GroupAgeRestrictionService,
     private readonly redisCacheService: RedisCacheService,
+    private readonly userProfileService: UserProfileService,
   ) {}
 
   async findTrainingSignupsByCondition(conditions: Partial<TrainingSignupSelectModel>) {
@@ -46,7 +48,9 @@ export class TrainingSignupService {
     })
   }
 
-  async getClientSignups(userProfileId: string): Promise<(TrainingSignupSelectModel & { training: TrainingSelectModel; group: { groupStyle: { title: string } } })[]> {
+  async getClientSignups(
+    userProfileId: string,
+  ): Promise<(TrainingSignupSelectModel & { training: TrainingSelectModel; group: { groupStyle: { title: string } } })[]> {
     const cache_key = TrainingSignupCacheKey.clientSignups(userProfileId)
     const cachedSignups = await this.redisCacheService.get<typeof signups>(cache_key)
     if (cachedSignups) {
@@ -313,6 +317,50 @@ export class TrainingSignupService {
       return {
         status: API.RESPONSE.ERROR_STRING,
         message: 'Виникла помилка при виписці з тренування 😔',
+      }
+    }
+  }
+
+  async signInToTrainingAsAdminViaTelegram(
+    clientUserId: string,
+    trainingId: number,
+  ): Promise<TCustomApiResponse<{ groupId: number; userProfile: UserProfileSelectModel | null }>> {
+    try {
+      const [training, isAlreadySignedUp] = await Promise.all([
+        this.trainingService.getTrainingById(trainingId),
+        this.checkIfAlreadySignedUpForTraining(clientUserId, trainingId),
+      ])
+
+      if (!training) {
+        return { status: API.RESPONSE.ERROR_STRING, message: '🥺 Тренування не знайдено' }
+      }
+
+      if (isAlreadySignedUp) {
+        return { status: API.RESPONSE.ERROR_STRING, message: `Клієнт вже записаний на це тренування 💝` }
+      }
+
+      await this.signUpForTraining({
+        trainingId,
+        userProfileId: clientUserId,
+        groupId: training.groupId,
+        type: TrainingSignupTypeEnum.MAIN,
+      })
+
+      const [userProfile] = await Promise.all([
+        this.userProfileService.getUserProfileById(clientUserId),
+        this.redisCacheService.reset(),
+      ])
+
+      return {
+        status: API.RESPONSE.SUCCESS_STRING,
+        message: '✅ Клієнта успішно записано на тренування',
+        data: { groupId: training.groupId, userProfile },
+      }
+    } catch (error) {
+      this.logger.error(`Error signing in to training %s for user %s: %j`, clientUserId, trainingId, error.stack)
+      return {
+        status: API.RESPONSE.ERROR_STRING,
+        message: 'Виникла помилка при записі на тренування 😔',
       }
     }
   }

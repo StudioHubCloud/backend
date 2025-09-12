@@ -8,6 +8,7 @@ import {
   Transaction,
   staffMember,
   client,
+  trainingSignup,
 } from '@app/infrastructure/database'
 import { RedisCacheService, UserProfileCacheKey } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
@@ -36,7 +37,7 @@ export class UserProfileService {
 
   async findStudioAdmins() {
     return await this.databaseService.drizzle.query.userProfile.findMany({
-      where: (userProfile, { eq, and, }) =>
+      where: (userProfile, { eq, and }) =>
         and(
           eq(userProfile.studioId, this.studioId),
           eq(userProfile.role, UserProfileRoleEnum.ADMIN),
@@ -304,22 +305,59 @@ export class UserProfileService {
     return expiredPasses
   }
 
-  async getClientsUserProfilesForManage() {
+  async getClientsUserProfiles({ withArchived = false } = {}) {
     const studioId = this.configService.get('STUDIO_ID')
-    const cacheKey = UserProfileCacheKey.allStudioClients(studioId)
+    const cacheKey = UserProfileCacheKey.allStudioClients(studioId, withArchived)
 
     const clientsCashed = await this.redisCacheService.get<typeof clients>(cacheKey)
     if (clientsCashed) {
       return clientsCashed
     }
 
+    const statusConditions = withArchived
+      ? [UserProfileStatusEnum.ACTIVE, UserProfileStatusEnum.ARCHIVED]
+      : [UserProfileStatusEnum.ACTIVE]
+
     const clients = await this.databaseService.drizzle.query.userProfile.findMany({
       where: (userProfile, { eq, and, exists, or }) =>
         and(
           eq(userProfile.studioId, studioId),
           eq(userProfile.role, UserProfileRoleEnum.CLIENT),
-          or(eq(userProfile.status, UserProfileStatusEnum.ACTIVE), eq(userProfile.status, UserProfileStatusEnum.ARCHIVED)),
+          or(...statusConditions.map((status) => eq(userProfile.status, status))),
           exists(this.databaseService.drizzle.select().from(client).where(eq(client.userProfileId, userProfile.id))),
+        ),
+      with: {
+        client: true,
+      },
+    })
+
+    this.redisCacheService.set(cacheKey, clients)
+    return clients
+  }
+
+  async getActiveClientsForSignIn(trainingId: number) {
+    const studioId = this.configService.get('STUDIO_ID')
+
+    const cacheKey = UserProfileCacheKey.activeClientsForSignIn(studioId, trainingId)
+
+    const cachedClients = await this.redisCacheService.get<typeof clients>(cacheKey)
+    if (cachedClients) {
+      return cachedClients
+    }
+
+    const clients = await this.databaseService.drizzle.query.userProfile.findMany({
+      where: (userProfile, { eq, and, exists, notExists }) =>
+        and(
+          eq(userProfile.studioId, this.studioId),
+          eq(userProfile.role, UserProfileRoleEnum.CLIENT),
+          eq(userProfile.status, UserProfileStatusEnum.ACTIVE),
+          exists(this.databaseService.drizzle.select().from(client).where(eq(client.userProfileId, userProfile.id))),
+          notExists(
+            this.databaseService.drizzle
+              .select()
+              .from(trainingSignup)
+              .where(and(eq(trainingSignup.userProfileId, userProfile.id), eq(trainingSignup.trainingId, trainingId))),
+          ),
         ),
       with: {
         client: true,

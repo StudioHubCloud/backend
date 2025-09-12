@@ -19,7 +19,11 @@ export class UserProfileCacheKey {
   static allStudioStaffMembers(studioId: string) {
     return `${this.cache_key_prefix}:all-staff:${studioId}`
   }
-  static allStudioClients(studioId: string) {
-    return `${this.cache_key_prefix}:all-clients:${studioId}`
+  static allStudioClients(studioId: string, withArchived = false) {
+    return `${this.cache_key_prefix}:all-clients:${studioId}:${withArchived}`
+  }
+
+  static activeClientsForSignIn(studioId: string, trainingId: number) {
+    return `${this.cache_key_prefix}:acfsi:${studioId}:${trainingId}`
   }
 }

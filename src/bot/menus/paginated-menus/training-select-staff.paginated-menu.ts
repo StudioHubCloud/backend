@@ -35,7 +35,7 @@ export class TrainingSelectStaffPaginatedMenu extends BasePaginatedSelectInlineM
       if (!group) return []
       
       const trainings = await this.trainingService.getTrainingListForManage({ groupId: group.id })
-      this.config.promptMessage = `🗓 Тренування групи: ${group.name}:`
+      this.config.promptMessage = `🗓 Тренування групи:\n\n <i><b>${group.name}</b></i>`
       this.config.noOptionsMessage = '📅 В цій групі немає доступних тренувань'
 
       return this.renderTrainingsMenu(trainings)

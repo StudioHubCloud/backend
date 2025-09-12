@@ -231,4 +231,24 @@ export class PassService {
 
     return foundPass
   }
+
+  async activatePass(id: string) {
+    const passToActivate = await this.getPassById(id)
+
+    if (!passToActivate) {
+      throw new BadRequestException(`Pass with id ${id} not found`)
+    }
+
+    if (passToActivate.startDate && passToActivate.endDate) {
+      throw new BadRequestException(`Pass with id ${id} is already activated`)
+    }
+
+    const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
+    const endDateString = this.dateTimeProvider.formatDateStringInTz(
+      addDays(new Date(), PASS_CONFIG.DEFAULT_DURATION_IN_DAYS).toISOString(),
+      DATE_FORMAT.DATE_MAIN,
+    )
+
+    return await this.updatePass(id, { startDate: todayDateString, endDate: endDateString })
+  }
 }

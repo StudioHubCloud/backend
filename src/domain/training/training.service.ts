@@ -313,11 +313,12 @@ export class TrainingService {
   async getAllTrainingsForStaffMemberSalary(staffMemberId: string, startDate: string, endDate: string) {
     return this.databaseService.drizzle.query.training.findMany({
       where: (training, helpers) => {
-        const { and, gte, eq, exists, inArray } = helpers
+        const { and, gte, eq, exists, inArray, isNull } = helpers
         return and(
           gte(training.date, startDate),
           lte(training.date, endDate),
           eq(training.isCancelled, false),
+          isNull(training.staffMemberPayoutId),
           this.staffMemberTrainingFilter(staffMemberId)(training, helpers),
           exists(
             this.databaseService.drizzle

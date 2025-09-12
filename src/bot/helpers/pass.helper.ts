@@ -12,6 +12,10 @@ export class PassHelper {
     return price ? `${price} ₴` : '0 ₴'
   }
 
+  static isPassActivated(pass: PassSelectModel & { passTemplate: PassTemplateSelectModel }): boolean {
+    return pass.endDate !== null && pass.startDate !== null
+  }
+
   static getPassDisplayStatus(status: PassStatusEnum, isInactive: boolean): { label: string; icon: string } {
     if (isInactive) {
       return { icon: '⚪️', label: 'Потребує активації' }
@@ -63,20 +67,20 @@ ${icon} ${TextHelper.bold('Статус:')} ${label}
     },
   ) {
     const { pass, fullName, clientUserId, shouldEdit = true } = data
-
+    
     const message = PassHelper.getPassInfoMessage(pass, dateTimeProvider, fullName)
-
+    const isPassActive = PassHelper.isPassActivated(pass)
     if (!shouldEdit) {
       if (data.editMessageId) {
         return await ctx.telegram.editMessageText(ctx.chat!.id, data.editMessageId, undefined, message, {
           parse_mode: 'HTML',
-          ...AdminKeyboards.passManageMenu(clientUserId),
+          ...AdminKeyboards.passManageMenu(clientUserId, isPassActive),
         })
       }
 
-      return await ctx.replyWithHTML(message, AdminKeyboards.passManageMenu(clientUserId))
+      return await ctx.replyWithHTML(message, AdminKeyboards.passManageMenu(clientUserId, isPassActive))
     }
 
-    return await ctx.editMessageText(message, { ...AdminKeyboards.passManageMenu(clientUserId), parse_mode: 'HTML' })
+    return await ctx.editMessageText(message, { ...AdminKeyboards.passManageMenu(clientUserId, isPassActive), parse_mode: 'HTML' })
   }
 }

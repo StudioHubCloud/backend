@@ -102,6 +102,7 @@ export const CALLBACK_PREFIX = {
       },
       PASS: {
         MANAGE: 'm.p.m.cl',
+        ACTIVATE: 'm.p.act.cl',
         EDIT_START_DATE: 'm.p.e.s.cl',
         EDIT_END_DATE: 'm.p.e.e.cl',
         EDIT_LENGTH: 'm.p.e.l.cl',

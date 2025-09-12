@@ -3,6 +3,7 @@ export const BUTTON_PATTERNS = {
   CONFIRM: '✅ Підтвердити',
   VERIFY: '✅ Верифікувати',
   AGREE: '✅ Погоджуюсь',
+  ACTIVATE: '✅ Активувати',
   SELECT: '✅ Обрати',
   REJECT: '🙅‍♀️ Відхилити',
   BLOCK: '🚫 Заблокувати',

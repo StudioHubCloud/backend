@@ -1,6 +1,6 @@
 import { KeyboardHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
 import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
-import { CALLBACK_DATA, CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
+import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { COMMON_BUTTONS } from './common-keyboards'
@@ -309,8 +309,18 @@ export class AdminKeyboards {
     ])
   }
 
-  static passManageMenu(clientUserId: string): TReplyInlineKeyboard {
+  static passManageMenu(clientUserId: string, isActive: boolean): TReplyInlineKeyboard {
+    const activateButton = !isActive
+      ? [
+          {
+            text: BUTTON_PATTERNS.ACTIVATE,
+            callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE, clientUserId),
+          },
+        ]
+      : []
+
     return KeyboardHelper.createInlineKeyboard([
+      [...activateButton],
       [
         {
           text: BUTTON_PATTERNS.PASS_EDIT_LENGTH,

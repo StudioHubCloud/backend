@@ -66,6 +66,9 @@ export class ClientManageComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.MANAGE), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) => this.renderPassManageMenu(ctx, clientUserProfile))
     })
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) => this.handleActivatePassAction(ctx, clientUserProfile))
+    })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_LENGTH), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) =>
@@ -123,7 +126,7 @@ export class ClientManageComposer {
     ctx: BotContext,
     renderOptions: TPaginatedMenuRenderOptions = { shouldEdit: false, withExitButton: true },
   ) => {
-    const allClients = await this.userProfileService.getClientsUserProfilesForManage()
+    const allClients = await this.userProfileService.getClientsUserProfiles({ withArchived: true })
 
     const data = allClients.map((client) => ({
       id: client.id,
@@ -241,7 +244,26 @@ export class ClientManageComposer {
     return ctx.editMessageText(message, { ...AdminKeyboards.userProfileEditMenu(clientUserProfile.id), parse_mode: 'HTML' })
   }
 
-  withClientIdAction = async (ctx: BotContext, action: (userProfile: UserProfileWithClient) => Promise<any>) => {
+  private handleActivatePassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
+    const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, true)
+
+    if (!originalPass) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ У клієнта немає активних абонементів.', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    }
+    if (PassHelper.isPassActivated(originalPass)) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Абонемент вже активований.', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    }
+
+    await this.passService.activatePass(originalPass.id)
+    BotHelper.safeAnswerCbQuery(ctx, '✅ Абонемент успішно активовано.')
+    return this.renderPassManageMenu(ctx, clientUserProfile)
+  }
+
+  private withClientIdAction = async (ctx: BotContext, action: (userProfile: UserProfileWithClient) => Promise<any>) => {
     const [clientUserId] = RegexHelper.getMatchGroupValue(ctx)
 
     if (!clientUserId) {

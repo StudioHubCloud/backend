@@ -6,9 +6,10 @@ import { TrainingModule } from '../training/training.module'
 import { GroupAgeRestrictionModule } from '../group-age-restriction'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
+import { UserProfileModule } from '../user-profile'
 
 @Module({
-  imports: [PassModule, GroupAgeRestrictionModule, forwardRef(() => TrainingModule)],
+  imports: [PassModule, GroupAgeRestrictionModule, forwardRef(() => TrainingModule), UserProfileModule],
   controllers: [TrainingSignupController],
   providers: [
     TrainingSignupService,

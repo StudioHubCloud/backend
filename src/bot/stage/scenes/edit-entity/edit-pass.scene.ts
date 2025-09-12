@@ -165,8 +165,11 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
       const [payload] = BotHelper.getUpdatePayload(ctx)
 
       if (isInitialRun) {
+        const currentValue = originalPass?.[field]
+        const currentDateText = currentValue ? `<b>${currentValue}</b>` : '<i>не встановлена</i>'
+
         const result = await ctx.replyWithHTML(
-          `📅 Поточна дата ${field === 'startDate' ? 'початку' : 'закінчення'}: <b>${originalPass?.[field]}</b>\n\n` +
+          `📅 Поточна дата ${field === 'startDate' ? 'початку' : 'закінчення'}: ${currentDateText}\n\n` +
             `📝 Введіть нову дату ${field === 'startDate' ? 'початку' : 'закінчення'} у форматі ДД ММ РРРР:\n` +
             `💡 Приклад: ${this.dateExample}`,
           CommonSceneKeyboards.exit(),

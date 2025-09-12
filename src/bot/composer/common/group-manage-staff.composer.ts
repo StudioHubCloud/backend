@@ -13,6 +13,7 @@ import {
 import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
+import { UserProfileService } from '@app/domain/user-profile'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
@@ -32,10 +33,11 @@ export class GroupManageStaffComposer {
     private readonly trainingSelectStaffPaginatedMenu: TrainingSelectStaffPaginatedMenu,
     private readonly staffSelectPaginatedMenu: StaffSelectPaginatedMenu,
     @Inject(CLIENT_SIGNOUT_MENU) private readonly clientSelectSignOutPaginatedMenu: ClientSelectPaginatedMenu,
-    @Inject(CLIENT_SIGNIN_MENU) private readonly clientSignInPaginatedMenu: ClientSelectPaginatedMenu,
+    @Inject(CLIENT_SIGNIN_MENU) private readonly clientSelectSignInPaginatedMenu: ClientSelectPaginatedMenu,
     private readonly groupService: GroupService,
     private readonly trainingService: TrainingService,
     private readonly trainingSignupService: TrainingSignupService,
+    private readonly userProfileService: UserProfileService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -73,7 +75,7 @@ export class GroupManageStaffComposer {
       }),
     )
     this.composer.use(
-      this.clientSignInPaginatedMenu.middleware({
+      this.clientSelectSignInPaginatedMenu.middleware({
         callbackPrefix: CALLBACK_PREFIX.STAFF.TRAINING.CLIENT_SIGNIN_SELECT,
         promptMessage: '👤 Оберіть клієнта для запису на тренування:',
         noOptionsMessage: '👤 Немає доступних клієнтів для запису',
@@ -248,10 +250,28 @@ export class GroupManageStaffComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN), async (ctx: BotContext) => {
       return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
-        BotHelper.safeAnswerCbQuery(ctx)
-        ctx.reply('В процеці розробки...)')
-        // return ctx.scene.enter(SCENES.SIGN_IN_CLIENT, { trainingId })
-        // console.log('Sign in action triggered for trainingId:', trainingId)
+        const activeClients = await this.userProfileService.getActiveClientsForSignIn(+trainingId)
+        const data = activeClients.map((client) => ({
+          name: `${UserHelper.getDisplayName(client)}`,
+          status: client.status,
+          id: client.id,
+        }))
+
+        const backBtnCbData = RegexHelper.createButtonActionCallbackData(
+          CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
+          trainingId,
+          staffUserId ?? backButtonCallbackData,
+        )
+
+        return this.clientSelectSignInPaginatedMenu.initMenu(
+          ctx,
+          { data },
+          {
+            backButtonCallbackData: backBtnCbData,
+            shouldEdit: true,
+            context: { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId, trainingId },
+          },
+        )
       })
     })
 
@@ -263,10 +283,21 @@ export class GroupManageStaffComposer {
           status: signup.userProfile?.status,
           id: signup.id,
         }))
+
+        const backBtnCbData = RegexHelper.createButtonActionCallbackData(
+          CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
+          trainingId,
+          staffUserId ?? backButtonCallbackData,
+        )
+
         return this.clientSelectSignOutPaginatedMenu.initMenu(
           ctx,
           { data },
-          { context: { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId } },
+          {
+            backButtonCallbackData: backBtnCbData,
+            shouldEdit: true,
+            context: { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId },
+          },
         )
       })
     })
@@ -419,7 +450,7 @@ export class GroupManageStaffComposer {
     })
   }
 
-  private handleClientSignOutPaginatedSelect = async (ctx: BotContext, signupId: string) => {
+  private handleClientSignOutPaginatedSelect = async (ctx: BotContext, signupId: string, context: Record<string, any> = {}) => {
     const response = await this.trainingSignupService.signOutFromTrainingAsAdminViaTelegram(signupId)
 
     if (response.status === API.RESPONSE.ERROR_STRING) {
@@ -429,7 +460,11 @@ export class GroupManageStaffComposer {
     if (response.status === API.RESPONSE.SUCCESS_STRING) {
       const { userProfile, training } = response.data || {}
 
-      if (!training) return ctx.reply('Невдалось знайти тренування')
+      if (!training) {
+        BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
+        ctx.deleteMessage()
+        return
+      }
 
       const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(training!.id)
 
@@ -449,19 +484,69 @@ export class GroupManageStaffComposer {
       }
 
       if (activeSignUps.length === 0) {
-        return ctx.editMessageText('✅ На це тренування більше немає активних записів.')
+        await BotHelper.safeAnswerCbQuery(ctx, '✅ На це тренування більше немає активних записів.', { show_alert: true })
+        return this.renderTrainingManageMenu(ctx, String(training.id), context)
       }
 
+      BotHelper.safeAnswerCbQuery(ctx, '✅ Клієнта успішно відписано від тренування.', { show_alert: true })
       const data = activeSignUps.map((signup) => ({
         name: `${UserHelper.getDisplayName(signup.userProfile)}`,
         id: signup.id,
       }))
 
-      return this.clientSelectSignOutPaginatedMenu.initMenu(ctx, { data }, { shouldEdit: true })
+      const backBtnCbData = RegexHelper.createButtonActionCallbackData(
+        CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
+        training.id,
+        context.staffUserId,
+      )
+
+      return this.clientSelectSignOutPaginatedMenu.initMenu(
+        ctx,
+        { data },
+        { backButtonCallbackData: backBtnCbData, shouldEdit: true, context },
+      )
     }
   }
 
-  async handleClientSignInPaginatedSelect(ctx: BotContext, userId: string, context: Record<string, any> = {}) {}
+  private handleClientSignInPaginatedSelect = async (ctx: BotContext, userId: string, context: Record<string, any> = {}) => {
+    const { trainingId } = context
+
+    if (!trainingId) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
+      ctx.deleteMessage()
+      return
+    }
+
+    const response = await this.trainingSignupService.signInToTrainingAsAdminViaTelegram(userId, trainingId)
+
+    if (response.status === API.RESPONSE.ERROR_STRING) {
+      return BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
+    }
+    if (response.status === API.RESPONSE.SUCCESS_STRING) {
+      BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
+
+      const { userProfile, groupId } = response.data || {}
+
+      if (userProfile?.telegramId && groupId) {
+        const [group, training] = await Promise.all([
+          this.groupService.getGroupById(groupId),
+          this.trainingService.getTrainingById(+trainingId),
+        ])
+
+        ctx.telegram.sendMessage(
+          String(userProfile.telegramId),
+          MessageHelper.constructTrainingSigninByAdminMessage(
+            { date: training.date, groupName: group.name },
+            this.dateTimeProvider,
+          ),
+          {
+            parse_mode: 'HTML',
+          },
+        )
+      }
+      return this.renderTrainingManageMenu(ctx, trainingId, context)
+    }
+  }
 
   private handleStaffSelectPaginatedSelect = async (ctx: BotContext, staffUserId: string, context: Record<string, any> = {}) => {
     if (!context.trainingId) {
