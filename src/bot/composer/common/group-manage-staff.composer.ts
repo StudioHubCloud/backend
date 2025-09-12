@@ -471,16 +471,21 @@ export class GroupManageStaffComposer {
       if (userProfile?.telegramId) {
         const group = await this.groupService.getGroupById(training.groupId)
 
-        ctx.telegram.sendMessage(
-          String(userProfile.telegramId),
-          MessageHelper.constructTrainingSignoutByAdminMessage(
-            { date: training.date, groupName: group.name },
-            this.dateTimeProvider,
-          ),
-          {
-            parse_mode: 'HTML',
-          },
-        )
+        const now = new Date()
+        const trainingDate = new Date(training.date)
+
+        if (now < trainingDate) {
+          ctx.telegram.sendMessage(
+            String(userProfile.telegramId),
+            MessageHelper.constructTrainingSignoutByAdminMessage(
+              { date: training.date, groupName: group.name },
+              this.dateTimeProvider,
+            ),
+            {
+              parse_mode: 'HTML',
+            },
+          )
+        }
       }
 
       if (activeSignUps.length === 0) {
@@ -533,16 +538,21 @@ export class GroupManageStaffComposer {
           this.trainingService.getTrainingById(+trainingId),
         ])
 
-        ctx.telegram.sendMessage(
-          String(userProfile.telegramId),
-          MessageHelper.constructTrainingSigninByAdminMessage(
-            { date: training.date, groupName: group.name },
-            this.dateTimeProvider,
-          ),
-          {
-            parse_mode: 'HTML',
-          },
-        )
+        const now = new Date()
+        const trainingDate = new Date(training.date)
+
+        if (now < trainingDate) {
+          ctx.telegram.sendMessage(
+            String(userProfile.telegramId),
+            MessageHelper.constructTrainingSigninByAdminMessage(
+              { date: training.date, groupName: group.name },
+              this.dateTimeProvider,
+            ),
+            {
+              parse_mode: 'HTML',
+            },
+          )
+        }
       }
       return this.renderTrainingManageMenu(ctx, trainingId, context)
     }

@@ -10,7 +10,6 @@ export class StageService {
   constructor(
     public readonly registerScene: Stage.RegisterScene,
     public readonly verifyClientScene: Stage.VerifyClientScene,
-    public readonly signInClientScene: Stage.SignInClientScene,
     public readonly initiatePayoutScene: Stage.InitiatePayoutScene,
     public readonly editPassScene: Stage.EditPassScene,
     public readonly editUserProfileScene: Stage.EditUserProfileScene,
@@ -18,7 +17,6 @@ export class StageService {
     this.stage = new Scenes.Stage<BotContext>([
       registerScene,
       verifyClientScene,
-      signInClientScene,
       initiatePayoutScene,
       editPassScene,
       editUserProfileScene,

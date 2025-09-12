@@ -11,7 +11,6 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     StageService,
     Stage.RegisterScene,
     Stage.VerifyClientScene,
-    Stage.SignInClientScene,
     Stage.InitiatePayoutScene,
     Stage.EditPassScene,
     Stage.EditUserProfileScene,
