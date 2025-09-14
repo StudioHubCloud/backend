@@ -2,6 +2,7 @@ import { deunionize } from 'telegraf'
 import { BotContext } from '../bot.context'
 import { User } from '@telegraf/types'
 import { ExtraAnswerCbQuery } from 'telegraf/typings/telegram-types'
+import { PassActivationFileTypeEnum } from '@app/libs'
 
 export class BotHelper {
   static getFrom(ctx: BotContext) {
@@ -18,34 +19,63 @@ export class BotHelper {
     return from
   }
 
-  static getUpdatePayload(
-    ctx: BotContext,
-  ): [string, { isTextUpdate: boolean; isCallbackQueryUpdate: boolean; isInlineQueryUpdate: boolean }] {
+  static getUpdatePayload(ctx: BotContext): {
+    textPayload: string
+    fileId: string | null
+    fileType: PassActivationFileTypeEnum | null
+    isTextUpdate: boolean
+    isCallbackQueryUpdate: boolean
+    isInlineQueryUpdate: boolean
+    isFileUpdate: boolean
+  } {
     const update = deunionize(ctx.update)
 
-    let payloadData: string | null = ''
-
+    let textPayload = ''
+    let fileId: string | null = null
     let isTextUpdate = false
     let isCallbackQueryUpdate = false
     let isInlineQueryUpdate = false
+    let isFileUpdate = false
+    let fileType: PassActivationFileTypeEnum | null = null
 
     switch (true) {
       case !!update.callback_query:
-        payloadData = deunionize(ctx.callbackQuery)?.data ?? ''
+        textPayload = deunionize(ctx.callbackQuery)?.data ?? ''
         isCallbackQueryUpdate = true
         break
       case !!update.message:
-        payloadData = deunionize(ctx.message)?.text ?? ''
-        isTextUpdate = true
+        const message = deunionize(ctx.message)
+        textPayload = message?.text ?? ''
+        isTextUpdate = !!textPayload
+
+        // Check for files
+        if (message?.document) {
+          fileId = message.document.file_id
+          isFileUpdate = true
+          fileType = PassActivationFileTypeEnum.DOCUMENT
+        } else if (message?.photo && message.photo.length) {
+          fileId = message.photo[message.photo.length - 1].file_id
+          isFileUpdate = true
+          fileType = PassActivationFileTypeEnum.PHOTO
+        }
         break
       case !!update.inline_query:
-        payloadData = deunionize(ctx.inlineQuery)?.query ?? ''
+        textPayload = deunionize(ctx.inlineQuery)?.query ?? ''
         isInlineQueryUpdate = true
         break
       default:
         break
     }
-    return [payloadData.trim(), { isTextUpdate, isCallbackQueryUpdate, isInlineQueryUpdate }]
+
+    return {
+      textPayload: textPayload.trim(),
+      fileId,
+      fileType,
+      isTextUpdate,
+      isCallbackQueryUpdate,
+      isInlineQueryUpdate,
+      isFileUpdate,
+    }
   }
 
   static async safeAnswerCbQuery(ctx: BotContext, text?: string, options?: ExtraAnswerCbQuery) {

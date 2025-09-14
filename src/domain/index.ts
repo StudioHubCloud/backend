@@ -18,3 +18,4 @@ export { FeedbackNotificationModule } from './feedback-notifications/feedback-no
 export { StaffMemberPayoutModule } from './staff-member-payout/staff-member-payout.module'
 export { PaymentModule } from './payment/payment.module'
 export { StudioPayoutRuleModule } from './studio-payout-rule/studio-payout-rule.module'
+export { PassActivationRequestModule } from './pass-activation-request/pass-activation-request.module'

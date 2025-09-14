@@ -3,6 +3,7 @@ import { relations } from 'drizzle-orm'
 import { userProfile } from './user-profile.schema'
 import { pass } from './pass.schema'
 import { payment } from './payment.schema'
+import { passActivationRequest } from './pass-activation-request.schema'
 
 export const client = table('client', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -14,5 +15,6 @@ export const client = table('client', {
 export const client_relations = relations(client, ({ one, many }) => ({
   userProfile: one(userProfile, { fields: [client.userProfileId], references: [userProfile.id] }),
   pass: many(pass),
-  payments: many(payment)
+  payments: many(payment),
+  passActivationRequests: many(passActivationRequest),
 }))

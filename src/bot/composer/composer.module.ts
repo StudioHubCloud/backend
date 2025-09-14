@@ -7,6 +7,7 @@ import {
   GroupModule,
   UserProfileModule,
   StaffMemberPayoutModule,
+  PassActivationRequestModule,
 } from '@app/domain'
 import ClientComposers from './client'
 import TrainerComposers from './trainer'
@@ -28,6 +29,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     PassModule,
     UserProfileModule,
     StaffMemberPayoutModule,
+    PassActivationRequestModule
   ],
   providers: [
     ComposerService,

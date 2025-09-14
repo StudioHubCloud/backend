@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { eq } from 'drizzle-orm'
+import { eq, inArray } from 'drizzle-orm'
 import { add, addDays, subDays } from 'date-fns'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { PinoLogger } from 'nestjs-pino'
@@ -13,10 +13,10 @@ import {
   client,
 } from '@app/infrastructure/database'
 import { PassCacheKey, RedisCacheService } from '@app/infrastructure/redis'
-import { DATE_FORMAT, PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
+import { DATE_FORMAT, PassActivationFileTypeEnum, PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { PASS_CONFIG } from '@app/bot/libs'
-import { UserProfileService } from '../user-profile'
+import { PassActivationRequestService } from '../pass-activation-request'
 
 @Injectable()
 export class PassService {
@@ -27,20 +27,51 @@ export class PassService {
     private readonly databaseService: DatabaseService,
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
+    private readonly passActivationRequestService: PassActivationRequestService,
   ) {
     this.studioId = this.configService.get('STUDIO_ID')
   }
 
-  async createNewPass(data: PassInsertModel, tx?: Transaction) {
+  async createNewPass(data: Omit<PassInsertModel, 'studioId'>, tx?: Transaction) {
     const dbProvider = tx || this.databaseService.drizzle
-    const [createdPass] = await dbProvider.insert(pass).values(data).returning()
+    const [createdPass] = await dbProvider
+      .insert(pass)
+      .values({ ...data, studioId: this.studioId })
+      .returning()
     await this.redisCacheService.reset()
     return createdPass
   }
 
+  async createPassWithActivationRequest(
+    data: Omit<PassInsertModel, 'studioId'> & { fileId: string; fileType: PassActivationFileTypeEnum },
+  ) {
+    const { fileId, fileType, clientId, ...passData } = data
+
+    return await this.databaseService.drizzle.transaction(async (tx) => {
+      const pass = await this.createNewPass({ ...passData, clientId }, tx)
+      const ar = await this.passActivationRequestService.createActivationRequest(
+        {
+          passId: pass.id,
+          studioId: this.studioId,
+          clientId,
+          fileId,
+          fileType,
+        },
+        tx,
+      )
+
+      await this.redisCacheService.reset()
+      return [pass, ar] as const
+    })
+  }
+
   async createNewPassForExistingClient(clientId: string, newPassData: PassInsertModel) {
     return await this.databaseService.drizzle.transaction(async (tx) => {
-      const currentPass = await this.findActivePassByClientId(clientId)
+      const currentPass = await this.findActivePassByClientId(clientId, { withRequested: true })
+
+      if (currentPass && currentPass.status === PassStatusEnum.REQUESTED) {
+        throw new BadRequestException('Cannot create a new pass when there is a requested pass')
+      }
 
       if (currentPass) {
         await this.updatePass(
@@ -110,9 +141,17 @@ export class PassService {
     return count
   }
 
-  async findPassByConditions(conditions: Partial<PassSelectModel>) {
+  async findPassByConditions({ status, ...conditions }: Partial<PassSelectModel>, { withRequested = false } = {}) {
+    const statusConditions = [status ?? null, withRequested ? PassStatusEnum.REQUESTED : null].filter((s) => s !== null)
+
+    const whereConditions = [...Object.entries(conditions).map(([key, value]) => eq(pass[key], value))]
+
+    if (statusConditions.length > 0) {
+      whereConditions.push(inArray(pass.status, statusConditions))
+    }
+
     const passFound = await this.databaseService.drizzle.query.pass.findFirst({
-      where: (pass, { and, eq }) => and(...Object.entries(conditions).map(([key, value]) => eq(pass[key], value))),
+      where: (pass, { and }) => and(...whereConditions),
       with: {
         passTemplate: true,
       },
@@ -120,7 +159,7 @@ export class PassService {
     return passFound
   }
 
-  async findActivePassByClientId(clientId?: string, withExpired?: boolean) {
+  async findActivePassByClientId(clientId?: string, { withExpired = false, withRequested = false } = {}) {
     if (!clientId) {
       return null
     }
@@ -130,7 +169,9 @@ export class PassService {
     if (cachedPass) {
       return cachedPass
     }
-    const pass = (await this.findPassByConditions({ clientId, status: PassStatusEnum.ACTIVE, studioId: this.studioId })) ?? null
+    const pass =
+      (await this.findPassByConditions({ clientId, status: PassStatusEnum.ACTIVE, studioId: this.studioId }, { withRequested })) ??
+      null
 
     if (!pass && withExpired) {
       const expiredPass = await this.findLastExpiredPassByClientId(clientId)
@@ -232,7 +273,11 @@ export class PassService {
     return foundPass
   }
 
-  async activatePass(id: string) {
+  async activatePass(
+    id: string,
+    { withStatusChange }: { withStatusChange: boolean } = { withStatusChange: false },
+    tx?: Transaction,
+  ) {
     const passToActivate = await this.getPassById(id)
 
     if (!passToActivate) {
@@ -249,6 +294,61 @@ export class PassService {
       DATE_FORMAT.DATE_MAIN,
     )
 
-    return await this.updatePass(id, { startDate: todayDateString, endDate: endDateString })
+    return await this.updatePass(
+      id,
+      {
+        saleDate: todayDateString,
+        startDate: todayDateString,
+        endDate: endDateString,
+        ...(withStatusChange ? { status: PassStatusEnum.ACTIVE } : {}),
+      },
+      tx,
+    )
+  }
+
+  async acceptPassActivateRequest(passId: string, passActivationRequestId: string) {
+    const passToActivate = await this.getPassById(passId)
+    if (!passToActivate) {
+      throw new BadRequestException(`Pass with id ${passId} not found`)
+    }
+
+    if (passToActivate.status !== PassStatusEnum.REQUESTED) {
+      throw new BadRequestException(`Pass with id ${passId} activation request is already processed`)
+    }
+
+    await this.databaseService.drizzle.transaction(async (tx) => {
+      const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
+      await Promise.all([
+        this.updatePass(passId, { saleDate: todayDateString, status: PassStatusEnum.ACTIVE }, tx),
+        this.passActivationRequestService.deleteActivationRequest(passActivationRequestId, tx),
+      ])
+    })
+
+    await this.redisCacheService.reset()
+    return true
+  }
+
+  async deletePassById(id: string, tx?: Transaction) {
+    const dbProvider = tx || this.databaseService.drizzle
+    const result = await dbProvider.delete(pass).where(eq(pass.id, id)).returning()
+
+    if (result.length) {
+      await this.redisCacheService.reset()
+    }
+
+    return true
+  }
+
+  async rejectPassActivateRequest(passId: string) {
+    const passToReject = await this.getPassById(passId)
+    if (!passToReject) {
+      throw new BadRequestException(`Pass with id ${passId} not found`)
+    }
+
+    if (passToReject.status !== PassStatusEnum.REQUESTED) {
+      throw new BadRequestException(`Pass with id ${passId} activation request is already processed`)
+    }
+
+    return await this.deletePassById(passId)
   }
 }

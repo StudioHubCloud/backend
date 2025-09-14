@@ -103,4 +103,11 @@ export class UserHelper {
       user.staffMember !== null
     )
   }
+
+  static hasPass(ctx: BotContext): [boolean, AuthUserProfile] {
+    const user = this.getUser(ctx)
+    const client = user.client
+    const hasPass = !!client && client.pass.length > 0
+    return [hasPass, user]
+  }
 }

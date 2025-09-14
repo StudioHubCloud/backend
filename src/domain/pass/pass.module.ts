@@ -3,9 +3,10 @@ import { PassService } from './pass.service'
 import { PassController } from './pass.controller'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
+import { PassActivationRequestModule } from '../pass-activation-request'
 
 @Module({
-  imports: [],
+  imports: [PassActivationRequestModule],
   controllers: [PassController],
   providers: [
     PassService,

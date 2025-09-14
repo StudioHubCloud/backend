@@ -13,6 +13,8 @@ export class StageService {
     public readonly initiatePayoutScene: Stage.InitiatePayoutScene,
     public readonly editPassScene: Stage.EditPassScene,
     public readonly editUserProfileScene: Stage.EditUserProfileScene,
+    public readonly passPurchaseScene: Stage.PassPurchaseScene,
+    public readonly passRenewScene: Stage.PassRenewScene,
   ) {
     this.stage = new Scenes.Stage<BotContext>([
       registerScene,
@@ -20,6 +22,8 @@ export class StageService {
       initiatePayoutScene,
       editPassScene,
       editUserProfileScene,
+      passPurchaseScene,
+      passRenewScene,
     ])
   }
 }

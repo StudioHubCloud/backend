@@ -55,9 +55,9 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   private nameHandler = async (ctx: BotContext) => {
     const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
 
-    const [data] = BotHelper.getUpdatePayload(ctx)
+    const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
-    const result = NameHelper.processNameInput(data)
+    const result = NameHelper.processNameInput(textPayload)
     const { firstName, lastName, wasSwapped, confidence } = result
 
     const validation = NameHelper.validateNames(firstName, lastName)
@@ -102,16 +102,16 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   private phoneHandler = async (ctx: BotContext) => {
     const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER)
 
-    const [data] = BotHelper.getUpdatePayload(ctx)
+    const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
-    switch (data) {
+    switch (textPayload) {
       case BUTTON_PATTERNS.BACK:
         return await this.sceneNavigation.handleBack(ctx, prev)
       default:
         break
     }
 
-    const phone = TextHelper.validatePhone(data)
+    const phone = TextHelper.validatePhone(textPayload)
 
     if (!phone) {
       return ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.PROVIDE_PHONE_ERROR)
@@ -125,16 +125,16 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   private dateOfBirthHandler = async (ctx: BotContext) => {
     const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER)
 
-    const [data] = BotHelper.getUpdatePayload(ctx)
+    const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
-    switch (data) {
+    switch (textPayload) {
       case BUTTON_PATTERNS.BACK:
         return await this.sceneNavigation.handleBack(ctx, prev)
       default:
         break
     }
 
-    const date_of_birth = TextHelper.validateDateInput(data)
+    const date_of_birth = TextHelper.validateDateInput(textPayload)
 
     if (!date_of_birth) {
       return ctx.replyWithHTML(MESSAGES_COMMON.DATE_ERROR)
@@ -149,17 +149,17 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   private completeHandler = async (ctx: BotContext) => {
     const { prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER)
 
-    const [incoming_message] = BotHelper.getUpdatePayload(ctx)
+    const { textPayload } = BotHelper.getUpdatePayload(ctx)
     const state = this.registerScene.getState(ctx)
 
-    switch (incoming_message) {
+    switch (textPayload) {
       case BUTTON_PATTERNS.BACK:
         return await this.sceneNavigation.handleBack(ctx, prev, { data: state, role: this.REQUESTED_ROLE })
       default:
         break
     }
 
-    if (incoming_message !== BUTTON_PATTERNS.CONFIRM) {
+    if (textPayload !== BUTTON_PATTERNS.CONFIRM) {
       return
     }
 

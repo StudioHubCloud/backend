@@ -1,0 +1,1 @@
+ALTER TABLE "pass_activation_request" ADD COLUMN "created_at" date DEFAULT now() NOT NULL;

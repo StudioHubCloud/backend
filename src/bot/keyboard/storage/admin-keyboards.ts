@@ -39,6 +39,25 @@ export class AdminKeyboards {
     ])
   }
 
+  static verifyPassPurchaseActions(userProfileId: string): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: BUTTON_PATTERNS.CONFIRM,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.STAFF.USER.PASS_PURCHASE_CONFIRM,
+            userProfileId,
+          ),
+        },
+        {
+          text: BUTTON_PATTERNS.REJECT,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.PASS_PURCHASE_REJECT, userProfileId),
+        },
+      ],
+      [COMMON_BUTTONS.CLOSE],
+    ])
+  }
+
   static groupManageMenu(groupId: number, staffUserId?: string): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       [

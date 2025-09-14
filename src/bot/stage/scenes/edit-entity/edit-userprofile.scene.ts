@@ -115,7 +115,7 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
     try {
       const { isInitialRun, clientUserProfile } = this.scene.getState(ctx, ['isInitialRun', 'clientUserProfile'])
 
-      const [payload] = BotHelper.getUpdatePayload(ctx)
+      const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
       if (isInitialRun) {
         // First time entering this handler - show current value and prompt
@@ -127,10 +127,10 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
       }
 
       await this.userProfileService.updateUserProfile(clientUserProfile.id, {
-        fullName: payload,
+        fullName: textPayload,
       })
 
-      this.scene.setState(ctx, { clientUserProfile: { ...clientUserProfile, fullName: payload } })
+      this.scene.setState(ctx, { clientUserProfile: { ...clientUserProfile, fullName: textPayload } })
 
       return this.confirmationHandler(ctx)
     } catch (error) {
@@ -143,7 +143,7 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
     try {
       const { isInitialRun, clientUserProfile } = this.scene.getState(ctx, ['isInitialRun', 'clientUserProfile'])
 
-      const [payload] = BotHelper.getUpdatePayload(ctx)
+      const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
       if (isInitialRun) {
         // First time entering this handler - show current value and prompt
@@ -156,7 +156,7 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
         return this.scene.setState(ctx, { isInitialRun: false, promptMessageId: result.message_id })
       }
 
-      const phone = TextHelper.validatePhone(payload)
+      const phone = TextHelper.validatePhone(textPayload)
 
       if (!phone) {
         return ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.PROVIDE_PHONE_ERROR)
@@ -177,7 +177,7 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
     try {
       const { clientUserProfile, isInitialRun } = this.scene.getState(ctx, ['clientUserProfile', 'isInitialRun'])
 
-      const [payload] = BotHelper.getUpdatePayload(ctx)
+      const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
       if (isInitialRun) {
         const result = await ctx.replyWithHTML(
@@ -189,7 +189,7 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
         return this.scene.setState(ctx, { isInitialRun: false, promptMessageId: result.message_id })
       }
 
-      const date_of_birth = TextHelper.validateDateInput(payload)
+      const date_of_birth = TextHelper.validateDateInput(textPayload)
 
       if (!date_of_birth) {
         return await ctx.replyWithHTML('❌ Невірний формат дати. Використовуйте ДД ММ РРРР')

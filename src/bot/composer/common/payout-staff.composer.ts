@@ -70,7 +70,7 @@ export class PayoutStaffComposer {
     const keyboard = isAdmin
       ? AdminKeyboards.staffmemberPayoutSummaryMenu(userId, isEmpty)
       : TrainerKeyboards.staffmemberPayoutSummaryMenu(userId, isEmpty)
-    const [_, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
+    const { isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
 
     if (isCallbackQueryUpdate) {
       BotHelper.safeAnswerCbQuery(ctx)

@@ -3,10 +3,11 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { UserProfileService } from '@app/domain/user-profile'
 import { UserProfileRoleEnum } from '@app/libs'
-import { KeyboardHelper, UserHelper } from '@app/bot/helpers'
+import { KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
+import { CALLBACK_PREFIX } from '@app/bot/libs'
 
 @Injectable()
 export class VerificationInlineMenu {
@@ -30,7 +31,15 @@ export class VerificationInlineMenu {
 
     userProfiles.forEach((user) => {
       if (user.role === UserProfileRoleEnum.CLIENT || user.role === UserProfileRoleEnum.TRAINER) {
-        result[user.role].push([{ text: `${UserHelper.getDisplayName(user)}`, callback_data: `verify:${user.id}` }])
+        result[user.role].push([
+          {
+            text: `${UserHelper.getDisplayName(user)}`,
+            callback_data: RegexHelper.createButtonActionCallbackData(
+              CALLBACK_PREFIX.STAFF.USER.REQUEST_CLIENT_VERIFICATION,
+              user.id,
+            ),
+          },
+        ])
       }
     })
 
@@ -53,9 +62,7 @@ export class VerificationInlineMenu {
   }
 
   private initMenuActions() {
-    const regexp = new RegExp(`^verify:(.*)$`)
-
-    this.composer.action(regexp, async (ctx) => {
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.REQUEST_CLIENT_VERIFICATION), async (ctx) => {
       const userId = ctx.match[1]
       const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id, fullName } =
         await this.userProfileService.getUserProfileById(userId)

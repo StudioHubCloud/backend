@@ -13,6 +13,7 @@ export const BUTTON_PATTERNS = {
   CLOSE: '✖️ Закрити',
   ARCHIVE: '📦 Архівувати',
   UNARCHIVE: '📤 Розархівувати',
+  DELETE: '🗑️ Видалити',
   START: '🏠 Головне меню',
   VERIFY_WITHOUT_PASS: '🟡 Верифікувати без абонементу',
   RULES: '‼️ПРАВИЛА ТА УМОВИ‼️',
@@ -40,7 +41,8 @@ export const BUTTON_PATTERNS = {
   PASS_EDIT_LENGTH: '✏️ Редагувати кількість тренувань', // це кількість доступних тренувань
   PAYMENT: '💳 Реквізити для оплати',
   REGISTER_FINISH: '✅ Завершити реєстрацію',
-  REQUESTS: '🔸 Запити на верифікацію',
+  REQUESTS: '👤 Запити на верифікацію',
+  PASS_REQUESTS: '📜 Запити на активацію',
   BACK_TO_MAIN_ADMIN_MENU: '🔙 Назад до меню адміністратора',
   BACK_TO_MAIN_TRAINER_MENU: '🔙 Назад до меню тренера',
   BACK_TO_TRAINING_LIST: '⬅️ Назад до списку тренувань',

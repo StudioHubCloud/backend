@@ -1,0 +1,1 @@
+ALTER TYPE "public"."pass_status_enum" ADD VALUE 'requested' BEFORE 'expired';

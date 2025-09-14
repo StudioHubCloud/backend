@@ -99,8 +99,8 @@ export class DateTimeProvider {
     return startOfDate.toISOString()
   }
 
-  getTodayDateStringInTz() {
-    return this.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_INPUT)
+  getTodayDateStringInTz(format: string = DATE_FORMAT.DATE_INPUT): string {
+    return this.formatDateStringInTz(new Date().toISOString(), format)
   }
 }
 

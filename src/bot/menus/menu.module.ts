@@ -1,5 +1,12 @@
-import { Module, Scope } from '@nestjs/common'
-import { GroupModule, PassTemplateModule, TrainingModule, UserProfileModule } from '@app/domain'
+import { Module } from '@nestjs/common'
+import {
+  GroupModule,
+  PassActivationRequestModule,
+  PassModule,
+  PassTemplateModule,
+  TrainingModule,
+  UserProfileModule,
+} from '@app/domain'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import {
@@ -13,14 +20,16 @@ import { TrainingSelectStaffPaginatedMenu } from './paginated-menus/training-sel
 import { ClientSelectPaginatedMenu, CLIENT_SIGNIN_MENU, CLIENT_SIGNOUT_MENU } from './paginated-menus/client-select.paginated-menu'
 import { StaffSelectPaginatedMenu } from './paginated-menus/staff-select.paginated-menu'
 import { ActiveSchedulesPaginatedMenu } from './paginated-menus/active-schedules.paginated-menu'
+import { PassActivationRequestsInlineMenu } from './inline-menus/pass-activation-requests.inline-menu'
 
 @Module({
-  imports: [GroupModule, TrainingModule, UserProfileModule, PassTemplateModule],
+  imports: [GroupModule, TrainingModule, UserProfileModule, PassTemplateModule, PassModule, PassActivationRequestModule],
   providers: [
     GroupSelectPaginatedMenu,
     TrainingSelectPaginatedMenu,
     TrainingSelectStaffPaginatedMenu,
     VerificationInlineMenu,
+    PassActivationRequestsInlineMenu,
     ClientSelectPaginatedMenu,
     StaffSelectPaginatedMenu,
     ActiveSchedulesPaginatedMenu,
@@ -42,6 +51,7 @@ import { ActiveSchedulesPaginatedMenu } from './paginated-menus/active-schedules
     TrainingSelectStaffPaginatedMenu,
     StaffSelectPaginatedMenu,
     ActiveSchedulesPaginatedMenu,
+    PassActivationRequestsInlineMenu,
   ],
 })
 export class MenuModule {}

@@ -18,3 +18,4 @@ export const StudioPriceTypePgEnum = pgEnum('studio_price_type_enum', enumToPgEn
 export const PaymentStatusPgEnum = pgEnum('payment_status_enum', enumToPgEnum(ENUMS.PaymentStatusEnum))
 export const PaymentMethodPgEnum = pgEnum('payment_method_enum', enumToPgEnum(ENUMS.PaymentMethodEnum))
 export const StudioPayoutRuleTypePgEnum = pgEnum('studio_payout_rule_type_enum', enumToPgEnum(ENUMS.StudioPayoutRuleTypeEnum))
+export const PassActivationFileTypePgEnum = pgEnum('pass_activation_file_type_enum', enumToPgEnum(ENUMS.PassActivationFileTypeEnum))

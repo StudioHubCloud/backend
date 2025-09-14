@@ -118,7 +118,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
     try {
       const { originalPass, isInitialRun } = this.scene.getState(ctx, ['originalPass', 'isInitialRun'])
 
-      const [payload] = BotHelper.getUpdatePayload(ctx)
+      const {textPayload} = BotHelper.getUpdatePayload(ctx)
 
       if (isInitialRun) {
         // First time entering this handler - show current value and prompt
@@ -131,7 +131,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
         return this.scene.setState(ctx, { isInitialRun: false, promptMessageId: result.message_id })
       }
 
-      const newLength = parseInt(payload || '', 10)
+      const newLength = parseInt(textPayload || '', 10)
 
       if (isNaN(newLength) || newLength < 1) {
         return await ctx.replyWithHTML('❌ Введіть корректну кількість тренувань\n(не менше 1)')
@@ -162,7 +162,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
     try {
       const { originalPass, isInitialRun } = this.scene.getState(ctx, ['originalPass', 'isInitialRun'])
 
-      const [payload] = BotHelper.getUpdatePayload(ctx)
+      const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
       if (isInitialRun) {
         const currentValue = originalPass?.[field]
@@ -177,7 +177,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
         return this.scene.setState(ctx, { isInitialRun: false, promptMessageId: result.message_id })
       }
 
-      const date_of_birth = TextHelper.validateDateInput(payload)
+      const date_of_birth = TextHelper.validateDateInput(textPayload)
 
       if (!date_of_birth) {
         return await ctx.replyWithHTML('❌ Невірний формат дати. Використовуйте ДД ММ РРРР')

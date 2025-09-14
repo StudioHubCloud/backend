@@ -1,7 +1,14 @@
 import { Module } from '@nestjs/common'
 import { StageService } from './stage.service'
 import * as Stage from './scenes'
-import { GroupModule, PassModule, PassTemplateModule, StaffMemberPayoutModule, TrainingSignupModule, UserProfileModule } from '@app/domain'
+import {
+  GroupModule,
+  PassModule,
+  PassTemplateModule,
+  StaffMemberPayoutModule,
+  TrainingSignupModule,
+  UserProfileModule,
+} from '@app/domain'
 import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 
@@ -14,6 +21,8 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     Stage.InitiatePayoutScene,
     Stage.EditPassScene,
     Stage.EditUserProfileScene,
+    Stage.PassPurchaseScene,
+    Stage.PassRenewScene,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,

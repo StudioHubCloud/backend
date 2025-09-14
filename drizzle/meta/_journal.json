@@ -211,6 +211,41 @@
       "when": 1757621046826,
       "tag": "0056_change payment table structure",
       "breakpoints": true
+    },
+    {
+      "idx": 57,
+      "version": "7",
+      "when": 1757812805874,
+      "tag": "0057_add new pass status",
+      "breakpoints": true
+    },
+    {
+      "idx": 58,
+      "version": "7",
+      "when": 1757856256203,
+      "tag": "0058_add pass activation request table",
+      "breakpoints": true
+    },
+    {
+      "idx": 59,
+      "version": "7",
+      "when": 1757857044962,
+      "tag": "0059_add created now to pass activate",
+      "breakpoints": true
+    },
+    {
+      "idx": 60,
+      "version": "7",
+      "when": 1757857992278,
+      "tag": "0060_add new column to pass activation request",
+      "breakpoints": true
+    },
+    {
+      "idx": 61,
+      "version": "7",
+      "when": 1757859169561,
+      "tag": "0061_fix fk on pass activate table",
+      "breakpoints": true
     }
   ]
 }

@@ -162,7 +162,6 @@ export class UserProfileService {
             saleDate,
             passTemplateId: passTemplate.id,
             status: PassStatusEnum.ACTIVE,
-            studioId: this.studioId,
             availableSlots: passTemplate.length,
           },
           tx,

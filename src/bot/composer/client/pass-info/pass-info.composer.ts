@@ -27,10 +27,10 @@ export class PassInfoComposer {
 
   private passInfoHandler = async (ctx: BotContext) => {
     const { client } = UserHelper.getUser(ctx)
-    const pass = await this.passService.findActivePassByClientId(client?.id, true)
+    const pass = await this.passService.findActivePassByClientId(client?.id, { withExpired: true, withRequested: true })
 
     if (!pass) {
-      return ctx.reply('У вас немає жодного абонементу')
+      return ctx.reply('📋 В тебе немає жодного абонементу')
     }
 
     const message = PassHelper.getPassInfoMessage(pass, this.dateTimeProvider)

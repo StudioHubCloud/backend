@@ -151,7 +151,7 @@ export class ClientManageComposer {
   }
 
   private renderPassManageMenu = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
-    const clientPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, true)
+    const clientPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
 
     if (!clientPass) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ У клієнта немає активних абонементів.', { show_alert: true })
@@ -172,7 +172,7 @@ export class ClientManageComposer {
     clientUserProfile: UserProfileWithClient,
     action: TEditPassSceneAction,
   ) => {
-    const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, true)
+    const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
 
     if (!originalPass) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ У клієнта немає активних абонементів.', { show_alert: true })
@@ -245,7 +245,7 @@ export class ClientManageComposer {
   }
 
   private handleActivatePassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
-    const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, true)
+    const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
 
     if (!originalPass) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ У клієнта немає активних абонементів.', { show_alert: true })

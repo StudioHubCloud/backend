@@ -25,7 +25,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     this.sessionParams = sessionParams
     this.renderOptions = renderOptions
 
-    const [_, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
+    const { isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
 
     const response = await this.loadOptions()
     if (typeof response === 'object' && 'message' in response) {

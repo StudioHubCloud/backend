@@ -1,0 +1,2 @@
+CREATE TYPE "public"."pass_activation_file_type_enum" AS ENUM('photo', 'document');--> statement-breakpoint
+ALTER TABLE "pass_activation_request" ADD COLUMN "fileType" "pass_activation_file_type_enum" NOT NULL;

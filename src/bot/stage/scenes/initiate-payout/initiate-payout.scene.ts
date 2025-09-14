@@ -67,9 +67,9 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
 
   private payoutDateHandler = async (ctx: BotContext) => {
     try {
-      const [payload] = BotHelper.getUpdatePayload(ctx)
+      const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
-      const payoutDate = TextHelper.validateDateInput(payload)
+      const payoutDate = TextHelper.validateDateInput(textPayload)
 
       if (!payoutDate) {
         return ctx.replyWithHTML(MESSAGES_COMMON.DATE_ERROR)
@@ -101,9 +101,9 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
 
   private confirmPayoutHandler = async (ctx: BotContext) => {
     try {
-      const [payload] = BotHelper.getUpdatePayload(ctx)
+      const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
-      switch (payload) {
+      switch (textPayload) {
         case BUTTON_PATTERNS.BACK:
           const todayDateString = this.getTodayDateString()
           await ctx.replyWithHTML(
@@ -116,7 +116,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
           break
       }
 
-      if (payload !== BUTTON_PATTERNS.CONFIRM) {
+      if (textPayload !== BUTTON_PATTERNS.CONFIRM) {
         return
       }
 

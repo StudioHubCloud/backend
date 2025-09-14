@@ -26,6 +26,7 @@ export { feedbackNotification, feedback_notification_relations } from './feedbac
 export { payment, payment_relations } from './payment.schema'
 export { studioPayoutRule, studio_payout_rule_relations } from './studio-payout-rule.schema'
 export { staffMemberPayout, staff_member_payout_relations } from './staff-member-payout.schema'
+export { passActivationRequest, pass_activation_request_relations } from './pass-activation-request.schema'
 
 export {
   PassStatusPgEnum,
@@ -41,4 +42,5 @@ export {
   PaymentMethodPgEnum,
   PaymentStatusPgEnum,
   StudioPayoutRuleTypePgEnum,
+  PassActivationFileTypePgEnum
 } from '../database.enums'

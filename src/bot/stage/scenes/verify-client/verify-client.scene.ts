@@ -8,7 +8,7 @@ import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { AdminKeyboards, ClientKeyboards } from '@app/bot/keyboard/storage'
 import { PassTemplateService } from '@app/domain/pass-template/pass-template.service'
-import { CommonSceneKeyboards, VerifyClientSceneKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
+import { CommonSceneKeyboards, PassRelatedKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
 import { DATE_FORMAT, PassTemplateTypeEnum } from '@app/libs'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { IVerifyClientSceneState, VerifyClientSceneHelper } from './verify-client.scene-helper'
@@ -41,7 +41,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
       this.verifyClientScene.setState(ctx, { saleDate: todayDateString })
 
-      await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, VerifyClientSceneKeyboards.passType())
+      await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, PassRelatedKeyboards.passType())
       return ctx.wizard.next()
     } catch (error) {
       await this.handleError(ctx, error, 'Failed to initialize verification scene')
@@ -50,12 +50,12 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
   private passTypeAndTemplateHandler = async (ctx: BotContext) => {
     try {
-      const [data, { isTextUpdate }] = BotHelper.getUpdatePayload(ctx)
+      const { textPayload, isTextUpdate } = BotHelper.getUpdatePayload(ctx)
 
       if (isTextUpdate) {
-        await this.handlePassTypeSelection(ctx, data)
+        await this.handlePassTypeSelection(ctx, textPayload)
       } else {
-        await this.handlePassTemplateAction(ctx, data)
+        await this.handlePassTemplateAction(ctx, textPayload)
       }
     } catch (error) {
       await this.handleError(ctx, error, 'Failed to process pass template selection')
@@ -64,22 +64,22 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
   private completeHandler = async (ctx: BotContext) => {
     try {
-      const [data, { isCallbackQueryUpdate }] = BotHelper.getUpdatePayload(ctx)
+      const { textPayload, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
 
       if (isCallbackQueryUpdate) {
         return BotHelper.safeAnswerCbQuery(ctx)
       }
 
-      switch (data) {
+      switch (textPayload) {
         case BUTTON_PATTERNS.BACK:
-          await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, VerifyClientSceneKeyboards.passType())
+          await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, PassRelatedKeyboards.passType())
           return ctx.wizard.back()
 
         default:
           break
       }
 
-      if (data !== BUTTON_PATTERNS.CONFIRM) {
+      if (textPayload !== BUTTON_PATTERNS.CONFIRM) {
         return
       }
 
@@ -127,19 +127,18 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
     const filteredTemplates = result.filter((template) => template.type === passType)
 
     if (!filteredTemplates.length) {
-      await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.NO_PASS_TEMPLATES)
-      return ctx.scene.leave()
+     return await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.NO_PASS_TEMPLATES)
     }
 
     await ctx.replyWithHTML(
       MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS,
-      VerifyClientSceneKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates),
+      PassRelatedKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates),
     )
   }
 
   private async handlePassTemplateAction(ctx: BotContext, data: string) {
-    const previewTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_PREVIEW, data)
-    const selectTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.VERIFY_CLIENT.PASS_TEMPLATE_SELECT, data)
+    const previewTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.TEMPLATE_DETAILS, data)
+    const selectTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.TEMPLATE_SELECT, data)
 
     if (previewTemplateActionMatch) {
       BotHelper.safeAnswerCbQuery(ctx)
@@ -147,7 +146,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       const passTemplateData = await this.passTemplateService.getById(id)
       return ctx.replyWithHTML(
         MessageHelper.constructPassSelectMessage(passTemplateData),
-        VerifyClientSceneKeyboards.passTemplateSelectInlineKeyboard(id),
+        PassRelatedKeyboards.passTemplateSelectInlineKeyboard(id),
       )
     }
 
@@ -171,7 +170,11 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
                 ? `від ${minAge} років`
                 : `до ${maxAge} років`
 
-          BotHelper.safeAnswerCbQuery(ctx, `Клієнт не відповідає віковим обмеженням для цього абонементу.\n\nВік: ${age} років\nВікові обмеження: ${ageRangeText}`, { show_alert: true })
+          BotHelper.safeAnswerCbQuery(
+            ctx,
+            `Клієнт не відповідає віковим обмеженням для цього абонементу.\n\nВік: ${age} років\nВікові обмеження: ${ageRangeText}`,
+            { show_alert: true },
+          )
           return ctx.deleteMessage()
         }
       }

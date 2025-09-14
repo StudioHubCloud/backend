@@ -7,6 +7,7 @@ import { PassStatusPgEnum } from '../database.enums'
 import { studio } from './studio.schema'
 import { passTemplate } from './pass-template.schema'
 import { payment } from './payment.schema'
+import { passActivationRequest } from './pass-activation-request.schema'
 
 export const pass = table(
   'pass',
@@ -44,6 +45,7 @@ export const pass = table(
 
 export const pass_relations = relations(pass, ({ many, one }) => ({
   trainingSignups: many(trainingSignup),
+  passActivationRequests: many(passActivationRequest),
   group: one(group, { fields: [pass.groupId], references: [group.id] }),
   studio: one(studio, { fields: [pass.studioId], references: [studio.id] }),
   client: one(client, { fields: [pass.clientId], references: [client.id] }),

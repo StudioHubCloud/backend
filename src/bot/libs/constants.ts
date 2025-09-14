@@ -18,6 +18,8 @@ export const SCENES = {
   EDIT_GROUP: 'edit_group',
   EDIT_PASS: 'edit_pass',
   EDIT_USER_PROFILE: 'edit_profile_name',
+  PASS_PURCHASE: 'pass_purchase',
+  PASS_RENEW: 'pass_renew',
 } as const
 
 export const CALLBACK_DATA = {
@@ -56,8 +58,14 @@ export const CALLBACK_PREFIX = {
       BACK_TO_CLOSEST_TRAINING_LIST: 'tr.cl.s.b.st',
     },
     USER: {
+      REQUEST_CLIENT_VERIFICATION: 'u.rc.st',
+      ACTIVATE_PASS_REQUESTS: 'u.rp.st',
       VERIFY_YES: 'u.vy.st',
       VERIFY_WITHOUT_PASS: 'u.vw.st',
+      PASS_PURCHASE_CONFIRM: 'u.pp.c.st',
+      PASS_PURCHASE_REJECT: 'u.pp.r.st',
+      PASS_RENEW_CONFIRM: 'u.pr.c.st',
+      PASS_RENEW_REJECT: 'u.pr.r.st',
       VERIFY_NO: 'u.vn.st',
       BLOCK: 'u.b.st',
     },
@@ -111,13 +119,21 @@ export const CALLBACK_PREFIX = {
     },
   },
   SCENES: {
-    VERIFY_CLIENT: {
-      PASS_TEMPLATE_PREVIEW: 'sc.vercl.pt.prvw',
-      PASS_TEMPLATE_SELECT: 'c.vercl.pt.sel',
-    },
     VERIFY_TRAINER: {
       GROUP_SELECT: 'sc.vertr.grp.sel',
     },
+    PASS: {
+      TYPE_SELECT: 'sc.pass.tp.sel',
+      BACK_TO_TYPE_SELECT: 'sc.pass.tp.b.sel',
+      TEMPLATE_DETAILS: 'sc.pass.tp.prvw',
+      TEMPLATE_SELECT: 'sc.pass.tpl.sel',
+      BACK_TO_LIST: 'sc.pass.tp.b.lst',
+    },
+    FILE: {
+      BACK: 'sc.file.b',
+      CONFIRM: 'sc.file.c',
+      RESET: 'sc.file.d',
+    }
   },
   COMMON: {
     AGREE_TO_RULES: 'cmn.agree.to.rules',

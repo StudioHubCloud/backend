@@ -1,5 +1,6 @@
 export enum PassStatusEnum {
   ACTIVE = 'active',
+  REQUESTED = 'requested',
   EXPIRED = 'expired',
 }
 
@@ -59,7 +60,7 @@ export enum StudioPriceTypeEnum {
   ONE_TIME_GROUP = 'one_time_group',
   ONE_TIME_INDIVIDUAL = 'one_time_individual',
   DUO = 'duo',
-  TRIO= 'trio',
+  TRIO = 'trio',
 }
 
 export enum PaymentStatusEnum {
@@ -81,4 +82,9 @@ export enum StudioPayoutRuleTypeEnum {
   FIXED = 'fixed',
   PERCENTAGE = 'percentage',
   PER_SIGNUP = 'per_signup',
+}
+
+export enum PassActivationFileTypeEnum {
+  PHOTO = 'photo',
+  DOCUMENT = 'document',
 }

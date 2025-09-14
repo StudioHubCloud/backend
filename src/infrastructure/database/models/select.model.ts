@@ -24,3 +24,4 @@ export type PassTemplateAgeRestrictionExceptionSelectModel = InferSelectModel<ty
 export type PaymentSelectModel = InferSelectModel<typeof schemas.payment>
 export type StudioPayoutRuleSelectModel = InferSelectModel<typeof schemas.studioPayoutRule>
 export type FeedbackNotificationSelectModel = InferSelectModel<typeof schemas.feedbackNotification>
+export type PassActivationRequestSelectModel = InferSelectModel<typeof schemas.passActivationRequest>

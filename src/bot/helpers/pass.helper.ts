@@ -24,6 +24,7 @@ export class PassHelper {
     const STATUS_MAP: Record<PassStatusEnum, { label: string; icon: string }> = {
       [PassStatusEnum.ACTIVE]: { icon: '✅', label: 'Активний' },
       [PassStatusEnum.EXPIRED]: { icon: '❌', label: 'Недійсний' },
+      [PassStatusEnum.REQUESTED]: { icon: '🟡', label: 'Очікує підтвердження' },
     }
     return STATUS_MAP[status] || { icon: '❓', label: 'Невідомий статус' }
   }
@@ -41,7 +42,7 @@ export class PassHelper {
     dateTimeProvider: DateTimeProvider,
     fullName: string = '',
   ): string {
-    const isPassInactive = !pass.endDate
+    const isPassInactive = pass.status !== PassStatusEnum.REQUESTED && !pass.endDate
     const activationDate = addDays(pass.saleDate, PASS_CONFIG.ACTIVATION_GRACE_PERIOD).toISOString()
     const checkDateString = dateTimeProvider.formatDateStringInTz(activationDate, 'd MMMM')
     const headerText = fullName ? `🎫 Абонемент клієнта ${TextHelper.bold(fullName)}:` : '🎫 Деталі абонементу:'
@@ -50,7 +51,7 @@ export class PassHelper {
     const text = `${headerText}\n
 ${icon} ${TextHelper.bold('Статус:')} ${label}
 📌 ${TextHelper.bold('Доступно тренувань:')} ${pass.availableSlots}/${pass.lengthOverride ?? pass.passTemplate.length}
-📅 ${TextHelper.bold(isPassInactive ? 'Автоматично активується:' : 'Дійсний до:')} ${isPassInactive ? checkDateString : pass.endDate}`
+${TextHelper.bold(isPassInactive ? '📅 Автоматично активується:' : pass.endDate ? '📅 Дійсний до:' : '')} ${isPassInactive ? checkDateString : (pass.endDate ?? '')}`
 
     return text
   }
@@ -67,7 +68,7 @@ ${icon} ${TextHelper.bold('Статус:')} ${label}
     },
   ) {
     const { pass, fullName, clientUserId, shouldEdit = true } = data
-    
+
     const message = PassHelper.getPassInfoMessage(pass, dateTimeProvider, fullName)
     const isPassActive = PassHelper.isPassActivated(pass)
     if (!shouldEdit) {

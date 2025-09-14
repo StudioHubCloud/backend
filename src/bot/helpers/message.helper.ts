@@ -53,6 +53,12 @@ export class MessageHelper {
       : `${modeText}${mainContent}`
   }
 
+  static getClientPassPurchaseRequestMessage(userProfile: UserProfileSelectModel, passTemplate: PassTemplateSelectModel) {
+    const fullName = UserHelper.getDisplayName(userProfile)
+    const price = PassHelper.toDisplayPrice(passTemplate.price)
+    return `Запит на <b><i>Активацію абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}`
+  }
+
   static constructPassSelectMessage(
     data: PassTemplateSelectModel & { passTemplateAgeRestriction: PassTemplateAgeRestrictionSelectModel | null },
   ) {
@@ -346,7 +352,7 @@ ${trainingLines}`
     return (
       `🎉 Вітаємо, ${firstName}! 🎉\n` +
       `Твій клієнтський профіль активовано! 💫\n\n` +
-      `Щоб розпочати тренування в різних групах та напрямках, придбай абонемент. 💃\n\n` +
+      `Щоб розпочати тренування \- придбай абонемент. 💃\n\n` +
       `Тисни ${BUTTON_PATTERNS.CLIENT_PASS_BUY} і вперед створювати свою найкращу версію разом з нами! 🌸`
     )
   }
