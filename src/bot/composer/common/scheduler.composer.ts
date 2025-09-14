@@ -75,6 +75,13 @@ export class SchedulerComposer {
 
   private handleGroupSelect = async (ctx: BotContext, groupId: string) => {
     const { id, client, role } = UserHelper.getUser(ctx)
+
+    const currentActivePass = client?.pass?.find((p) => p.status === PassStatusEnum.ACTIVE)
+
+    if (!client || !currentActivePass) {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_CLIENT.NO_ACTIVE_PASS, { show_alert: true })
+    }
+
     const group = await this.groupService.getGroupById(+groupId)
     const backButtonCallbackData = CALLBACK_PREFIX.CLIENT.GROUP.BACK_TO_SELECT
     return this.trainingSelectMenu.initMenu(
@@ -149,7 +156,7 @@ export class SchedulerComposer {
 
     const activeSignups = await this.trainingSignupService.getClientSignups(id)
 
-    if (!activeSignups?.length  && renderOptions?.shouldEdit) {
+    if (!activeSignups?.length && renderOptions?.shouldEdit) {
       return ctx.editMessageText(MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS)
     }
 
