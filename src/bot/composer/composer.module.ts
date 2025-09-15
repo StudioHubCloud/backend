@@ -14,6 +14,7 @@ import TrainerComposers from './trainer'
 import AdminComposers from './admin'
 import GuestComposers from './guest'
 import CommonComposers from './common'
+import MaintainerComposers from './maintainer'
 import { ComposerService } from './composer.service'
 import { MenuModule } from '@app/bot/menus/menu.module'
 import { APP } from '@app/libs'
@@ -29,7 +30,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     PassModule,
     UserProfileModule,
     StaffMemberPayoutModule,
-    PassActivationRequestModule
+    PassActivationRequestModule,
   ],
   providers: [
     ComposerService,
@@ -42,6 +43,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     ...AdminComposers,
     ...TrainerComposers,
     ...CommonComposers,
+    ...MaintainerComposers,
   ],
   exports: [ComposerService],
 })

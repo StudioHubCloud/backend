@@ -5,6 +5,7 @@ import { GuestRootComposer } from './guest/guest-root.composer'
 import { ClientRootComposer } from './client/client-root.composer'
 import { AdminRootComposer } from './admin/admin-root.composer'
 import { TrainerRootComposer } from './trainer/trainer-root.composer'
+import { MaintainerRootComposer } from './maintainer/maintainer-root.composer'
 import { UserProfileRoleEnum } from '@app/libs'
 import { TNextFunction } from '@app/bot/libs'
 import { PinoLogger } from 'nestjs-pino'
@@ -21,6 +22,7 @@ export class ComposerService {
     private readonly clientRootComposer: ClientRootComposer,
     private readonly adminRootComposer: AdminRootComposer,
     private readonly trainerRootComposer: TrainerRootComposer,
+    private readonly maintainerRootComposer: MaintainerRootComposer,
     private readonly guardComposer: GuardComposer,
     private readonly logger: PinoLogger,
   ) {
@@ -33,7 +35,7 @@ export class ComposerService {
       client: this.clientRootComposer.middleware(),
       trainer: this.trainerRootComposer.middleware(),
       admin: this.adminRootComposer.middleware(),
-      maintainer: this.adminRootComposer.middleware(),
+      maintainer: this.maintainerRootComposer.middleware(),
     }
   }
 
@@ -44,7 +46,6 @@ export class ComposerService {
     }
 
     const role = UserHelper.getUserRole(ctx)
-
     const rootComposerMiddleware = this.roleComposerMap[role]
 
     if (rootComposerMiddleware) {

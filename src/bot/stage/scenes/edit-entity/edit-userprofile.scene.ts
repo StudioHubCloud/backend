@@ -8,12 +8,12 @@ import {
   TEditUserProfileSceneAction,
   UserProfileWithClient,
 } from '@app/bot/libs'
-import { BotHelper, SceneHelper, TextHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, SceneHelper, TextHelper, UserHelper } from '@app/bot/helpers'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
-import { AdminKeyboards, CommonSceneKeyboards } from '@app/bot/keyboard/storage'
+import { CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { DATE_FORMAT } from '@app/libs/constants/global'
 import { UserProfileService } from '@app/domain/user-profile'
 import { ClientHelper } from '@app/bot/helpers/client.helper'
@@ -72,7 +72,10 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
       const { action, clientUserProfile } = this.scene.getState(ctx)
 
       if (!action || !clientUserProfile) {
-        ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.NO_INITIAL_DATA, AdminKeyboards.mainMenu())
+        const { role } = UserHelper.getUser(ctx)
+        const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
+
+        ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.NO_INITIAL_DATA, keyboard)
         return ctx.scene.leave()
       }
       return await next()
@@ -219,7 +222,11 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
 
       const { clientUserProfile, promptMessageId, action } = this.scene.getState(ctx)
       ctx.deleteMessage(promptMessageId).catch(() => {})
-      await ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, AdminKeyboards.mainMenu())
+
+      const { role } = UserHelper.getUser(ctx)
+      const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
+
+      await ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, keyboard)
       await ClientHelper.renderClientManageMenu(ctx, clientUserProfile, false)
       return ctx.scene.leave()
     } catch (error) {

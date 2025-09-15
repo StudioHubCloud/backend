@@ -2,11 +2,11 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
-import { SceneHelper, BotHelper, RegexHelper } from '@app/bot/helpers'
+import { SceneHelper, BotHelper, RegexHelper, UserHelper, KeyboardHelper } from '@app/bot/helpers'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { AdminKeyboards, ClientKeyboards } from '@app/bot/keyboard/storage'
+import { ClientKeyboards } from '@app/bot/keyboard/storage'
 import { PassTemplateService } from '@app/domain/pass-template/pass-template.service'
 import { CommonSceneKeyboards, PassRelatedKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
 import { DATE_FORMAT, PassTemplateTypeEnum } from '@app/libs'
@@ -31,7 +31,9 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
     )
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
-      await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.EXIT, AdminKeyboards.mainMenu())
+      const { role } = UserHelper.getUser(ctx)
+      const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
+      await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.EXIT, keyboard)
       return ctx.scene.leave()
     })
   }
@@ -91,6 +93,9 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
         saleDate,
       })
 
+      const { role } = UserHelper.getUser(ctx)
+      const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
+
       await Promise.all([
         ctx.telegram.sendMessage(
           userProfile.telegramId,
@@ -100,7 +105,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
             ...ClientKeyboards.mainMenu(),
           },
         ),
-        ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.COMPLETE, AdminKeyboards.mainMenu()),
+        ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.COMPLETE, keyboard),
       ])
 
       return ctx.scene.leave()
@@ -127,7 +132,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
     const filteredTemplates = result.filter((template) => template.type === passType)
 
     if (!filteredTemplates.length) {
-     return await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.NO_PASS_TEMPLATES)
+      return await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.NO_PASS_TEMPLATES)
     }
 
     await ctx.replyWithHTML(

@@ -1,6 +1,7 @@
 import { BotContext } from '../bot.context'
-import { AdminKeyboards } from '../keyboard/storage'
 import { MESSAGES_SCENE } from '../static/messages'
+import { KeyboardHelper } from './keyboard.helper'
+import { UserHelper } from './user.helper'
 
 export class SceneHelper<T extends Record<string, any>> {
   constructor() {}
@@ -39,16 +40,20 @@ export class SceneHelper<T extends Record<string, any>> {
 
   async handleAdminSceneError(ctx: BotContext, error: any, mainTainerChatId: string) {
     await ctx.telegram.sendMessage(mainTainerChatId, `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`)
+    const user = UserHelper.getUser(ctx)
+    const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role)
     await ctx.replyWithHTML(
       `❌ Виникла помилка, ми вже повіломлені про неї. Спробуйте ще раз або зверніться до адміністратора.`,
-      AdminKeyboards.mainMenu(),
+      keyboard,
     )
     return ctx.scene.leave()
   }
 
   async handleAdminSceneExit(ctx: BotContext, promptMessageId: number, action?: Function) {
     ctx.deleteMessage(promptMessageId).catch(() => {})
-    await ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.EXIT, AdminKeyboards.mainMenu())
+    const user = UserHelper.getUser(ctx)
+    const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role)
+    await ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.EXIT, keyboard)
     if (action) {
       await action()
     }

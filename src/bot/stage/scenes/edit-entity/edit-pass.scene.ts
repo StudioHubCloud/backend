@@ -1,20 +1,14 @@
 import { BotContext } from '@app/bot/bot.context'
 import { Injectable } from '@nestjs/common'
 import { Scenes } from 'telegraf'
-import {
-  EDIT_PASS_SCENE_ACTIONS,
-  SCENES,
-  TEditEntitySceneMetaData,
-  TEditGroupSceneAction,
-  TEditPassSceneAction,
-} from '@app/bot/libs'
-import { BotHelper, PassHelper, SceneHelper, TextHelper, UserHelper } from '@app/bot/helpers'
+import { EDIT_PASS_SCENE_ACTIONS, SCENES, TEditEntitySceneMetaData, TEditPassSceneAction } from '@app/bot/libs'
+import { BotHelper, KeyboardHelper, PassHelper, SceneHelper, TextHelper, UserHelper } from '@app/bot/helpers'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { PassService } from '@app/domain/pass'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
-import { AdminKeyboards, CommonSceneKeyboards } from '@app/bot/keyboard/storage'
+import { CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { DATE_FORMAT } from '@app/libs/constants/global'
 import { PassSelectModel, PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 
@@ -75,7 +69,9 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
       const { action, passId, clientUserProfile, originalPass } = this.scene.getState(ctx)
 
       if (!passId || !action || !clientUserProfile || !originalPass) {
-        ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.NO_INITIAL_DATA, AdminKeyboards.mainMenu())
+        const { role } = UserHelper.getUser(ctx)
+        const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
+        ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.NO_INITIAL_DATA, keyboard)
         return ctx.scene.leave()
       }
       return await next()
@@ -118,7 +114,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
     try {
       const { originalPass, isInitialRun } = this.scene.getState(ctx, ['originalPass', 'isInitialRun'])
 
-      const {textPayload} = BotHelper.getUpdatePayload(ctx)
+      const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
       if (isInitialRun) {
         // First time entering this handler - show current value and prompt
@@ -206,7 +202,10 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
       const { action, promptMessageId } = this.scene.getState(ctx)
       ctx.deleteMessage(promptMessageId).catch(() => {})
 
-      await ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, AdminKeyboards.mainMenu()),
+      const { role } = UserHelper.getUser(ctx)
+      const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
+
+      await ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, keyboard),
         await this.renderPassManageMenu(ctx)
       return ctx.scene.leave()
     } catch (error) {

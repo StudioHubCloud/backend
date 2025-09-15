@@ -68,4 +68,7 @@ export const BUTTON_PATTERNS = {
   CANCELED_SCHEDULES_LIST: '📜 Скасовані записи',
   CLIENT_PASS_BUY: '💵 Купити абонемент',
   CLIENT_PASS_RENEW: '🔁 Поновити абонемент',
+  CLEAR_CACHE: '🧹 Очистити кеш',
+  BACK_TO_MAIN_MENU: '🔙 Назад до головного меню',
+  CONFIGURE_BOT: '⚙️ Налаштування бота',
 } as const

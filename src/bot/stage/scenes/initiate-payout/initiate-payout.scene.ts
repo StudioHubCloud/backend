@@ -1,12 +1,11 @@
 import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { SCENES } from '@app/bot/libs'
-import { SceneHelper, BotHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
+import { SCENES, TReplyMarkupKeyboard } from '@app/bot/libs'
+import { SceneHelper, BotHelper, TextHelper, UserHelper, KeyboardHelper } from '@app/bot/helpers'
 import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { InitiatePayoutSceneKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
 import { DATE_FORMAT } from '@app/libs'
 import { IInitiatePayoutSceneState, InitiatePayoutSceneHelper } from './initiate-payout.scene-helper'
@@ -17,6 +16,7 @@ import { StaffMemberPayoutService } from '@app/domain/staff-member-payout'
 @Injectable()
 export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
   private readonly initiatePayoutScene = new SceneHelper<IInitiatePayoutSceneState>()
+  private exitKeyboard: TReplyMarkupKeyboard
 
   constructor(
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
@@ -32,22 +32,26 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
     )
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
-      await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.EXIT, AdminKeyboards.mainMenu())
+      await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.EXIT, this.exitKeyboard)
       return ctx.scene.leave()
     })
 
     this.enter(async (ctx, next) => {
       const { staffUserId } = this.initiatePayoutScene.getState(ctx)
 
+      const { role } = UserHelper.getUser(ctx)
+      const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
+      this.exitKeyboard = keyboard
+
       if (!staffUserId) {
-        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_ID, AdminKeyboards.mainMenu())
+        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_ID, keyboard)
         return ctx.scene.leave()
       }
 
       const staffUserProfile = await this.userProfileService.getUserProfileById(staffUserId)
 
       if (!staffUserProfile) {
-        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_PROFILE, AdminKeyboards.mainMenu())
+        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_PROFILE, keyboard)
         return ctx.scene.leave()
       }
 
@@ -81,7 +85,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       const salaryResult = await this.staffMemberPayoutService.calculateStaffPayoutSalary(state.staffUserId, state.payoutDate)
 
       if (!salaryResult) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_PAYOUT_CALCULATION, AdminKeyboards.mainMenu())
+        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_PAYOUT_CALCULATION, this.exitKeyboard)
         return ctx.scene.leave()
       }
       this.initiatePayoutScene.setState(ctx, {
@@ -133,19 +137,19 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       })
 
       if (!result) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_PAYOUT_REGISTER, AdminKeyboards.mainMenu())
+        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_PAYOUT_REGISTER, this.exitKeyboard)
       }
 
       const staffMessage = InitiatePayoutSceneHelper.getStaffInfoMessage(state)
 
       await Promise.all([
         ctx.telegram.sendMessage(state.staffUserProfile.telegramId, staffMessage, { parse_mode: 'HTML' }),
-        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.REGISTER_SUCCESS, AdminKeyboards.mainMenu()),
+        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.REGISTER_SUCCESS, this.exitKeyboard),
       ])
       return ctx.scene.leave()
     } catch (error) {
       if (error?.message?.includes('duplicate key')) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.PAYOUT_ALREADY_REGISTERED, AdminKeyboards.mainMenu())
+        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.PAYOUT_ALREADY_REGISTERED, this.exitKeyboard)
         return ctx.scene.leave()
       }
       await this.handleError(ctx, error)
@@ -159,7 +163,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
     )
     await ctx.replyWithHTML(
       `❌ Виникла помилка: ${error?.message}. Спробуйте ще раз або зверніться до адміністратора.`,
-      AdminKeyboards.mainMenu(),
+      this.exitKeyboard,
     )
     return ctx.scene.leave()
   }

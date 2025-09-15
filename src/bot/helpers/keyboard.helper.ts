@@ -7,7 +7,7 @@ import {
 } from '@telegraf/types'
 import { AutocompletableString, UserProfileRoleEnum } from '@app/libs'
 import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, TReplyInlineKeyboard } from '@app/bot/libs'
-import { AdminKeyboards, ClientKeyboards, GuestKeyboards, TrainerKeyboards } from '../keyboard/storage'
+import { AdminKeyboards, ClientKeyboards, GuestKeyboards, MaintainerKeyboards, TrainerKeyboards } from '../keyboard/storage'
 import { BUTTON_PATTERNS } from '../static/button-patterns'
 
 export class KeyboardHelper {
@@ -143,7 +143,7 @@ export class KeyboardHelper {
       [UserProfileRoleEnum.GUEST]: GuestKeyboards.mainMenu(),
       [UserProfileRoleEnum.TRAINER]: TrainerKeyboards.mainMenu(),
       [UserProfileRoleEnum.ADMIN]: AdminKeyboards.mainMenu(),
-      [UserProfileRoleEnum.MAINTAINER]: AdminKeyboards.mainMenu(),
+      [UserProfileRoleEnum.MAINTAINER]: MaintainerKeyboards.mainMenu(),
     }
     return KeyboardsMap[role]
   }

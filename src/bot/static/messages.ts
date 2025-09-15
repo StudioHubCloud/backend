@@ -26,6 +26,7 @@ export const MESSAGES_CLIENT = {
 
 export const MESSAGES_STAFF = {
   GREETINGS_ADMIN: `Вітаю в кабінеті адміністратора! 👩‍💼✨`,
+  GREETINGS_MAINTAINER: `Вітаю в кабінеті суперадміністратора! 👑✨`,
   GREETINGS_TRAINER: `Вітаю в кабінеті тренера! 👨‍🏫✨`,
   VERIFY_SUCCESS: `Верифікація пройшла успішно 💫`,
 } as const

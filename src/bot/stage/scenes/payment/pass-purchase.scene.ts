@@ -1,6 +1,5 @@
-import { deunionize } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
-import { BotHelper, PassHelper, RegexHelper, SceneHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, PassHelper, RegexHelper, SceneHelper } from '@app/bot/helpers'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { AdminKeyboards, ClientKeyboards, CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { PassRelatedKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
@@ -16,7 +15,6 @@ import { Injectable } from '@nestjs/common'
 import { Scenes } from 'telegraf'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
-import admin from '@app/bot/composer/admin'
 
 interface IPassPurchaseSceneState {
   userProfile: AuthUserProfile
@@ -137,14 +135,18 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
         ])
 
         this.scene.setState(ctx, {
-          fileType,
           fileIds: [...fileIds, fileId],
-          fileUpdateMessageIds: [...fileUpdateMessageIds, ctx.message?.message_id ?? null],
         })
 
         if (fileIds.length) {
+          this.scene.setState(ctx, { fileIds: [...fileIds] })
           return await ctx.deleteMessage().catch(() => null)
         }
+
+        this.scene.setState(ctx, {
+          fileType,
+          fileUpdateMessageIds: [...fileUpdateMessageIds, ctx.message?.message_id ?? null],
+        })
 
         if (menuMessageId) {
           await ctx.deleteMessage(menuMessageId).catch(() => null)
@@ -236,7 +238,7 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
     const messagesToDelete = [...fileUpdateMessageIds, menuMessageId, startMessageId].filter((id): id is number => id !== null)
     const fileId = fileIds[0]
 
-   const [_, activationRequest] = await this.passService.createPassWithActivationRequest({
+    const [_, activationRequest] = await this.passService.createPassWithActivationRequest({
       saleDate,
       clientId: userProfile.client!.id,
       passTemplateId: passTemplate.id,
