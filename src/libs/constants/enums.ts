@@ -27,6 +27,7 @@ export enum TrainingSignupTypeEnum {
   MAIN = 'main',
   RESERVE = 'reserve',
   TRIAL = 'trial',
+  SPECIAL = 'special',
 }
 
 export enum UserProfileRoleEnum {

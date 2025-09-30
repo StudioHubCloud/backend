@@ -1,0 +1,1 @@
+ALTER TYPE "public"."training_signup_type_enum" ADD VALUE 'special';

@@ -1,0 +1,1 @@
+ALTER TABLE "training_signup" RENAME COLUMN "deleted_user_name" TO "fallback_username";

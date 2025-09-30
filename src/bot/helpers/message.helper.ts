@@ -173,8 +173,23 @@ export class MessageHelper {
     const signups = trainingSignup.map((signup) => {
       const { type } = signup
 
-      const emoji = type === TrainingSignupTypeEnum.TRIAL ? '🆓' : type === TrainingSignupTypeEnum.RESERVE ? '⏳' : `🔘`
-      const user = signup.userProfile ? `${UserHelper.getDisplayName(signup.userProfile)}` : 'Невідомий користувач'
+      let emoji = ``
+
+      switch (type) {
+        case TrainingSignupTypeEnum.TRIAL:
+          emoji = '🆕'
+          break
+        case TrainingSignupTypeEnum.RESERVE:
+          emoji = '⏳'
+          break
+        case TrainingSignupTypeEnum.SPECIAL:
+          emoji = '⚠️'
+          break
+        default:
+          emoji = '🔘'
+      }
+
+      const user = UserHelper.getSignupDisplayName(signup)
       return `${emoji} ${TextHelper.bold(user)}`
     })
 
@@ -281,9 +296,9 @@ ${trainingLines}`
 
           const clientList = training.trainingSignups
             .map((signup, index) => {
-              const name =
-                signup.userProfile?.fullName ||
-                `${UserHelper.getFullName(signup.userProfile?.firstName!, signup.userProfile?.lastName)}`
+              const name = UserHelper.getSignupDisplayName(
+                signup as TrainingSignupSelectModel & { userProfile: UserProfileSelectModel | null },
+              )
               return `    <i>${index + 1}. ${name}</i>`
             })
             .join('\n')

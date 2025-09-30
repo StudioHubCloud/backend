@@ -173,6 +173,16 @@ export class AdminKeyboards {
           ),
         },
       ],
+      [
+        {
+          text: BUTTON_PATTERNS.CREATE_CUSTOM_SCHEDULE_RECORD,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.STAFF.TRAINING.CUSTOM_SIGN_IN,
+            trainingId,
+            staffUserId ?? backButtonCallbackData,
+          ),
+        },
+      ],
       [isCancelled ? makeActiveButton : cancelButton],
       [
         {

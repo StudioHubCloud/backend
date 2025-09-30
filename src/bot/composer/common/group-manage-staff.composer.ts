@@ -10,7 +10,8 @@ import {
   CLIENT_SIGNOUT_MENU,
   CLIENT_SIGNIN_MENU,
 } from '@app/bot/menus'
-import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
+import { CALLBACK_PREFIX, SCENES, TPaginatedMenuRenderOptions } from '@app/bot/libs'
+import { PinoLogger } from 'nestjs-pino'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { UserProfileService } from '@app/domain/user-profile'
@@ -19,8 +20,7 @@ import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
-import { API, TrainingSignupStatusEnum } from '@app/libs'
-import { PinoLogger } from 'nestjs-pino'
+import { API, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs'
 
 @Injectable()
 export class GroupManageStaffComposer {
@@ -169,18 +169,20 @@ export class GroupManageStaffComposer {
         const { training, signups } = await this.trainingService.cancelTrainingById(+trainingId)
 
         await Promise.all(
-          signups.map((signup) => {
-            return ctx.telegram.sendMessage(
-              String(signup.userProfile?.telegramId),
-              MessageHelper.constructTrainingCancelMessage(
-                { date: training.date, groupName: signup?.group?.name },
-                this.dateTimeProvider,
-              ),
-              {
-                parse_mode: 'HTML',
-              },
-            )
-          }),
+          signups
+            .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
+            .map((signup) => {
+              return ctx.telegram.sendMessage(
+                String(signup.userProfile?.telegramId),
+                MessageHelper.constructTrainingCancelMessage(
+                  { date: training.date, groupName: signup?.group?.name },
+                  this.dateTimeProvider,
+                ),
+                {
+                  parse_mode: 'HTML',
+                },
+              )
+            }),
         )
 
         return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId })
@@ -191,18 +193,20 @@ export class GroupManageStaffComposer {
       return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         const { training, signups } = await this.trainingService.activateTrainingById(+trainingId)
         await Promise.all(
-          signups.map((signup) => {
-            return ctx.telegram.sendMessage(
-              String(signup.userProfile?.telegramId),
-              MessageHelper.constructTrainingActivateMessage(
-                { date: training.date, groupName: signup?.group?.name },
-                this.dateTimeProvider,
-              ),
-              {
-                parse_mode: 'HTML',
-              },
-            )
-          }),
+          signups
+            .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
+            .map((signup) => {
+              return ctx.telegram.sendMessage(
+                String(signup.userProfile?.telegramId),
+                MessageHelper.constructTrainingActivateMessage(
+                  { date: training.date, groupName: signup?.group?.name },
+                  this.dateTimeProvider,
+                ),
+                {
+                  parse_mode: 'HTML',
+                },
+              )
+            }),
         )
         return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId })
       })
@@ -279,7 +283,7 @@ export class GroupManageStaffComposer {
       return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
         const data = activeSignUps.map((signup) => ({
-          name: `${UserHelper.getDisplayName(signup.userProfile!)}`,
+          name: `${UserHelper.getSignupDisplayName(signup)}`,
           status: signup.userProfile?.status,
           id: signup.id,
         }))
@@ -301,6 +305,17 @@ export class GroupManageStaffComposer {
         )
       })
     })
+
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.CUSTOM_SIGN_IN),
+      async (ctx: BotContext) => {
+        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+          const context = { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId, trainingId }
+          await ctx.deleteMessage().catch(() => {})
+          return ctx.scene.enter(SCENES.SPECIAL_SCHEDULE, context)
+        })
+      },
+    )
 
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.ASSIGN_SUBSTITUTE_LIST),
@@ -495,7 +510,7 @@ export class GroupManageStaffComposer {
 
       BotHelper.safeAnswerCbQuery(ctx, '✅ Клієнта успішно відписано від тренування.', { show_alert: true })
       const data = activeSignUps.map((signup) => ({
-        name: `${UserHelper.getDisplayName(signup.userProfile)}`,
+        name: `${UserHelper.getSignupDisplayName(signup)}`,
         id: signup.id,
       }))
 

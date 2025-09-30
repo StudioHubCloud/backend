@@ -8,6 +8,7 @@ import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
 import { STATIC_CONFIG } from '../config/config.helper'
 import { FeedbackNotificationService } from '@app/domain/feedback-notifications'
+import { TrainingSignupTypeEnum } from '@app/libs'
 
 @Injectable()
 export class CronService {
@@ -141,7 +142,7 @@ export class CronService {
     for (const training of trainings) {
       this.logger.debug(`Processing training ID: ${training.id}, date: ${training.date}`)
 
-      training.trainingSignups.forEach(async (signup) => {
+      training.trainingSignups.filter(s => s.type !== TrainingSignupTypeEnum.SPECIAL).forEach(async (signup) => {
         if (!signup.userProfile) {
           return this.logger.warn(`No user profile found for signup ID: ${signup.id} in training ID: ${training.id}`)
         }

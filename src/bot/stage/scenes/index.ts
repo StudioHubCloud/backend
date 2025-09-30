@@ -1,5 +1,6 @@
 export { RegisterScene } from './register/register.scene'
 export { VerifyClientScene } from './verify-client/verify-client.scene'
 export { InitiatePayoutScene } from './initiate-payout/initiate-payout.scene'
+export { SpecialScheduleScene } from './special-schedule/special-schedule.scene'
 export * from './edit-entity'
 export * from './payment'

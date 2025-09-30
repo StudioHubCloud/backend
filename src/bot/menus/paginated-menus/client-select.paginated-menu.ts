@@ -20,14 +20,22 @@ export class ClientSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
     const { data = [] } = this.sessionParams
 
     const dataWithEmoji = data
-      .sort((a, b) => (a?.status === UserProfileStatusEnum.ARCHIVED ? 1 : 0) - (b?.status === UserProfileStatusEnum.ARCHIVED ? 1 : 0))
+      .sort(
+        (a, b) => (a?.status === UserProfileStatusEnum.ARCHIVED ? 1 : 0) - (b?.status === UserProfileStatusEnum.ARCHIVED ? 1 : 0),
+      )
       .map((item) => {
         let emoji = '⚠️'
 
-        if (item.status === UserProfileStatusEnum.ACTIVE) {
-          emoji = '🧚'
-        } else if (item.status === UserProfileStatusEnum.ARCHIVED) {
-          emoji = '📦'
+        switch (item.status) {
+          case UserProfileStatusEnum.ACTIVE:
+            emoji = '🧚'
+            break
+          case UserProfileStatusEnum.BLOCKED:
+            emoji = '⛔'
+            break
+          case UserProfileStatusEnum.ARCHIVED:
+            emoji = '📦'
+            break
         }
 
         return { ...item, emoji }

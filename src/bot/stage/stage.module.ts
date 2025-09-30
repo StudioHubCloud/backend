@@ -6,6 +6,7 @@ import {
   PassModule,
   PassTemplateModule,
   StaffMemberPayoutModule,
+  TrainingModule,
   TrainingSignupModule,
   UserProfileModule,
 } from '@app/domain'
@@ -13,7 +14,15 @@ import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 
 @Module({
-  imports: [UserProfileModule, PassTemplateModule, TrainingSignupModule, GroupModule, StaffMemberPayoutModule, PassModule],
+  imports: [
+    UserProfileModule,
+    PassTemplateModule,
+    TrainingSignupModule,
+    GroupModule,
+    StaffMemberPayoutModule,
+    PassModule,
+    TrainingModule,
+  ],
   providers: [
     StageService,
     Stage.RegisterScene,
@@ -23,6 +32,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     Stage.EditUserProfileScene,
     Stage.PassPurchaseScene,
     Stage.PassRenewScene,
+    Stage.SpecialScheduleScene,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,

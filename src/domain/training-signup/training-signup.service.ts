@@ -285,7 +285,7 @@ export class TrainingSignupService {
 
   async signOutFromTrainingAsAdminViaTelegram(
     trainingSignupId: string,
-  ): Promise<TCustomApiResponse<{ userProfile: UserProfileSelectModel | null; training: TrainingSelectModel | null }>> {
+  ): Promise<TCustomApiResponse<{ userProfile: UserProfileSelectModel | null; training: TrainingSelectModel | null; fallbackUsername: string | null }>> {
     try {
       const signup = await this.databaseService.drizzle.query.trainingSignup.findFirst({
         where: (ts, { eq }) => eq(ts.id, trainingSignupId),
@@ -310,7 +310,7 @@ export class TrainingSignupService {
       return {
         status: API.RESPONSE.SUCCESS_STRING,
         message: `✅ Клієнта успішно виписано з тренування`,
-        data: { userProfile: signup.userProfile, training: signup.training },
+        data: { userProfile: signup.userProfile, training: signup.training, fallbackUsername: signup.fallbackUsername },
       }
     } catch (error) {
       this.logger.error(`Error signing out from training %s: %j`, trainingSignupId, error.stack)
@@ -377,7 +377,11 @@ export class TrainingSignupService {
         and(
           eq(ts.trainingId, trainingId),
           eq(ts.status, TrainingSignupStatusEnum.ACTIVE),
-          or(eq(ts.type, TrainingSignupTypeEnum.MAIN), eq(ts.type, TrainingSignupTypeEnum.TRIAL)),
+          or(
+            eq(ts.type, TrainingSignupTypeEnum.MAIN),
+            eq(ts.type, TrainingSignupTypeEnum.TRIAL),
+            eq(ts.type, TrainingSignupTypeEnum.SPECIAL),
+          ),
         ),
       with: {
         userProfile: true,
@@ -402,7 +406,11 @@ export class TrainingSignupService {
         and(
           eq(ts.trainingId, trainingId),
           eq(ts.status, TrainingSignupStatusEnum.CANCELED),
-          or(eq(ts.type, TrainingSignupTypeEnum.MAIN), eq(ts.type, TrainingSignupTypeEnum.TRIAL)),
+          or(
+            eq(ts.type, TrainingSignupTypeEnum.MAIN),
+            eq(ts.type, TrainingSignupTypeEnum.TRIAL),
+            eq(ts.type, TrainingSignupTypeEnum.SPECIAL),
+          ),
         ),
       with: {
         userProfile: true,
@@ -433,6 +441,19 @@ export class TrainingSignupService {
       .set({ status: TrainingSignupStatusEnum.ACTIVE })
       .where(and(eq(trainingSignup.trainingId, trainingId), eq(trainingSignup.status, TrainingSignupStatusEnum.CANCELED)))
       .returning()
+  }
+
+  async createSpecialScheduleSignup(values: { trainingId: number; fallbackUsername: string; groupId: number }) {
+    const { trainingId, fallbackUsername, groupId } = values
+    const result = await this.signUpForTraining({
+      trainingId,
+      userProfileId: null,
+      groupId,
+      type: TrainingSignupTypeEnum.SPECIAL,
+      fallbackUsername,
+    })
+    await this.redisCacheService.reset()
+    return result
   }
 
   private async checkIfHasTrialSignup(userProfileId: string): Promise<boolean> {

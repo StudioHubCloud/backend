@@ -246,6 +246,20 @@
       "when": 1757859169561,
       "tag": "0061_fix fk on pass activate table",
       "breakpoints": true
+    },
+    {
+      "idx": 62,
+      "version": "7",
+      "when": 1759129421141,
+      "tag": "0062_add new training type",
+      "breakpoints": true
+    },
+    {
+      "idx": 63,
+      "version": "7",
+      "when": 1759166490459,
+      "tag": "0063_change training signup fallback username column name",
+      "breakpoints": true
     }
   ]
 }

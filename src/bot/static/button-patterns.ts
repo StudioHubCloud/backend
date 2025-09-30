@@ -28,6 +28,7 @@ export const BUTTON_PATTERNS = {
   REGISTER_AS_TRAINER: '👨‍🏫 Зареєструватись як тренер',
   SCHEDULE: '📝 Записатись на тренування',
   SCHEDULE_TO_TRAINING: '✔️ Записати',
+  CREATE_CUSTOM_SCHEDULE_RECORD: '📥 Створити спеціальний запис',
   DESCHEDULE_FROM_TRAINING: '➖ Виписати',
   ADD_REVIEW: '⭐ Залишити відгук',
   REMIND_LATER: '⏰ Нагадати пізніше',

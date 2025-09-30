@@ -1,7 +1,7 @@
 import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { AuthUserProfile, UserProfileWithClient } from '@app/bot/libs'
 import { BotContext } from '../bot.context'
-import { StaffMemberSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
+import { StaffMemberSelectModel, TrainingSignupSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 
 export class UserHelper {
   static getUser(ctx: BotContext): AuthUserProfile {
@@ -85,10 +85,17 @@ export class UserHelper {
   }
 
   static getDisplayName(user: UserProfileSelectModel | UserProfileWithClient | null): string {
-    if (!user) return 'Без імені'
+    if (!user) return 'Невідомий користувач'
 
     const result = user.fullName || this.getFullName(user.firstName, user.lastName)
     return result.trim()
+  }
+
+  static getSignupDisplayName(signup: TrainingSignupSelectModel & { userProfile: UserProfileSelectModel | null }): string {
+    if (!signup.userProfile) {
+      return signup.fallbackUsername || 'Невідомий клієнт'
+    }
+    return this.getDisplayName(signup.userProfile)
   }
 
   static isArchivedProfile(userProfile: UserProfileSelectModel): boolean {

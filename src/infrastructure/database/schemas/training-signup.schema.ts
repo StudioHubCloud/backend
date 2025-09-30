@@ -14,8 +14,7 @@ export const trainingSignup = table(
     type: TrainingSignupTypePgEnum().notNull(),
     userProfileId: uuid('user_profile_id').references(() => userProfile.id, { onDelete: 'set null' }),
     passId: uuid('pass_id').references(() => pass.id, { onDelete: 'set null' }),
-    //managed via trigger
-    deletedUserName: text('deleted_user_name'),
+    fallbackUsername: text('fallback_username'),
     groupId: integer('group_id')
       .references(() => group.id, { onDelete: 'cascade' })
       .notNull(),
