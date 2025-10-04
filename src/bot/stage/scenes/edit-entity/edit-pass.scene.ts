@@ -118,10 +118,21 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
 
       if (isInitialRun) {
         // First time entering this handler - show current value and prompt
+
+        const maxLength = originalPass.lengthOverride || originalPass.passTemplate.length
+        const attended = maxLength - originalPass.availableSlots
+
         const result = await ctx.replyWithHTML(
-          `🏃‍♂️ Поточна кількість тренувань: <b>${originalPass?.lengthOverride || originalPass.passTemplate.length}</b>\n\n` +
-            `📝 Введіть нову кількість тренувань:\n` +
-            `💡 Це кількість тренувань, які клієнт може відвідати з цим абонементом`,
+          `🏃‍♂️ Поточна максимальна кількість тренувань: <b>${maxLength}</b>\n` +
+            `📊 Вже відвідано: <b>${attended}</b>\n` +
+            `✅ Залишилось: <b>${originalPass.availableSlots}</b>\n\n` +
+            `📝 Введіть нову максимальну кількість тренувань:\n\n` +
+            `ℹ️ Це значення визначає загальну кількість тренувань, які клієнт може використати за абонементом.\n` +
+            `Доступні тренування будуть автоматично перераховані.\n\n` +
+            `👉 Приклади:\n` +
+            `• Якщо вказати <b>${attended}</b> → залишиться 0 з ${attended}\n` +
+            `• Якщо вказати <b>${attended + 1}</b> → залишиться 1 з ${attended + 1}\n` +
+            `• Якщо вказати <b>${attended + 2}</b> → залишиться 2 з ${attended + 2}`,
           CommonSceneKeyboards.exit(),
         )
         return this.scene.setState(ctx, { isInitialRun: false, promptMessageId: result.message_id })

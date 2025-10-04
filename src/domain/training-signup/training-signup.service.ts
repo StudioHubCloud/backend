@@ -283,9 +283,13 @@ export class TrainingSignupService {
     }
   }
 
-  async signOutFromTrainingAsAdminViaTelegram(
-    trainingSignupId: string,
-  ): Promise<TCustomApiResponse<{ userProfile: UserProfileSelectModel | null; training: TrainingSelectModel | null; fallbackUsername: string | null }>> {
+  async signOutFromTrainingAsAdminViaTelegram(trainingSignupId: string): Promise<
+    TCustomApiResponse<{
+      userProfile: UserProfileSelectModel | null
+      training: TrainingSelectModel | null
+      fallbackUsername: string | null
+    }>
+  > {
     try {
       const signup = await this.databaseService.drizzle.query.trainingSignup.findFirst({
         where: (ts, { eq }) => eq(ts.id, trainingSignupId),
@@ -326,17 +330,35 @@ export class TrainingSignupService {
     trainingId: number,
   ): Promise<TCustomApiResponse<{ groupId: number; userProfile: UserProfileSelectModel | null }>> {
     try {
-      const [training, isAlreadySignedUp] = await Promise.all([
+      const [training, isAlreadySignedUp, pass, userProfile] = await Promise.all([
         this.trainingService.getTrainingById(trainingId),
         this.checkIfAlreadySignedUpForTraining(clientUserId, trainingId),
+        this.passService.findActivePassByClientId(clientUserId),
+        this.userProfileService.getUserProfileById(clientUserId),
       ])
+
+      if (!userProfile) {
+        return { status: API.RESPONSE.ERROR_STRING, message: 'Клієнта не знайдено 🥲' }
+      }
 
       if (!training) {
         return { status: API.RESPONSE.ERROR_STRING, message: '🥺 Тренування не знайдено' }
       }
 
+      if (training.isCancelled) {
+        return { status: API.RESPONSE.ERROR_STRING, message: `На жаль, тренування було скасовано 😔` }
+      }
+
       if (isAlreadySignedUp) {
         return { status: API.RESPONSE.ERROR_STRING, message: `Клієнт вже записаний на це тренування 💝` }
+      }
+
+      if (!pass) {
+        return { status: API.RESPONSE.ERROR_STRING, message: `У клієнта немає активного абонемента 🥲` }
+      }
+
+      if (!pass.availableSlots || pass.availableSlots < 1) {
+        return { status: API.RESPONSE.ERROR_STRING, message: `У клієнта немає доступних тренувань в абонементі 🥲` }
       }
 
       await this.signUpForTraining({
@@ -344,12 +366,10 @@ export class TrainingSignupService {
         userProfileId: clientUserId,
         groupId: training.groupId,
         type: TrainingSignupTypeEnum.MAIN,
+        passId: pass.id,
       })
 
-      const [userProfile] = await Promise.all([
-        this.userProfileService.getUserProfileById(clientUserId),
-        this.redisCacheService.reset(),
-      ])
+      await this.redisCacheService.reset()
 
       return {
         status: API.RESPONSE.SUCCESS_STRING,

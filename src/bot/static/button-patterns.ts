@@ -64,7 +64,7 @@ export const BUTTON_PATTERNS = {
   INDIVIDUAL_PASS_TYPE: '👤 Індивідуальний абонемент',
   SCHEDULES_INFO: '📝 Інформація про записи',
   SEE_DETAILS: '📑 Переглянути деталі',
-  INITIATE_PAYOUT: '💸 Виплатити запрлату',
+  INITIATE_PAYOUT: '💸 Виплатити зарплату',
   ACTIVE_SCHEDULES_LIST: '📜 Активні записи',
   CANCELED_SCHEDULES_LIST: '📜 Скасовані записи',
   CLIENT_PASS_BUY: '💵 Купити абонемент',
