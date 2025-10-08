@@ -330,10 +330,9 @@ export class TrainingSignupService {
     trainingId: number,
   ): Promise<TCustomApiResponse<{ groupId: number; userProfile: UserProfileSelectModel | null }>> {
     try {
-      const [training, isAlreadySignedUp, pass, userProfile] = await Promise.all([
+      const [training, isAlreadySignedUp, userProfile] = await Promise.all([
         this.trainingService.getTrainingById(trainingId),
         this.checkIfAlreadySignedUpForTraining(clientUserId, trainingId),
-        this.passService.findActivePassByClientId(clientUserId),
         this.userProfileService.getUserProfileById(clientUserId),
       ])
 
@@ -352,6 +351,8 @@ export class TrainingSignupService {
       if (isAlreadySignedUp) {
         return { status: API.RESPONSE.ERROR_STRING, message: `Клієнт вже записаний на це тренування 💝` }
       }
+
+      const pass = await this.passService.findActivePassByClientId(userProfile.client?.id)
 
       if (!pass) {
         return { status: API.RESPONSE.ERROR_STRING, message: `У клієнта немає активного абонемента 🥲` }
