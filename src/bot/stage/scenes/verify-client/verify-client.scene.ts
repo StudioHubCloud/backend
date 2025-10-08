@@ -97,7 +97,8 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
 
       await Promise.all([
-        ctx.telegram.sendMessage(
+        BotHelper.safeSendMessage(
+          ctx,
           userProfile.telegramId,
           VerifyClientSceneHelper.getClientInfoMessage({ saleDate, passTemplate, userProfile }),
           {

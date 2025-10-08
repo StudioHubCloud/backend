@@ -20,7 +20,7 @@ import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
-import { API, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs'
+import { API, PassStatusEnum, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs'
 
 @Injectable()
 export class GroupManageStaffComposer {
@@ -172,7 +172,8 @@ export class GroupManageStaffComposer {
           signups
             .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
             .map((signup) => {
-              return ctx.telegram.sendMessage(
+              return BotHelper.safeSendMessage(
+                ctx,
                 String(signup.userProfile?.telegramId),
                 MessageHelper.constructTrainingCancelMessage(
                   { date: training.date, groupName: signup?.group?.name },
@@ -196,15 +197,14 @@ export class GroupManageStaffComposer {
           signups
             .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
             .map((signup) => {
-              return ctx.telegram.sendMessage(
+              return BotHelper.safeSendMessage(
+                ctx,
                 String(signup.userProfile?.telegramId),
                 MessageHelper.constructTrainingActivateMessage(
                   { date: training.date, groupName: signup?.group?.name },
                   this.dateTimeProvider,
                 ),
-                {
-                  parse_mode: 'HTML',
-                },
+                { parse_mode: 'HTML' },
               )
             }),
         )
@@ -255,11 +255,16 @@ export class GroupManageStaffComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN), async (ctx: BotContext) => {
       return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         const activeClients = await this.userProfileService.getActiveClientsForSignIn(+trainingId)
-        const data = activeClients.map((client) => ({
-          name: `${UserHelper.getDisplayName(client)}`,
-          status: client.status,
-          id: client.id,
-        }))
+        const data = activeClients.map((client) => {
+          const activePass = client.client?.pass.find((p) => p.status === PassStatusEnum.ACTIVE)
+          return {
+            name: `${UserHelper.getDisplayName(client)}`,
+            status: client.status,
+            id: client.id,
+            availableSlots: activePass?.availableSlots ?? null,
+            hasActivePass: !!activePass,
+          }
+        })
 
         const backBtnCbData = RegexHelper.createButtonActionCallbackData(
           CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
@@ -490,15 +495,14 @@ export class GroupManageStaffComposer {
         const trainingDate = new Date(training.date)
 
         if (now < trainingDate) {
-          ctx.telegram.sendMessage(
+          BotHelper.safeSendMessage(
+            ctx,
             String(userProfile.telegramId),
             MessageHelper.constructTrainingSignoutByAdminMessage(
               { date: training.date, groupName: group.name },
               this.dateTimeProvider,
             ),
-            {
-              parse_mode: 'HTML',
-            },
+            { parse_mode: 'HTML' },
           )
         }
       }
@@ -557,15 +561,14 @@ export class GroupManageStaffComposer {
         const trainingDate = new Date(training.date)
 
         if (now < trainingDate) {
-          ctx.telegram.sendMessage(
+          BotHelper.safeSendMessage(
+            ctx,
             String(userProfile.telegramId),
             MessageHelper.constructTrainingSigninByAdminMessage(
               { date: training.date, groupName: group.name },
               this.dateTimeProvider,
             ),
-            {
-              parse_mode: 'HTML',
-            },
+            { parse_mode: 'HTML' },
           )
         }
       }
@@ -624,7 +627,7 @@ export class GroupManageStaffComposer {
           if (!signup.userProfile?.telegramId) return
 
           try {
-            await ctx.telegram.sendMessage(String(signup.userProfile.telegramId), message, { parse_mode: 'HTML' })
+            await BotHelper.safeSendMessage(ctx, String(signup.userProfile.telegramId), message, { parse_mode: 'HTML' })
             return { success: true, telegramId: signup.userProfile.telegramId }
           } catch (error) {
             console.error(`Failed to send substitute trainer notification to ${signup.userProfile.telegramId}:`, error)

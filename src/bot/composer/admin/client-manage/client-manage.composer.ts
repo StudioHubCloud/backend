@@ -22,7 +22,7 @@ import {
 import { ClientSelectPaginatedMenu } from '@app/bot/menus'
 import { AdminKeyboards } from '@app/bot/keyboard/storage/admin-keyboards'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { UserProfileStatusEnum } from '@app/libs'
+import { PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
 import { ClientHelper } from '@app/bot/helpers/client.helper'
 
 @Injectable()
@@ -128,11 +128,19 @@ export class ClientManageComposer {
   ) => {
     const allClients = await this.userProfileService.getClientsUserProfiles({ withArchived: true })
 
-    const data = allClients.map((client) => ({
-      id: client.id,
-      name: UserHelper.getDisplayName(client),
-      status: client.status,
-    }))
+    const data = allClients.map((client) => {
+      const activePass = client.client?.pass.find((p) => p.status === PassStatusEnum.ACTIVE)
+
+      return {
+        id: client.id,
+        name: UserHelper.getDisplayName(client),
+        status: client.status,
+        availableSlots: activePass?.availableSlots ?? null,
+        hasActivePass: !!activePass,
+      }
+    })
+
+    console.log(data, 'data')
 
     return this.clientSelectPaginatedMenu.initMenu(ctx, { data }, renderOptions)
   }

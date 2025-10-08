@@ -340,7 +340,11 @@ export class UserProfileService {
           exists(this.databaseService.drizzle.select().from(client).where(eq(client.userProfileId, userProfile.id))),
         ),
       with: {
-        client: true,
+        client: {
+          with: {
+            pass: true,
+          },
+        },
       },
     })
 
@@ -373,7 +377,11 @@ export class UserProfileService {
           ),
         ),
       with: {
-        client: true,
+        client: {
+          with: {
+            pass: true,
+          }
+        },
       },
     })
 

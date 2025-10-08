@@ -1,7 +1,8 @@
 import { deunionize } from 'telegraf'
 import { BotContext } from '../bot.context'
 import { User } from '@telegraf/types'
-import { ExtraAnswerCbQuery } from 'telegraf/typings/telegram-types'
+import { FmtString } from 'telegraf/typings/format'
+import { ExtraAnswerCbQuery, ExtraReplyMessage } from 'telegraf/typings/telegram-types'
 import { PassActivationFileTypeEnum } from '@app/libs'
 
 export class BotHelper {
@@ -92,6 +93,14 @@ export class BotHelper {
         console.error('Error answering callback query:', error.message)
       }
       return false
+    }
+  }
+
+  static async safeSendMessage(ctx: BotContext, chatId: number | string, text: string | FmtString, options?: ExtraReplyMessage) {
+    try {
+      await ctx.telegram.sendMessage(chatId, text, options)
+    } catch (error) {
+      console.error('Error sending message:', error.message, chatId, text)
     }
   }
 }

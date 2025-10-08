@@ -10,7 +10,7 @@ export const CLIENT_SIGNOUT_MENU = Symbol('client-signout-menu')
 @Injectable({ scope: Scope.TRANSIENT })
 export class ClientSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
   trainingId?: string
-  data?: { name: string; id: string; status?: UserProfileStatusEnum }[]
+  data?: { name: string; id: string; status?: UserProfileStatusEnum; availableSlots?: number | null; hasActivePass?: boolean }[]
 }> {
   constructor() {
     super()
@@ -19,16 +19,30 @@ export class ClientSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
   protected async loadOptions(): Promise<TNormalizedOption[]> {
     const { data = [] } = this.sessionParams
 
+    const getPriority = (item: (typeof data)[0]) => {
+      if (item.hasActivePass === false && item.status === UserProfileStatusEnum.ACTIVE) return 1
+      if (item.availableSlots === 0 && item.status === UserProfileStatusEnum.ACTIVE) return 2
+      if (item.availableSlots === 1 && item.status === UserProfileStatusEnum.ACTIVE) return 3
+      if (item.status === UserProfileStatusEnum.BLOCKED) return 6
+      if (item.status === UserProfileStatusEnum.ARCHIVED) return 5
+      return 4 // rest of active clients
+    }
+
     const dataWithEmoji = data
-      .sort(
-        (a, b) => (a?.status === UserProfileStatusEnum.ARCHIVED ? 1 : 0) - (b?.status === UserProfileStatusEnum.ARCHIVED ? 1 : 0),
-      )
+      .sort((a, b) => getPriority(a) - getPriority(b))
       .map((item) => {
-        let emoji = '⚠️'
+        let emoji = '❔'
 
         switch (item.status) {
           case UserProfileStatusEnum.ACTIVE:
-            emoji = '🧚'
+            emoji = ''
+            if (item.hasActivePass === false) {
+              emoji = '⌛'
+            } else if (item.availableSlots === 1) {
+              emoji = '🟡'
+            } else if (item.availableSlots === 0) {
+              emoji = '🔴'
+            }
             break
           case UserProfileStatusEnum.BLOCKED:
             emoji = '⛔'

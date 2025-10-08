@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, Scope } from '@nestjs/common'
+import { Injectable, Scope } from '@nestjs/common'
 import { TrainingService } from '@app/domain/training'
 import { DATE_FORMAT } from '@app/libs'
 import { COMMON, TNormalizedOption } from '@app/bot/libs'

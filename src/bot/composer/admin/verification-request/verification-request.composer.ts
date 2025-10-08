@@ -85,8 +85,7 @@ export class VerificationRequestComposer {
           return
         }
 
-        await ctx.telegram.sendMessage(userProfile.telegramId, MESSAGES_STAFF.VERIFY_SUCCESS, TrainerKeyboards.mainMenu())
-
+        await BotHelper.safeSendMessage(ctx, userProfile.telegramId, MESSAGES_STAFF.VERIFY_SUCCESS, TrainerKeyboards.mainMenu())
         await BotHelper.safeAnswerCbQuery(ctx, 'Тренер успішно верифікований ✅', { show_alert: true })
         ctx.deleteMessage()
         return
@@ -102,7 +101,8 @@ export class VerificationRequestComposer {
         return
       }
 
-      await ctx.telegram.sendMessage(
+      await BotHelper.safeSendMessage(
+        ctx,
         userProfile.telegramId,
         MessageHelper.getClientWithoutPassVerifySuccess(userProfile.firstName),
         ClientKeyboards.mainMenu({ withoutPass: true }),
@@ -119,7 +119,7 @@ export class VerificationRequestComposer {
     await this.handleVerifyUserProfileAction(ctx, async ({ id, telegramId }) => {
       await this.userProfileService.rejectVerificationRequest(id)
       await Promise.all([
-        ctx.telegram.sendMessage(telegramId, `Ваша заявка на підтвердження була відхилена ❌`, CommonKeyboards.registerAs()),
+        BotHelper.safeSendMessage(ctx, telegramId, `Ваша заявка на підтвердження була відхилена ❌`, CommonKeyboards.registerAs()),
         BotHelper.safeAnswerCbQuery(ctx, 'Ви відхилили запит на реєстрацію ❌'),
       ])
       await ctx.deleteMessage()
@@ -131,7 +131,7 @@ export class VerificationRequestComposer {
     await this.handleVerifyUserProfileAction(ctx, async ({ id, telegramId }) => {
       await this.userProfileService.rejectVerificationRequestAndBlockUser(id)
       await Promise.all([
-        ctx.telegram.sendMessage(telegramId, `Доступ до боту було обмежено 🚫`, KeyboardHelper.removeReplyMarkupKeyboard()),
+        BotHelper.safeSendMessage(ctx, telegramId, `Доступ до боту було обмежено 🚫`, KeyboardHelper.removeReplyMarkupKeyboard()),
         BotHelper.safeAnswerCbQuery(ctx, 'Ви заблокували користувача 🚫'),
       ])
       await ctx.deleteMessage()
@@ -150,7 +150,8 @@ export class VerificationRequestComposer {
 
       await Promise.all([
         ctx.deleteMessage(),
-        ctx.telegram.sendMessage(
+        BotHelper.safeSendMessage(
+          ctx,
           passActivateRequest!.client.userProfile.telegramId,
           `✅ Оплату за абонемент <b>${passActivateRequest!.pass.passTemplate.name}</b> підтверджено!\n\n Абонемент активується при записі на перше тренування та діятиме <b><u>30 днів</u></b>\n\n<i>Без запису впродовж 7 днів - автоактивація</i> 🔄`,
           { ...ClientKeyboards.mainMenu(), parse_mode: 'HTML' },
@@ -171,7 +172,8 @@ export class VerificationRequestComposer {
 
       await Promise.all([
         ctx.deleteMessage(),
-        ctx.telegram.sendMessage(
+        BotHelper.safeSendMessage(
+          ctx,
           passActivateRequest!.client.userProfile.telegramId,
           `🚫 Ваш запит на активацію абонементу <b>${passActivateRequest!.pass.passTemplate.name}</b> було відхилено адміністратором.`,
           { ...ClientKeyboards.mainMenu({ withoutPass: true }), parse_mode: 'HTML' },

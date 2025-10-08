@@ -1,5 +1,6 @@
 import { BotContext } from '../bot.context'
 import { MESSAGES_SCENE } from '../static/messages'
+import { BotHelper } from './bot.helper'
 import { KeyboardHelper } from './keyboard.helper'
 import { UserHelper } from './user.helper'
 
@@ -38,8 +39,8 @@ export class SceneHelper<T extends Record<string, any>> {
     return scene_state
   }
 
-  async handleAdminSceneError(ctx: BotContext, error: any, mainTainerChatId: string) {
-    await ctx.telegram.sendMessage(mainTainerChatId, `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`)
+  async handleAdminSceneError(ctx: BotContext, error: any, maintainerChatId: string) {
+    await BotHelper.safeSendMessage(ctx, maintainerChatId, `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`)
     const user = UserHelper.getUser(ctx)
     const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role)
     await ctx.replyWithHTML(

@@ -41,14 +41,16 @@ export class BotService {
 
     this.initExitGuard()
 
-    this.bot.catch(async (err: any, ctx: BotContext) => {
+    this.bot.catch(async (err: any, ctx: BotContext): Promise<void> => {
       this.logger.error(`Encountered an error for ctx.update: %o, with message: %s`, ctx.update, err?.message)
       ctx.scene.leave()
-      await ctx.telegram.sendMessage(
+      BotHelper.safeSendMessage(
+        ctx,
         this.configService.get('MAINTAINER_CHAT_ID'),
         `Error: ${err.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`,
       )
       ctx.reply(MESSAGES_COMMON.GLOBAL_ERROR)
+      return
     })
   }
 
