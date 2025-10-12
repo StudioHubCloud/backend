@@ -15,7 +15,12 @@ import {
 import { PassStatusEnum, UserProfileRoleEnum } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 import { BotContext } from '../bot.context'
-import { CLIENT_STATUS_CHANGE_ACTIONS, EDIT_GROUP_SCENE_ACTIONS, EDIT_PASS_SCENE_ACTIONS, EDIT_USER_PROFILE_SCENE_ACTIONS } from './constants'
+import {
+  CLIENT_STATUS_CHANGE_ACTIONS,
+  EDIT_GROUP_SCENE_ACTIONS,
+  EDIT_PASS_SCENE_ACTIONS,
+  EDIT_USER_PROFILE_SCENE_ACTIONS,
+} from './constants'
 
 export type TBotStore = {
   user: AuthUserProfile | null

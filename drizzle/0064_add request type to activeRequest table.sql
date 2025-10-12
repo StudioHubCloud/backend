@@ -1,0 +1,2 @@
+CREATE TYPE "public"."pass_activation_request_type_enum" AS ENUM('purchase', 'renew');--> statement-breakpoint
+ALTER TABLE "pass_activation_request" ADD COLUMN "type" "pass_activation_request_type_enum" NOT NULL;

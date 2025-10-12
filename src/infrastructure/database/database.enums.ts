@@ -19,3 +19,4 @@ export const PaymentStatusPgEnum = pgEnum('payment_status_enum', enumToPgEnum(EN
 export const PaymentMethodPgEnum = pgEnum('payment_method_enum', enumToPgEnum(ENUMS.PaymentMethodEnum))
 export const StudioPayoutRuleTypePgEnum = pgEnum('studio_payout_rule_type_enum', enumToPgEnum(ENUMS.StudioPayoutRuleTypeEnum))
 export const PassActivationFileTypePgEnum = pgEnum('pass_activation_file_type_enum', enumToPgEnum(ENUMS.PassActivationFileTypeEnum))
+export const PassActivationRequestTypePgEnum = pgEnum('pass_activation_request_type_enum', enumToPgEnum(ENUMS.PassActivationRequestTypeEnum))

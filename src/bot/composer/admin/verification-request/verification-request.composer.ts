@@ -7,7 +7,7 @@ import { PassActivationRequestsInlineMenu, VerificationInlineMenu } from '@app/b
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
 import { UserProfileService } from '@app/domain/user-profile'
 import { ClientKeyboards, CommonKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
-import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { PassActivationRequestTypeEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
 import { MESSAGES_STAFF } from '@app/bot/static/messages'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
@@ -50,11 +50,11 @@ export class VerificationRequestComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.VERIFY_NO), this.rejectUserVerifyAction)
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.BLOCK), this.blockUserAction)
     this.composer.action(
-      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.PASS_PURCHASE_CONFIRM),
-      this.handleConfirmPassActivationRequest,
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_CONFIRM),
+      this.handleConfirmPassPaymentRequest,
     )
     this.composer.action(
-      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.PASS_PURCHASE_REJECT),
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_REJECT),
       this.handleRejectPassActivationRequest,
     )
   }
@@ -138,15 +138,22 @@ export class VerificationRequestComposer {
     })
   }
 
-  private handleConfirmPassActivationRequest = async (ctx: BotContext) => {
+  private handleConfirmPassPaymentRequest = async (ctx: BotContext) => {
     return this.handleActivatePassAction(ctx, async (passActivateRequest) => {
-      const result = await this.passService.acceptPassActivateRequest(passActivateRequest!.pass.id, passActivateRequest!.id)
+      const isRenewRequest = passActivateRequest?.type === PassActivationRequestTypeEnum.RENEW
+
+      const result = await this.passService.acceptPassActivateRequest(
+        passActivateRequest!.pass.id,
+        passActivateRequest!.id,
+        isRenewRequest,
+      )
 
       if (!result) {
         await BotHelper.safeAnswerCbQuery(ctx, 'Не вдалося активувати абонемент ❌', { show_alert: true })
         return ctx.deleteMessage()
       }
       BotHelper.safeAnswerCbQuery(ctx, 'Абонемент успішно активовано ✅', { show_alert: true })
+      
 
       await Promise.all([
         ctx.deleteMessage(),

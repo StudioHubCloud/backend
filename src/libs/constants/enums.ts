@@ -89,3 +89,8 @@ export enum PassActivationFileTypeEnum {
   PHOTO = 'photo',
   DOCUMENT = 'document',
 }
+
+export enum PassActivationRequestTypeEnum {
+  PURCHASE = 'purchase',
+  RENEW = 'renew',
+}

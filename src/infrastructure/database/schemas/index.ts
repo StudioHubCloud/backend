@@ -42,5 +42,6 @@ export {
   PaymentMethodPgEnum,
   PaymentStatusPgEnum,
   StudioPayoutRuleTypePgEnum,
-  PassActivationFileTypePgEnum
+  PassActivationFileTypePgEnum,
+  PassActivationRequestTypePgEnum
 } from '../database.enums'

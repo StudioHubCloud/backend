@@ -4,7 +4,7 @@ import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyM
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { COMMON_BUTTONS } from './common-keyboards'
-import { UserProfileRoleEnum } from '@app/libs'
+import { PassActivationRequestTypeEnum, UserProfileRoleEnum } from '@app/libs'
 
 export class AdminKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {
@@ -39,19 +39,16 @@ export class AdminKeyboards {
     ])
   }
 
-  static verifyPassPurchaseActions(userProfileId: string): TReplyInlineKeyboard {
+  static verifyPassActions(userProfileId: string): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
           text: BUTTON_PATTERNS.CONFIRM,
-          callback_data: RegexHelper.createButtonActionCallbackData(
-            CALLBACK_PREFIX.STAFF.USER.PASS_PURCHASE_CONFIRM,
-            userProfileId,
-          ),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_CONFIRM, userProfileId),
         },
         {
           text: BUTTON_PATTERNS.REJECT,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.PASS_PURCHASE_REJECT, userProfileId),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_REJECT, userProfileId),
         },
       ],
       [COMMON_BUTTONS.CLOSE],

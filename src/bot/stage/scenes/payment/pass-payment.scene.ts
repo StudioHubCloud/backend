@@ -10,16 +10,23 @@ import { PassTemplateService } from '@app/domain/pass-template'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { PassTemplateSelectModel } from '@app/infrastructure/database'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { DATE_FORMAT, PassActivationFileTypeEnum, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
+import {
+  DATE_FORMAT,
+  PassActivationFileTypeEnum,
+  PassActivationRequestTypeEnum,
+  PassStatusEnum,
+  PassTemplateTypeEnum,
+} from '@app/libs'
 import { Injectable } from '@nestjs/common'
 import { Scenes } from 'telegraf'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
 
-interface IPassPurchaseSceneState {
+interface IPassPaymentSceneState {
   userProfile: AuthUserProfile
   fileIds: string[]
   fileType: PassActivationFileTypeEnum
+  requestType: PassActivationRequestTypeEnum
   fileUpdateMessageIds: (number | null)[]
   passTemplate: PassTemplateSelectModel
   saleDate: string
@@ -29,8 +36,8 @@ interface IPassPurchaseSceneState {
 }
 
 @Injectable()
-export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
-  private readonly scene = new SceneHelper<IPassPurchaseSceneState>()
+export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
+  private readonly passPaymentScene = new SceneHelper<IPassPaymentSceneState>()
 
   constructor(
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
@@ -40,21 +47,36 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
     private readonly passService: PassService,
   ) {
     super(
-      SCENES.PASS_PURCHASE,
+      SCENES.PASS_PAYMENT,
       (ctx) => this.enterSceneHandler(ctx),
       (ctx) => this.passInlineMenuActionsHandler(ctx),
       (ctx) => this.filesUploadHandler(ctx),
     )
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
-      await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_PURCHASE_EXIT, ClientKeyboards.mainMenu({ withoutPass: true }))
+      const { requestType } = this.passPaymentScene.getState(ctx, ['requestType'])
+
+      const message =
+        requestType === PassActivationRequestTypeEnum.PURCHASE
+          ? MESSAGES_SCENE.PAYMENT.PASS_PURCHASE_EXIT
+          : MESSAGES_SCENE.PAYMENT.PASS_RENEW_EXIT
+
+      await ctx.replyWithHTML(message, ClientKeyboards.mainMenu({ withoutPass: true }))
       return ctx.scene.leave()
     })
 
     this.enter(async (ctx, next) => {
+      const { requestType } = this.passPaymentScene.getState(ctx, ['requestType'])
+
       const todayDateString = this.dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_MAIN)
-      const message = await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_PURCHASE_WELCOME, CommonSceneKeyboards.exit())
-      this.scene.setState(ctx, {
+
+      const messageText =
+        requestType === PassActivationRequestTypeEnum.PURCHASE
+          ? MESSAGES_SCENE.PAYMENT.PASS_PURCHASE_WELCOME
+          : MESSAGES_SCENE.PAYMENT.PASS_RENEW_WELCOME
+
+      const message = await ctx.replyWithHTML(messageText, CommonSceneKeyboards.exit())
+      this.passPaymentScene.setState(ctx, {
         saleDate: todayDateString,
         startMessageId: message.message_id,
         fileIds: [],
@@ -128,22 +150,22 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
       }
 
       if (isFileUpdate && fileId && fileType) {
-        const { fileIds, fileUpdateMessageIds, menuMessageId } = this.scene.getState(ctx, [
+        const { fileIds, fileUpdateMessageIds, menuMessageId } = this.passPaymentScene.getState(ctx, [
           'fileIds',
           'fileUpdateMessageIds',
           'menuMessageId',
         ])
 
-        this.scene.setState(ctx, {
+        this.passPaymentScene.setState(ctx, {
           fileIds: [...fileIds, fileId],
         })
 
         if (fileIds.length) {
-          this.scene.setState(ctx, { fileIds: [...fileIds] })
+          this.passPaymentScene.setState(ctx, { fileIds: [...fileIds] })
           return await ctx.deleteMessage().catch(() => null)
         }
 
-        this.scene.setState(ctx, {
+        this.passPaymentScene.setState(ctx, {
           fileType,
           fileUpdateMessageIds: [...fileUpdateMessageIds, ctx.message?.message_id ?? null],
         })
@@ -153,7 +175,7 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
         }
 
         const newMenuMessageId = await this.renderFileUploadMenu(ctx, false)
-        this.scene.setState(ctx, { menuMessageId: newMenuMessageId ?? null })
+        this.passPaymentScene.setState(ctx, { menuMessageId: newMenuMessageId ?? null })
       }
     } catch (error) {
       await this.handleError(ctx, error)
@@ -181,7 +203,7 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
   }
 
   private handlePassTypeSelectAction = async (ctx: BotContext, type: string) => {
-    this.scene.setState(ctx, { selectedPassType: type as PassTemplateTypeEnum })
+    this.passPaymentScene.setState(ctx, { selectedPassType: type as PassTemplateTypeEnum })
     return this.renderPassTemplateSelectMenu(ctx)
   }
 
@@ -195,7 +217,7 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
 
   private handlePassTemplateSelectAction = async (ctx: BotContext, templateId: string) => {
     const passTemplateData = await this.passTemplateService.getById(templateId)
-    const { userProfile } = this.scene.getState(ctx)
+    const { userProfile } = this.passPaymentScene.getState(ctx)
 
     if (passTemplateData.passTemplateAgeRestriction && userProfile?.dateOfBirth) {
       const { minAge, maxAge } = passTemplateData.passTemplateAgeRestriction
@@ -223,17 +245,26 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
 
     BotHelper.safeAnswerCbQuery(ctx)
 
-    this.scene.setState(ctx, { passTemplate: passTemplateData })
+    this.passPaymentScene.setState(ctx, { passTemplate: passTemplateData })
 
     const message_id = await this.renderFileUploadMenu(ctx)
 
-    this.scene.setState(ctx, { menuMessageId: message_id ?? null })
+    this.passPaymentScene.setState(ctx, { menuMessageId: message_id ?? null })
     return ctx.wizard.next()
   }
 
   private handleFileConfirmAction = async (ctx: BotContext) => {
-    const { fileUpdateMessageIds, menuMessageId, startMessageId, fileIds, userProfile, saleDate, passTemplate, fileType } =
-      this.scene.getState(ctx)
+    const {
+      fileUpdateMessageIds,
+      menuMessageId,
+      startMessageId,
+      fileIds,
+      userProfile,
+      saleDate,
+      passTemplate,
+      fileType,
+      requestType,
+    } = this.passPaymentScene.getState(ctx)
 
     const messagesToDelete = [...fileUpdateMessageIds, menuMessageId, startMessageId].filter((id): id is number => id !== null)
     const fileId = fileIds[0]
@@ -246,6 +277,7 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
       availableSlots: passTemplate.length,
       fileId,
       fileType,
+      type: requestType,
     })
 
     await ctx.deleteMessages(messagesToDelete)
@@ -255,8 +287,8 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
 
     for (const admin of studioAdmins) {
       await ctx.telegram[method](admin.telegramId, fileId, {
-        caption: MessageHelper.getClientPassPurchaseRequestMessage(userProfile, passTemplate),
-        ...AdminKeyboards.verifyPassPurchaseActions(activationRequest.id),
+        caption: MessageHelper.getClientPassPaymentRequestMessage(userProfile, passTemplate, requestType),
+        ...AdminKeyboards.verifyPassActions(activationRequest.id),
         parse_mode: 'HTML',
       })
     }
@@ -266,12 +298,12 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
   }
 
   private handleFileResetAction = async (ctx: BotContext) => {
-    const { fileUpdateMessageIds } = this.scene.getState(ctx, ['fileUpdateMessageIds'])
+    const { fileUpdateMessageIds } = this.passPaymentScene.getState(ctx, ['fileUpdateMessageIds'])
     const sanitizedIds = fileUpdateMessageIds.filter((id): id is number => id !== null)
     await ctx.deleteMessages(sanitizedIds)
-    this.scene.setState(ctx, { fileIds: [], fileUpdateMessageIds: [] })
+    this.passPaymentScene.setState(ctx, { fileIds: [], fileUpdateMessageIds: [] })
     const message_id = await this.renderFileUploadMenu(ctx)
-    this.scene.setState(ctx, { menuMessageId: message_id ?? null })
+    this.passPaymentScene.setState(ctx, { menuMessageId: message_id ?? null })
     return
   }
 
@@ -290,7 +322,7 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
   }
 
   private renderPassTemplateSelectMenu = async (ctx: BotContext) => {
-    const { selectedPassType } = this.scene.getState(ctx, ['selectedPassType'])
+    const { selectedPassType } = this.passPaymentScene.getState(ctx, ['selectedPassType'])
 
     const result = await this.passTemplateService.getAll()
     const filteredTemplates = result.filter((template) => template.type === selectedPassType)
@@ -306,7 +338,7 @@ export class PassPurchaseScene extends Scenes.WizardScene<BotContext> {
   }
 
   private renderFileUploadMenu = async (ctx: BotContext, shouldEdit: boolean = true): Promise<number | undefined> => {
-    const { passTemplate, fileIds } = this.scene.getState(ctx, ['passTemplate', 'fileIds'])
+    const { passTemplate, fileIds } = this.passPaymentScene.getState(ctx, ['passTemplate', 'fileIds'])
     let message = `✅ Обраний абонемент: <b>${passTemplate.name}</b>\n💰 Вартість: <b>${PassHelper.toDisplayPrice(passTemplate.price)}</b>\n\n`
 
     if (fileIds.length) {

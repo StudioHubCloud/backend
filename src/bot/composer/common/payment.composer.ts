@@ -5,6 +5,7 @@ import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
 import { UserHelper } from '@app/bot/helpers'
 import { SCENES } from '@app/bot/libs'
+import { PassActivationRequestTypeEnum } from '@app/libs'
 
 @Injectable()
 export class PaymentComposer {
@@ -34,12 +35,13 @@ export class PaymentComposer {
     if (hasPass) {
       return
     }
-    return ctx.scene.enter(SCENES.PASS_PURCHASE, { userProfile })
+    return ctx.scene.enter(SCENES.PASS_PAYMENT, { userProfile, requestType: PassActivationRequestTypeEnum.PURCHASE })
   }
   private passRenewActionHandler = async (ctx: BotContext) => {
     const [hasPass, userProfile] = UserHelper.hasPass(ctx)
     if (!hasPass) {
       return
     }
+    return ctx.scene.enter(SCENES.PASS_PAYMENT, { userProfile, requestType: PassActivationRequestTypeEnum.RENEW })
   }
 }

@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray } from 'drizzle-orm'
 import { add, addDays, subDays } from 'date-fns'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { PinoLogger } from 'nestjs-pino'
@@ -13,7 +13,13 @@ import {
   client,
 } from '@app/infrastructure/database'
 import { PassCacheKey, RedisCacheService } from '@app/infrastructure/redis'
-import { DATE_FORMAT, PassActivationFileTypeEnum, PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
+import {
+  DATE_FORMAT,
+  PassActivationFileTypeEnum,
+  PassActivationRequestTypeEnum,
+  PassStatusEnum,
+  UserProfileStatusEnum,
+} from '@app/libs'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { PASS_CONFIG } from '@app/bot/libs'
 import { PassActivationRequestService } from '../pass-activation-request'
@@ -43,9 +49,13 @@ export class PassService {
   }
 
   async createPassWithActivationRequest(
-    data: Omit<PassInsertModel, 'studioId'> & { fileId: string; fileType: PassActivationFileTypeEnum },
+    data: Omit<PassInsertModel, 'studioId'> & {
+      fileId: string
+      fileType: PassActivationFileTypeEnum
+      type: PassActivationRequestTypeEnum
+    },
   ) {
-    const { fileId, fileType, clientId, ...passData } = data
+    const { fileId, fileType, clientId, type, ...passData } = data
 
     return await this.databaseService.drizzle.transaction(async (tx) => {
       const pass = await this.createNewPass({ ...passData, clientId }, tx)
@@ -56,6 +66,7 @@ export class PassService {
           clientId,
           fileId,
           fileType,
+          type,
         },
         tx,
       )
@@ -306,7 +317,7 @@ export class PassService {
     )
   }
 
-  async acceptPassActivateRequest(passId: string, passActivationRequestId: string) {
+  async acceptPassActivateRequest(passId: string, passActivationRequestId: string, isRenewRequest: boolean) {
     const passToActivate = await this.getPassById(passId)
     if (!passToActivate) {
       throw new BadRequestException(`Pass with id ${passId} not found`)
@@ -314,6 +325,13 @@ export class PassService {
 
     if (passToActivate.status !== PassStatusEnum.REQUESTED) {
       throw new BadRequestException(`Pass with id ${passId} activation request is already processed`)
+    }
+
+    if (isRenewRequest) {
+      await this.databaseService.drizzle
+        .update(pass)
+        .set({ status: PassStatusEnum.EXPIRED })
+        .where(and(eq(pass.clientId, passToActivate.clientId), eq(pass.status, PassStatusEnum.ACTIVE)))
     }
 
     await this.databaseService.drizzle.transaction(async (tx) => {

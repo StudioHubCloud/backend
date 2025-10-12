@@ -19,8 +19,7 @@ export const SCENES = {
   EDIT_GROUP: 'edit_group',
   EDIT_PASS: 'edit_pass',
   EDIT_USER_PROFILE: 'edit_profile_name',
-  PASS_PURCHASE: 'pass_purchase',
-  PASS_RENEW: 'pass_renew',
+  PASS_PAYMENT: 'pass_payment',
 } as const
 
 export const CALLBACK_DATA = {
@@ -64,10 +63,8 @@ export const CALLBACK_PREFIX = {
       ACTIVATE_PASS_REQUESTS: 'u.rp.st',
       VERIFY_YES: 'u.vy.st',
       VERIFY_WITHOUT_PASS: 'u.vw.st',
-      PASS_PURCHASE_CONFIRM: 'u.pp.c.st',
-      PASS_PURCHASE_REJECT: 'u.pp.r.st',
-      PASS_RENEW_CONFIRM: 'u.pr.c.st',
-      PASS_RENEW_REJECT: 'u.pr.r.st',
+      PASS_PAYMENT_CONFIRM: 'u.pp.pay.c.st',
+      PASS_PAYMENT_REJECT: 'u.pp.pay.r.st',
       VERIFY_NO: 'u.vn.st',
       BLOCK: 'u.b.st',
     },
@@ -135,7 +132,7 @@ export const CALLBACK_PREFIX = {
       BACK: 'sc.file.b',
       CONFIRM: 'sc.file.c',
       RESET: 'sc.file.d',
-    }
+    },
   },
   COMMON: {
     AGREE_TO_RULES: 'cmn.agree.to.rules',

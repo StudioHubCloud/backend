@@ -1,4 +1,5 @@
 import {
+  PassActivationRequestTypeEnum,
   TPayoutStatistics,
   TrainingSignupStatusEnum,
   TrainingSignupTypeEnum,
@@ -53,10 +54,11 @@ export class MessageHelper {
       : `${modeText}${mainContent}`
   }
 
-  static getClientPassPurchaseRequestMessage(userProfile: UserProfileSelectModel, passTemplate: PassTemplateSelectModel) {
+  static getClientPassPaymentRequestMessage(userProfile: UserProfileSelectModel, passTemplate: PassTemplateSelectModel, requestType: PassActivationRequestTypeEnum) {
     const fullName = UserHelper.getDisplayName(userProfile)
     const price = PassHelper.toDisplayPrice(passTemplate.price)
-    return `Запит на <b><i>Активацію абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}`
+    const requestTypeText = requestType === PassActivationRequestTypeEnum.PURCHASE ? 'Активацію' : 'Поновлення'
+    return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}`
   }
 
   static constructPassSelectMessage(

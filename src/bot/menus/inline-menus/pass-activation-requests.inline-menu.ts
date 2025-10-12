@@ -64,20 +64,21 @@ export class PassActivationRequestsInlineMenu {
 
       BotHelper.safeAnswerCbQuery(ctx)
 
-      const { fileId, fileType } = passActivationRequest
+      const { fileId, fileType, type } = passActivationRequest
 
       try {
         await ctx.editMessageMedia(
           {
             type: fileType,
             media: fileId,
-            caption: MessageHelper.getClientPassPurchaseRequestMessage(
+            caption: MessageHelper.getClientPassPaymentRequestMessage(
               passActivationRequest.client.userProfile,
               passActivationRequest.pass.passTemplate,
+              type,
             ),
             parse_mode: 'HTML',
           },
-          AdminKeyboards.verifyPassPurchaseActions(passActivationRequest.id),
+          AdminKeyboards.verifyPassActions(passActivationRequest.id),
         )
       } catch (error) {
         await ctx.deleteMessage().catch(() => {})
