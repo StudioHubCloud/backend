@@ -125,13 +125,13 @@ export class PassService {
     let count = 0
 
     if (passesToActivate.length) {
-      const endDateString = this.dateTimeProvider.formatDateStringInTz(
-        addDays(now, PASS_CONFIG.DEFAULT_DURATION_IN_DAYS).toISOString(),
-        DATE_FORMAT.DATE_MAIN,
-      )
-
       await this.databaseService.drizzle.transaction(async (tx) => {
         for (const pass of passesToActivate) {
+          const endDateString = this.dateTimeProvider.formatDateStringInTz(
+            addDays(now, pass.passTemplate.durationDays).toISOString(),
+            DATE_FORMAT.DATE_MAIN,
+          )
+
           await this.updatePass(
             pass.id,
             {
@@ -301,7 +301,7 @@ export class PassService {
 
     const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
     const endDateString = this.dateTimeProvider.formatDateStringInTz(
-      addDays(new Date(), PASS_CONFIG.DEFAULT_DURATION_IN_DAYS).toISOString(),
+      addDays(new Date(), passToActivate.passTemplate.durationDays).toISOString(),
       DATE_FORMAT.DATE_MAIN,
     )
 

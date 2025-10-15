@@ -1,0 +1,1 @@
+ALTER TABLE "pass_template" ADD COLUMN "duration_days" smallint DEFAULT 30 NOT NULL;

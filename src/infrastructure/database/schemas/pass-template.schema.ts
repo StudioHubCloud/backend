@@ -1,4 +1,5 @@
-import { uuid, pgTable as table, uniqueIndex, varchar, integer, smallint, boolean } from 'drizzle-orm/pg-core'
+import { uuid, pgTable as table, uniqueIndex, varchar, integer, smallint } from 'drizzle-orm/pg-core'
+import { PASS_CONFIG } from '@app/bot/libs'
 import { relations } from 'drizzle-orm'
 import { PassTemplateTypePgEnum, PassTemplateStatusPgEnum } from '../database.enums'
 import { studio } from './studio.schema'
@@ -14,6 +15,7 @@ export const passTemplate = table(
     name: varchar('name').notNull(),
     price: integer('price').notNull(),
     length: smallint('length').notNull(),
+    durationDays: smallint('duration_days').notNull().default(PASS_CONFIG.DEFAULT_DURATION_IN_DAYS),
     type: PassTemplateTypePgEnum().notNull(),
     status: PassTemplateStatusPgEnum().notNull().default(PassTemplateStatusEnum.INACTIVE),
     studioId: uuid('studio_id')

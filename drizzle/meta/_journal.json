@@ -274,6 +274,13 @@
       "when": 1760558053469,
       "tag": "0065_add pass template status field",
       "breakpoints": true
+    },
+    {
+      "idx": 66,
+      "version": "7",
+      "when": 1760561434216,
+      "tag": "0066_add pass template durationDays field",
+      "breakpoints": true
     }
   ]
 }

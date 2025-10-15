@@ -145,7 +145,7 @@ export class TrainingSignupService {
 
       if (isPassInactive) {
         const startDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
-        const endDate = addDays(startDateString, PASS_CONFIG.DEFAULT_DURATION_IN_DAYS)
+        const endDate = addDays(startDateString, pass.passTemplate.durationDays)
 
         if (endDate < new Date()) {
           this.logger.warn('Pass %s is expired', passId)
