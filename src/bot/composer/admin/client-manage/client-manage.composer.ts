@@ -140,8 +140,6 @@ export class ClientManageComposer {
       }
     })
 
-    console.log(data, 'data')
-
     return this.clientSelectPaginatedMenu.initMenu(ctx, { data }, renderOptions)
   }
 

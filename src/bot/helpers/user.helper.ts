@@ -117,4 +117,9 @@ export class UserHelper {
     const hasPass = !!client && client.pass.length > 0
     return [hasPass, user]
   }
+
+  static checkHasPass(user: AuthUserProfile): boolean {
+    const client = user.client
+    return !!client && client.pass.length > 0
+  }
 }

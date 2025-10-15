@@ -1,5 +1,5 @@
 import { BotContext } from '@app/bot/bot.context'
-import { BotHelper, PassHelper, RegexHelper, SceneHelper } from '@app/bot/helpers'
+import { BotHelper, PassHelper, RegexHelper, SceneHelper, UserHelper } from '@app/bot/helpers'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { AdminKeyboards, ClientKeyboards, CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { PassRelatedKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
@@ -292,8 +292,8 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
         parse_mode: 'HTML',
       })
     }
-
-    await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS, ClientKeyboards.mainMenu())
+    const [hasPass] = UserHelper.hasPass(ctx)
+    await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS, ClientKeyboards.mainMenu({ withoutPass: !hasPass }))
     return ctx.scene.leave()
   }
 
@@ -368,6 +368,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
   }
 
   private async handleError(ctx: BotContext, error: any) {
+    const [hasPass] = UserHelper.hasPass(ctx)
     await BotHelper.safeSendMessage(
       ctx,
       this.configService.get('MAINTAINER_CHAT_ID'),
@@ -375,7 +376,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     )
     await ctx.replyWithHTML(
       `❌ Виникла помилка: ${error?.message}. Спробуйте ще раз або зверніться до адміністратора.`,
-      ClientKeyboards.mainMenu({ withoutPass: true }),
+      ClientKeyboards.mainMenu({ withoutPass: !hasPass }),
     )
     return ctx.scene.leave()
   }

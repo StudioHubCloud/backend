@@ -2,10 +2,12 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { MESSAGES_STAFF } from '@app/bot/static/messages'
-import { MaintainerKeyboards } from '@app/bot/keyboard/storage'
+import { ClientKeyboards, MaintainerKeyboards } from '@app/bot/keyboard/storage'
 import { AdminRootComposer } from '../admin/admin-root.composer'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { RedisCacheService } from '@app/infrastructure/redis'
+import { UserProfileService } from '@app/domain/user-profile'
+import { BotHelper, KeyboardHelper, UserHelper } from '@app/bot/helpers'
 
 @Injectable()
 export class MaintainerRootComposer {
@@ -14,6 +16,7 @@ export class MaintainerRootComposer {
   constructor(
     private readonly adminRootComposer: AdminRootComposer,
     private readonly redisCacheService: RedisCacheService,
+    private readonly userProfileService: UserProfileService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -40,6 +43,23 @@ export class MaintainerRootComposer {
     this.composer.hears(BUTTON_PATTERNS.CLEAR_CACHE, async (ctx) => {
       await this.redisCacheService.reset()
       await ctx.reply('Кеш очищено ✅')
+    })
+    this.composer.hears(BUTTON_PATTERNS.RESET_MAIN_MENU, async (ctx) => {
+      const clients = await this.userProfileService.getClientsUserProfiles({ withArchived: true })
+
+      await Promise.all(
+        clients.map(async (userProfile) => {
+          const hasPass = UserHelper.checkHasPass(userProfile)
+          BotHelper.safeSendMessage(
+            ctx,
+            userProfile.telegramId,
+            '🔄 Оновлення головного меню',
+            ClientKeyboards.mainMenu({ withoutPass: !hasPass }),
+          )
+        }),
+      )
+
+      await ctx.reply(`Головне меню оновлено для ${clients.length} клієнтів ✅`)
     })
   }
 

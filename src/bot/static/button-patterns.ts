@@ -70,6 +70,7 @@ export const BUTTON_PATTERNS = {
   CLIENT_PASS_BUY: '💵 Купити абонемент',
   CLIENT_PASS_RENEW: '🔁 Поновити абонемент',
   CLEAR_CACHE: '🧹 Очистити кеш',
+  RESET_MAIN_MENU: '🔄 Оновити головне меню',
   BACK_TO_MAIN_MENU: '🔙 Назад до головного меню',
   CONFIGURE_BOT: '⚙️ Налаштування бота',
 } as const
