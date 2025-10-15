@@ -1,0 +1,2 @@
+CREATE TYPE "public"."pass_template_status_enum" AS ENUM('active', 'inactive');--> statement-breakpoint
+ALTER TABLE "pass_template" ADD COLUMN "status" "pass_template_status_enum" DEFAULT 'inactive' NOT NULL;

@@ -267,6 +267,13 @@
       "when": 1760290323019,
       "tag": "0064_add request type to activeRequest table",
       "breakpoints": true
+    },
+    {
+      "idx": 65,
+      "version": "7",
+      "when": 1760558053469,
+      "tag": "0065_add pass template status field",
+      "breakpoints": true
     }
   ]
 }

@@ -56,6 +56,11 @@ export enum PassTemplateTypeEnum {
   INDIVIDUAL = 'individual',
 }
 
+export enum PassTemplateStatusEnum {
+  ACTIVE = 'active',
+  INACTIVE = 'inactive',
+}
+
 export enum StudioPriceTypeEnum {
   TRIAL = 'trial',
   ONE_TIME_GROUP = 'one_time_group',
@@ -94,3 +99,4 @@ export enum PassActivationRequestTypeEnum {
   PURCHASE = 'purchase',
   RENEW = 'renew',
 }
+

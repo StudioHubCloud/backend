@@ -1,6 +1,7 @@
 import { TypedConfigService } from '@app/infrastructure/config'
 import { DatabaseService } from '@app/infrastructure/database'
 import { PassTemplateCacheKey, RedisCacheService } from '@app/infrastructure/redis'
+import { PassTemplateStatusEnum } from '@app/libs'
 import { Injectable, NotFoundException } from '@nestjs/common'
 
 @Injectable()
@@ -24,7 +25,8 @@ export class PassTemplateService {
     }
 
     const passTemplates = await this.databaseService.drizzle.query.passTemplate.findMany({
-      where: (passTemplate, { eq }) => eq(passTemplate.studioId, this.studioId),
+      where: (passTemplate, { eq, and }) =>
+        and(eq(passTemplate.studioId, this.studioId), eq(passTemplate.status, PassTemplateStatusEnum.ACTIVE)),
     })
 
     if (passTemplates.length) {
