@@ -64,7 +64,7 @@ export class MessageHelper {
   static constructPassSelectMessage(
     data: PassTemplateSelectModel & { passTemplateAgeRestriction: PassTemplateAgeRestrictionSelectModel | null },
   ) {
-    const { name, price, length, passTemplateAgeRestriction } = data
+    const { name, price, length, passTemplateAgeRestriction, durationDays } = data
 
     const ageRestrictionInfo = passTemplateAgeRestriction
       ? `👶 Вікові обмеження: ${TextHelper.bold(`${passTemplateAgeRestriction.minAge}-${passTemplateAgeRestriction.maxAge} років`)}`
@@ -74,6 +74,7 @@ export class MessageHelper {
       `🎫 Інформація про абонемент "${TextHelper.italic(name)}":\n\n` +
       `💰 Ціна: ${TextHelper.bold(PassHelper.toDisplayPrice(price))}\n` +
       `🎫 Кількість: ${TextHelper.bold(`${length} тренувань`)}\n` +
+      `📅 Тривалість: ${TextHelper.bold(`${durationDays} днів`)}\n` +
       `${ageRestrictionInfo}`
     )
   }
