@@ -477,6 +477,40 @@ export class TrainingSignupService {
     return result
   }
 
+  async getActiveTrainingSignupByPassId(passId: string) {
+    const cachekey = TrainingSignupCacheKey.activeSignupsByPassId(passId)
+
+    const cachedSignups = await this.redisCacheService.get<typeof result>(cachekey)
+    if (cachedSignups) {
+      return cachedSignups
+    }
+
+    const result = await this.databaseService.drizzle.query.trainingSignup.findMany({
+      where: (ts, { eq, and }) => and(eq(ts.passId, passId), eq(ts.status, TrainingSignupStatusEnum.ACTIVE)),
+      with: {
+        training: true,
+        userProfile: true,
+        group: true,
+      },
+    })
+
+    if (result) {
+      this.redisCacheService.set(cachekey, result)
+    }
+    return result
+  }
+
+  async getTrainingSignupsByPassId(passId: string) {
+    return this.databaseService.drizzle.query.trainingSignup.findMany({
+      where: (ts, { eq, and }) => and(eq(ts.passId, passId), eq(ts.status, TrainingSignupStatusEnum.ACTIVE)),
+      with: {
+        training: true,
+        userProfile: true,
+        group: true,
+      },
+    })
+  }
+
   private async checkIfHasTrialSignup(userProfileId: string): Promise<boolean> {
     const [signups] = await this.findTrainingSignupsByCondition({
       userProfileId,

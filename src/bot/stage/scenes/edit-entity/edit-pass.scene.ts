@@ -11,6 +11,7 @@ import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { DATE_FORMAT } from '@app/libs/constants/global'
 import { PassSelectModel, PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
+import { TrainingSignupService } from '@app/domain/training-signup'
 
 export interface IEditPassSceneState extends TEditEntitySceneMetaData {
   action: TEditPassSceneAction
@@ -45,6 +46,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly passService: PassService,
     private readonly configService: TypedConfigService,
+    private readonly trainingSignupService: TrainingSignupService,
   ) {
     super(
       SCENES.EDIT_PASS,
@@ -216,8 +218,8 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
       const { role } = UserHelper.getUser(ctx)
       const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
 
-      await ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, keyboard),
-        await this.renderPassManageMenu(ctx)
+      await ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, keyboard)
+      await this.renderPassManageMenu(ctx)
       return ctx.scene.leave()
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
@@ -228,11 +230,19 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
     const { originalPass, clientUserId, clientUserProfile } = this.scene.getState(ctx)
     const pass = await this.passService.getPassById(originalPass.id)
 
+    if (!pass) {
+      await ctx.replyWithHTML('❌ Не вдалося завантажити абонемент для відображення меню управління.')
+      return ctx.scene.leave()
+    }
+
+    const trainingSignups = await this.trainingSignupService.getActiveTrainingSignupByPassId(pass.id)
+
     await PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
       pass: pass as typeof originalPass,
       fullName: UserHelper.getDisplayName(clientUserProfile),
       clientUserId,
       shouldEdit: false,
+      trainingSignups,
     })
   }
 }

@@ -18,4 +18,8 @@ export class TrainingSignupCacheKey {
      static trainingCanceledSignups(trainingId: number): string {
           return `${this.cache_key_prefix}:canceled:${trainingId}`
      }
+
+     static activeSignupsByPassId(passId: string): string {
+          return `${this.cache_key_prefix}:active:pass:${passId}`
+     }
 }

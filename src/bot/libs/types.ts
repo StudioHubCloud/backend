@@ -111,6 +111,11 @@ export interface GetTrainingByIdResponse extends TrainingSelectModel {
     | null
 }
 
+export interface GetTrainingSignupsByPassIdResponse extends TrainingSignupSelectModel {
+  training: TrainingSelectModel | null
+  group: GroupSelectModel | null
+}
+
 export interface TEditEntitySceneMetaData {
   // meta data
   isInitialRun: boolean

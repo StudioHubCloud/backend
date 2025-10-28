@@ -1,7 +1,7 @@
 import { PassSelectModel, PassTemplateSelectModel } from '@app/infrastructure/database'
 import { PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
 import { addDays } from 'date-fns'
-import { PASS_CONFIG } from '../libs'
+import { GetTrainingSignupsByPassIdResponse, PASS_CONFIG } from '../libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { TextHelper } from './text.helper'
 import { BotContext } from '../bot.context'
@@ -56,6 +56,37 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
     return text
   }
 
+  static getPassWithSignupsInfoMessage(
+    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel },
+    dateTimeProvider: DateTimeProvider,
+    fullName: string = '',
+    trainingSignups: GetTrainingSignupsByPassIdResponse[] = [],
+  ) {
+    let baseMessage = this.getPassInfoMessage(pass, dateTimeProvider, fullName)
+
+    if (trainingSignups.length) {
+      const signupsInfo = trainingSignups
+        .map((signup) => {
+          if (signup.training === null) {
+            const groupName = signup.group ? `(${signup.group.name})` : ''
+            return `• Видалене тренування|${groupName}`
+          }
+
+          const formattedDate = dateTimeProvider.formatDateStringInTz(signup.training.date, 'dd MMMM')
+          const formattedTime = dateTimeProvider.formatDateStringInTz(signup.training.date, 'HH:mm')
+
+          const trainingDate = `${formattedDate} ${formattedTime}`
+          const groupName = signup.group ? `${signup.group.name}` : ''
+          return `• ${trainingDate} ${groupName}`
+        })
+        .join('\n')
+
+      baseMessage += `\n\n🗓️ Записи на тренування:\n${signupsInfo}`
+    }
+
+    return baseMessage
+  }
+
   static async renderPassManageMenu(
     ctx: BotContext,
     dateTimeProvider: DateTimeProvider,
@@ -65,11 +96,12 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
       clientUserId: string
       shouldEdit?: boolean
       editMessageId?: number
+      trainingSignups: GetTrainingSignupsByPassIdResponse[]
     },
   ) {
-    const { pass, fullName, clientUserId, shouldEdit = true } = data
+    const { pass, fullName, clientUserId, shouldEdit = true, trainingSignups = [] } = data
 
-    const message = PassHelper.getPassInfoMessage(pass, dateTimeProvider, fullName)
+    const message = PassHelper.getPassWithSignupsInfoMessage(pass, dateTimeProvider, fullName, trainingSignups)
     const isPassActive = PassHelper.isPassActivated(pass)
     if (!shouldEdit) {
       if (data.editMessageId) {

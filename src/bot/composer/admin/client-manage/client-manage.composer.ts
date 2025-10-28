@@ -24,6 +24,7 @@ import { AdminKeyboards } from '@app/bot/keyboard/storage/admin-keyboards'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
 import { ClientHelper } from '@app/bot/helpers/client.helper'
+import { TrainingSignupService } from '@app/domain/training-signup'
 
 @Injectable()
 export class ClientManageComposer {
@@ -33,6 +34,7 @@ export class ClientManageComposer {
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly clientSelectPaginatedMenu: ClientSelectPaginatedMenu,
     private readonly userProfileService: UserProfileService,
+    private readonly trainingSignupService: TrainingSignupService,
     private readonly passService: PassService,
   ) {
     this.composer = new Composer<BotContext>()
@@ -166,10 +168,13 @@ export class ClientManageComposer {
 
     BotHelper.safeAnswerCbQuery(ctx)
 
+    const trainingSignups = await this.trainingSignupService.getActiveTrainingSignupByPassId(clientPass.id)
+
     return PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
       pass: clientPass,
       fullName: UserHelper.getDisplayName(clientUserProfile),
       clientUserId: clientUserProfile.id,
+      trainingSignups
     })
   }
 
