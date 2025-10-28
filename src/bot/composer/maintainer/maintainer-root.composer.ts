@@ -49,13 +49,7 @@ export class MaintainerRootComposer {
 
       await Promise.all(
         clients.map(async (userProfile) => {
-          const hasPass = UserHelper.checkHasPass(userProfile)
-          BotHelper.safeSendMessage(
-            ctx,
-            userProfile.telegramId,
-            '🔄 Оновлення головного меню',
-            ClientKeyboards.mainMenu({ withoutPass: !hasPass }),
-          )
+          BotHelper.safeSendMessage(ctx, userProfile.telegramId, '🔄 Оновлення головного меню', ClientKeyboards.mainMenu())
         }),
       )
 

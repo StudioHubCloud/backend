@@ -61,7 +61,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
           ? MESSAGES_SCENE.PAYMENT.PASS_PURCHASE_EXIT
           : MESSAGES_SCENE.PAYMENT.PASS_RENEW_EXIT
 
-      await ctx.replyWithHTML(message, ClientKeyboards.mainMenu({ withoutPass: true }))
+      await ctx.replyWithHTML(message, ClientKeyboards.mainMenu())
       return ctx.scene.leave()
     })
 
@@ -292,8 +292,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
         parse_mode: 'HTML',
       })
     }
-    const [hasPass] = UserHelper.hasPass(ctx)
-    await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS, ClientKeyboards.mainMenu({ withoutPass: !hasPass }))
+    await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS, ClientKeyboards.mainMenu())
     return ctx.scene.leave()
   }
 
@@ -368,7 +367,6 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
   }
 
   private async handleError(ctx: BotContext, error: any) {
-    const [hasPass] = UserHelper.hasPass(ctx)
     await BotHelper.safeSendMessage(
       ctx,
       this.configService.get('MAINTAINER_CHAT_ID'),
@@ -376,7 +374,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     )
     await ctx.replyWithHTML(
       `❌ Виникла помилка: ${error?.message}. Спробуйте ще раз або зверніться до адміністратора.`,
-      ClientKeyboards.mainMenu({ withoutPass: !hasPass }),
+      ClientKeyboards.mainMenu(),
     )
     return ctx.scene.leave()
   }

@@ -68,8 +68,8 @@ export class BotService {
     })
 
     this.bot.hears('🚪 Вийти', (ctx) => {
-      const [hasPass, user] = UserHelper.hasPass(ctx)
-      ctx.replyWithHTML('Головне меню', KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role, { withoutPass: !hasPass }))
+      const user = UserHelper.getUser(ctx)
+      ctx.replyWithHTML('Головне меню', KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role))
       this.logger.error('Global Scene Exit guard triggered for userId: %s', user.telegramId)
 
       if (ctx.scene.current?.id) {

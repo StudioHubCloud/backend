@@ -105,7 +105,7 @@ export class VerificationRequestComposer {
         ctx,
         userProfile.telegramId,
         MessageHelper.getClientWithoutPassVerifySuccess(userProfile.firstName),
-        ClientKeyboards.mainMenu({ withoutPass: true }),
+        ClientKeyboards.mainMenu(),
       )
 
       await BotHelper.safeAnswerCbQuery(ctx, 'Клієнт успішно верифікований ✅', { show_alert: true })
@@ -183,7 +183,7 @@ export class VerificationRequestComposer {
           ctx,
           passActivateRequest!.client.userProfile.telegramId,
           `🚫 Ваш запит на активацію абонементу <b>${passActivateRequest!.pass.passTemplate.name}</b> було відхилено адміністратором.`,
-          { ...ClientKeyboards.mainMenu({ withoutPass: true }), parse_mode: 'HTML' },
+          { ...ClientKeyboards.mainMenu(), parse_mode: 'HTML' },
         ),
       ])
     })

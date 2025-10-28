@@ -40,8 +40,8 @@ export class ClientRootComposer {
   }
 
   private startHandler = async (ctx: BotContext) => {
-    const [hasPass, user] = UserHelper.hasPass(ctx)
-    return ctx.reply(MessageHelper.makeClientGreetingsMessage(user.firstName), ClientKeyboards.mainMenu({ withoutPass: !hasPass }))
+    const user = UserHelper.getUser(ctx)
+    return ctx.reply(MessageHelper.makeClientGreetingsMessage(user.firstName), ClientKeyboards.mainMenu())
   }
 
   middleware() {

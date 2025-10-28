@@ -22,7 +22,6 @@ export class PaymentComposer {
   initComposerHandlers() {
     this.composer.hears(BUTTON_PATTERNS.PAYMENT, this.paymentDataHandler)
     this.composer.hears(BUTTON_PATTERNS.CLIENT_PASS_BUY, this.passPurchaseActionHandler)
-    this.composer.hears(BUTTON_PATTERNS.CLIENT_PASS_RENEW, this.passRenewActionHandler)
   }
 
   private paymentDataHandler = async (ctx: BotContext) => {
@@ -32,16 +31,6 @@ export class PaymentComposer {
 
   private passPurchaseActionHandler = async (ctx: BotContext) => {
     const [hasPass, userProfile] = UserHelper.hasPass(ctx)
-    if (hasPass) {
-      return
-    }
-    return ctx.scene.enter(SCENES.PASS_PAYMENT, { userProfile, requestType: PassActivationRequestTypeEnum.PURCHASE })
-  }
-  private passRenewActionHandler = async (ctx: BotContext) => {
-    const [hasPass, userProfile] = UserHelper.hasPass(ctx)
-    if (!hasPass) {
-      return
-    }
-    return ctx.scene.enter(SCENES.PASS_PAYMENT, { userProfile, requestType: PassActivationRequestTypeEnum.RENEW })
+    return ctx.scene.enter(SCENES.PASS_PAYMENT, { userProfile, requestType: hasPass ? PassActivationRequestTypeEnum.RENEW : PassActivationRequestTypeEnum.PURCHASE })
   }
 }

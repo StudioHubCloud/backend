@@ -137,9 +137,9 @@ export class KeyboardHelper {
     })
   }
 
-  static getRoleBasedMainMenuKeyboard(role: UserProfileRoleEnum, { withoutPass = false }: { withoutPass?: boolean } = {}) {
+  static getRoleBasedMainMenuKeyboard(role: UserProfileRoleEnum) {
     const KeyboardsMap = {
-      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu({ withoutPass }),
+      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu(),
       [UserProfileRoleEnum.GUEST]: GuestKeyboards.mainMenu(),
       [UserProfileRoleEnum.TRAINER]: TrainerKeyboards.mainMenu(),
       [UserProfileRoleEnum.ADMIN]: AdminKeyboards.mainMenu(),
