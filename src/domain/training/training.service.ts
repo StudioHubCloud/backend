@@ -180,6 +180,12 @@ export class TrainingService {
                 ),
               ),
           ),
+          exists(
+            this.databaseService.drizzle
+              .select()
+              .from(group)
+              .where(and(eq(group.id, training.groupId), eq(group.studioId, this.configService.get('STUDIO_ID')))),
+          ),
         ),
       with: {
         trainingSignups: {
