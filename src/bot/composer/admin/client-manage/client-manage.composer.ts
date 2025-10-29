@@ -168,7 +168,7 @@ export class ClientManageComposer {
 
     BotHelper.safeAnswerCbQuery(ctx)
 
-    const trainingSignups = await this.trainingSignupService.getActiveTrainingSignupByPassId(clientPass.id)
+    const trainingSignups = await this.trainingSignupService.getTrainingSignupByPassId(clientPass.id)
 
     return PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
       pass: clientPass,

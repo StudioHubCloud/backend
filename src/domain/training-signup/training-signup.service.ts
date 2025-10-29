@@ -1,5 +1,5 @@
 import { forwardRef, Inject, Injectable } from '@nestjs/common'
-import { and, eq } from 'drizzle-orm'
+import { and, eq, ne } from 'drizzle-orm'
 import { PinoLogger } from 'nestjs-pino'
 import { addDays, isAfter, isBefore, subHours } from 'date-fns'
 import {
@@ -24,7 +24,7 @@ import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
 import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
-import { COMMON, PASS_CONFIG } from '@app/bot/libs'
+import { COMMON } from '@app/bot/libs'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { UserProfileService } from '../user-profile'
 
@@ -477,8 +477,8 @@ export class TrainingSignupService {
     return result
   }
 
-  async getActiveTrainingSignupByPassId(passId: string) {
-    const cachekey = TrainingSignupCacheKey.activeSignupsByPassId(passId)
+  async getTrainingSignupByPassId(passId: string) {
+    const cachekey = TrainingSignupCacheKey.signupsByPassId(passId)
 
     const cachedSignups = await this.redisCacheService.get<typeof result>(cachekey)
     if (cachedSignups) {
@@ -486,10 +486,9 @@ export class TrainingSignupService {
     }
 
     const result = await this.databaseService.drizzle.query.trainingSignup.findMany({
-      where: (ts, { eq, and }) => and(eq(ts.passId, passId), eq(ts.status, TrainingSignupStatusEnum.ACTIVE)),
+      where: (ts, { eq, and }) => and(eq(ts.passId, passId), ne(ts.status, TrainingSignupStatusEnum.CANCELED)),
       with: {
         training: true,
-        userProfile: true,
         group: true,
       },
     })
@@ -498,17 +497,6 @@ export class TrainingSignupService {
       this.redisCacheService.set(cachekey, result)
     }
     return result
-  }
-
-  async getTrainingSignupsByPassId(passId: string) {
-    return this.databaseService.drizzle.query.trainingSignup.findMany({
-      where: (ts, { eq, and }) => and(eq(ts.passId, passId), eq(ts.status, TrainingSignupStatusEnum.ACTIVE)),
-      with: {
-        training: true,
-        userProfile: true,
-        group: true,
-      },
-    })
   }
 
   private async checkIfHasTrialSignup(userProfileId: string): Promise<boolean> {

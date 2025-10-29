@@ -64,24 +64,27 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
   ) {
     let baseMessage = this.getPassInfoMessage(pass, dateTimeProvider, fullName)
 
+    const groupedSignups = Object.groupBy(trainingSignups, ({ group }) => `${group?.name ?? 'Невідома група'}`)
+
     if (trainingSignups.length) {
-      const signupsInfo = trainingSignups
-        .map((signup) => {
-          if (signup.training === null) {
-            const groupName = signup.group ? `(${signup.group.name})` : ''
-            return `• Видалене тренування|${groupName}`
-          }
+      const signupsInfo = Object.entries(groupedSignups)
+        .map(([groupName, signups = []]) => {
+          const dates = signups
+            .map((signup) => {
+              if (signup.training === null) {
+                return `• <i>Видалене тренування</i>`
+              }
+              const formattedDate = dateTimeProvider.formatDateStringInTz(signup.training.date, 'dd MMMM')
+              const formattedTime = dateTimeProvider.formatDateStringInTz(signup.training.date, 'HH:mm')
+              return `• <i>${formattedDate} ${formattedTime}</i>`
+            })
+            .join('\n')
 
-          const formattedDate = dateTimeProvider.formatDateStringInTz(signup.training.date, 'dd MMMM')
-          const formattedTime = dateTimeProvider.formatDateStringInTz(signup.training.date, 'HH:mm')
-
-          const trainingDate = `${formattedDate} ${formattedTime}`
-          const groupName = signup.group ? `${signup.group.name}` : ''
-          return `• ${trainingDate} ${groupName}`
+          return `<b>${groupName}</b>\n${dates}`
         })
         .join('\n')
 
-      baseMessage += `\n\n🗓️ Записи на тренування:\n${signupsInfo}`
+      baseMessage += `\n\n${signupsInfo}`
     }
 
     return baseMessage
