@@ -26,6 +26,11 @@ export class BotService {
     const isProduction = this.configService.get('NODE_ENV') === ENVIRONMENTS.PRODUCTION
     const token = this.configService.get(isProduction ? 'BOT_TOKEN' : 'BOT_TOKEN_TEST')
 
+    if (!token) {
+      this.logger.error('Bot token is not provided. Please set BOT_TOKEN or BOT_TOKEN_TEST environment variable.')
+      throw new Error('Bot token is not provided')
+    }
+
     this.bot = new Telegraf<BotContext>(token, {
       contextType: BotContext,
     })
