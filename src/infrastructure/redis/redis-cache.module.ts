@@ -2,6 +2,7 @@ import { Global, Module } from '@nestjs/common'
 import Redis from 'ioredis'
 import { TypedConfigService } from '../config'
 import { RedisCacheService } from './redis-cache.service'
+import { ENVIRONMENTS } from '@app/libs'
 
 @Global()
 @Module({
@@ -10,8 +11,15 @@ import { RedisCacheService } from './redis-cache.service'
       provide: 'REDIS_CLIENT',
       inject: [TypedConfigService],
       useFactory: (configService: TypedConfigService) => {
-        console.log(configService.get('REDIS_URL'))
-        return new Redis(configService.get('REDIS_URL'))
+        console.log(configService.get('REDIS_URL'), 'RESOLVED REDIS URL')
+        return new Redis(configService.get('REDIS_URL'), {
+          tls: ENVIRONMENTS.PRODUCTION
+          
+            ? {
+                rejectUnauthorized: false,
+              }
+            : undefined,
+        })
       },
     },
     RedisCacheService,
