@@ -6,7 +6,7 @@ export const environmentsSchema = z.object({
   REDIS_URL: z.string(),
   DATABASE_URL: z.string(),
   BOT_TOKEN: z.string(),
-  BOT_TOKEN_TEST: z.string().optional(),
+  BOT_TOKEN_TEST: z.string().default(''),
   MAINTAINER_CHAT_ID: z.string(),
   TIME_ZONE: z.string().default('Europe/Kyiv'),
   RAILWAY_PUBLIC_DOMAIN: z.string().default('localhost'),
@@ -14,7 +14,7 @@ export const environmentsSchema = z.object({
   LOG_LEVEL_HTTP: z.enum(['debug', 'info', 'warn', 'error', 'trace']).default('debug'),
   NODE_ENV: z.enum([ENVIRONMENTS.DEV, ENVIRONMENTS.PRODUCTION]).default(ENVIRONMENTS.DEV),
   STUDIO_ID: z.string(),
-  STUDIO_ID_TEST: z.string().optional(),
+  STUDIO_ID_TEST: z.string().default(''),
   GOOGLE_PLACE_ID: z.string(),
 })
 
