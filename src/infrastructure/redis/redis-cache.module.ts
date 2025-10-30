@@ -4,7 +4,7 @@ import { redisStore } from 'cache-manager-ioredis-yet'
 import { Global, Module } from '@nestjs/common'
 import { TypedConfigService } from '../config'
 import { RedisCacheService } from './redis-cache.service'
-import { CACHE } from '@app/libs'
+import { CACHE, ENVIRONMENTS } from '@app/libs'
 
 @Global()
 @Module({
@@ -14,9 +14,9 @@ import { CACHE } from '@app/libs'
       inject: [TypedConfigService],
       useFactory: async (configService: TypedConfigService) => ({
         store: redisStore,
-        host: configService.get('REDIS_HOST'),
-        port: configService.get('REDIS_PORT'),
+        url: configService.get('REDIS_URL'),
         ttl: CACHE.DEFAULT_TTL,
+        tls: process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? { rejectUnauthorized: false } : undefined,
       }),
     }),
   ],
