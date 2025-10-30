@@ -13,10 +13,7 @@ import { CACHE } from '@app/libs'
       isGlobal: true,
       inject: [TypedConfigService],
       useFactory: async (configService: TypedConfigService) => {
-
-         const redisUrl = configService.get('REDIS_URL')
-        console.log('🔴 Connecting to Redis URL:', redisUrl)
-
+        const redisUrl = configService.get('REDIS_URL')
         return {
           store: redisStore,
           url: redisUrl,
