@@ -18,6 +18,7 @@ import { CACHE } from '@app/libs'
           store: redisStore,
           url: redisUrl,
           ttl: CACHE.DEFAULT_TTL,
+          db: 0,
         }
       },
     }),
