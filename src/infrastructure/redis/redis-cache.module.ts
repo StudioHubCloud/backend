@@ -1,29 +1,21 @@
-import { RedisOptions } from 'ioredis'
-import { CacheModule } from '@nestjs/cache-manager'
-import { redisStore } from 'cache-manager-ioredis-yet'
 import { Global, Module } from '@nestjs/common'
+import Redis from 'ioredis'
 import { TypedConfigService } from '../config'
 import { RedisCacheService } from './redis-cache.service'
-import { CACHE } from '@app/libs'
 
 @Global()
 @Module({
-  imports: [
-    CacheModule.registerAsync<RedisOptions>({
-      isGlobal: true,
+  providers: [
+    {
+      provide: 'REDIS_CLIENT',
       inject: [TypedConfigService],
-      useFactory: async (configService: TypedConfigService) => {
-        const redisUrl = configService.get('REDIS_URL')
-        return {
-          store: redisStore,
-          url: redisUrl,
-          ttl: CACHE.DEFAULT_TTL,
-          db: 0,
-        }
+      useFactory: (configService: TypedConfigService) => {
+        console.log(configService.get('REDIS_URL'))
+        return new Redis(configService.get('REDIS_URL'))
       },
-    }),
+    },
+    RedisCacheService,
   ],
-  providers: [RedisCacheService],
-  exports: [CacheModule, RedisCacheService],
+  exports: [RedisCacheService],
 })
 export class RedisCacheModule {}

@@ -22,5 +22,5 @@ export const ENVIRONMENTS = {
   PRODUCTION: 'production',
 }
 export const CACHE = {
-  DEFAULT_TTL: 5 * 60 * 1000, // 5 minutes
+  DEFAULT_TTL: 5 * 60, // 5 minutes
 } as const
