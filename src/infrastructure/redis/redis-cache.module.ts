@@ -13,8 +13,8 @@ import { ENVIRONMENTS } from '@app/libs'
       useFactory: (configService: TypedConfigService) => {
         console.log(configService.get('REDIS_URL'), 'RESOLVED REDIS URL')
         return new Redis(configService.get('REDIS_URL'), {
+          family: 6,
           tls: ENVIRONMENTS.PRODUCTION
-          
             ? {
                 rejectUnauthorized: false,
               }
