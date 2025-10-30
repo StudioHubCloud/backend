@@ -15,10 +15,10 @@ import { ENVIRONMENTS } from '@app/libs'
       inject: [TypedConfigService],
       useFactory: async (configService: TypedConfigService) => {
         const DB_URL = configService.get('DATABASE_URL')
-        // const sslConfig = process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? { rejectUnauthorized: false } : true
+        const sslConfig = process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? { rejectUnauthorized: false } : true
         const pool = new Pool({
           connectionString: DB_URL,
-          ssl: true,
+          ssl: sslConfig,
         })
         return drizzle(pool, { schema }) as Database
       },
