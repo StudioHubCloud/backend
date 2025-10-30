@@ -5,6 +5,7 @@ import { Pool } from 'pg'
 import { DATABASE_CONNECTION_DRIZZLE } from './database.connection'
 import * as schema from './schemas'
 import { DatabaseService } from './database.service'
+import { ENVIRONMENTS } from '@app/libs'
 
 @Global()
 @Module({
@@ -16,7 +17,7 @@ import { DatabaseService } from './database.service'
         const DB_URL = configService.get('DATABASE_URL')
         const pool = new Pool({
           connectionString: DB_URL,
-          ssl: true,
+          ssl: process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? { rejectUnauthorized: false } : false,
         })
         return drizzle(pool, { schema }) as Database
       },
