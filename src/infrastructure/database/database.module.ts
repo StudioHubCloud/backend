@@ -15,8 +15,6 @@ import { ENVIRONMENTS } from '@app/libs'
       inject: [TypedConfigService],
       useFactory: async (configService: TypedConfigService) => {
         const DB_URL = configService.get('DATABASE_URL')
-        console.log('🔍 DATABASE_URL:', DB_URL) // Log this in production
-        console.log('🔍 NODE_ENV:', process.env.NODE_ENV)
         const sslConfig = process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? { rejectUnauthorized: false } : false
         const pool = new Pool({
           connectionString: DB_URL,

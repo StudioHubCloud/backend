@@ -1,13 +1,13 @@
 import Redis from 'ioredis'
-import { CACHE } from '@app/libs'
-import { Cache } from '@nestjs/cache-manager'
 import { Inject, Injectable } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
+import { REDIS_CACHE_CLIENT } from './redis-cache.symbol'
+import { CACHE } from '@app/libs'
 
 @Injectable()
 export class RedisCacheService {
   constructor(
-    @Inject('REDIS_CLIENT') private readonly redis: Redis,
+    @Inject(REDIS_CACHE_CLIENT) private readonly redis: Redis,
     private readonly logger: PinoLogger,
   ) {}
 
