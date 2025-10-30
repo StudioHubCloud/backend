@@ -16,7 +16,7 @@ import { CACHE, ENVIRONMENTS } from '@app/libs'
         store: redisStore,
         url: configService.get('REDIS_URL'),
         ttl: CACHE.DEFAULT_TTL,
-        tls: process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? { rejectUnauthorized: false } : undefined,
+        // tls: process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? { rejectUnauthorized: false } : undefined,
       }),
     }),
   ],

@@ -2,8 +2,6 @@ import z from 'zod'
 
 export const environmentsSchema = z.object({
   PORT: z.coerce.number().default(3000),
-  REDIS_PORT: z.coerce.number().default(6379),
-  REDIS_HOST: z.string().default('localhost'),
   REDIS_URL: z.string().default('redis://localhost:6379'),
   DATABASE_URL: z.string(),
   BOT_TOKEN: z.string(),
