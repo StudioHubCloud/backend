@@ -50,8 +50,9 @@ export class PassHelper {
 
     const text = `${headerText}\n
 ${icon} ${TextHelper.bold('Статус:')} ${label}
-📌 ${TextHelper.bold('Доступно тренувань:')} ${pass.availableSlots}/${pass.lengthOverride ?? pass.passTemplate.length}
-${TextHelper.bold(isPassInactive ? '📅 Автоматично активується:' : pass.endDate ? '📅 Дійсний до:' : '')} ${isPassInactive ? checkDateString : (pass.endDate ?? '')}`
+📌 ${TextHelper.bold('Доступно тренувань:')} ${pass.availableSlots}/${pass.lengthOverride ?? pass.passTemplate.length}\n
+${!isPassInactive ? `📅 ${TextHelper.bold('Активований:')} ${dateTimeProvider.formatDateStringInTz(pass.startDate!, 'd MMMM')}` : ''}
+${TextHelper.bold(isPassInactive ? '📅 Автоматично активується:' : pass.endDate ? '📅 Дійсний до:' : '')} ${isPassInactive ? checkDateString : (dateTimeProvider.formatDateStringInTz(pass.endDate!, 'd MMMM') ?? '')}`
 
     return text
   }
