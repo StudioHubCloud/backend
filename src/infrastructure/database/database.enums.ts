@@ -21,3 +21,6 @@ export const PaymentMethodPgEnum = pgEnum('payment_method_enum', enumToPgEnum(EN
 export const StudioPayoutRuleTypePgEnum = pgEnum('studio_payout_rule_type_enum', enumToPgEnum(ENUMS.StudioPayoutRuleTypeEnum))
 export const PassActivationFileTypePgEnum = pgEnum('pass_activation_file_type_enum', enumToPgEnum(ENUMS.PassActivationFileTypeEnum))
 export const PassActivationRequestTypePgEnum = pgEnum('pass_activation_request_type_enum', enumToPgEnum(ENUMS.PassActivationRequestTypeEnum))
+export const AuditLogOperationPgEnum = pgEnum('audit_log_operation_enum', enumToPgEnum(ENUMS.AuditLogOperation))
+export const AuditLogTriggerPgEnum = pgEnum('audit_log_trigger_enum', enumToPgEnum(ENUMS.AuditLogTrigger))
+export const AuditLogActionsPgEnum = pgEnum('audit_log_actions_enum', enumToPgEnum(ENUMS.AuditLogActions))

@@ -307,10 +307,7 @@ export class UserProfileService {
     if (expiredPasses.length) {
       await this.databaseService.drizzle.transaction(async (tx) => {
         for (const pass of expiredPasses) {
-          await Promise.all([
-            this.passService.updatePass(pass.id, { status: PassStatusEnum.EXPIRED }, tx),
-            this.updateUserProfile(pass.clientId, { status: UserProfileStatusEnum.ARCHIVED }, tx),
-          ])
+           await this.passService.updatePass(pass.id, { status: PassStatusEnum.EXPIRED }, tx)
         }
       })
       await this.redisCacheService.reset()

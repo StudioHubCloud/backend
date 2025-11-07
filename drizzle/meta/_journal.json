@@ -281,6 +281,13 @@
       "when": 1760561434216,
       "tag": "0066_add pass template durationDays field",
       "breakpoints": true
+    },
+    {
+      "idx": 67,
+      "version": "7",
+      "when": 1762557523189,
+      "tag": "0067_add audit-log table",
+      "breakpoints": true
     }
   ]
 }
