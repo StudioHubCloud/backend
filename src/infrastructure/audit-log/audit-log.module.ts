@@ -13,6 +13,8 @@ import { TypedConfigService } from '../config'
       useFactory: (config: TypedConfigService) => ({
         connection: {
           url: config.get('REDIS_URL'),
+          family: 6,
+          tls: undefined,
         },
       }),
     }),

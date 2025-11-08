@@ -1,14 +1,5 @@
 import { Module } from '@nestjs/common'
 import {
-  LoggerModule,
-  ConfigModule,
-  DatabaseModule,
-  RedisCacheModule,
-  CronModule,
-  HealthModule,
-  AuditLogModule,
-} from '@app/infrastructure'
-import {
   CustomerModule,
   StudioModule,
   ClientModule,
@@ -24,6 +15,15 @@ import {
   StaffMemberPayoutModule,
   PassActivationRequestModule,
 } from '@app/domain'
+import {
+  AuditLogModule,
+  LoggerModule,
+  ConfigModule,
+  DatabaseModule,
+  RedisCacheModule,
+  CronModule,
+  HealthModule,
+} from '@app/infrastructure'
 import { BotModule } from 'src/bot/bot.module'
 
 @Module({
