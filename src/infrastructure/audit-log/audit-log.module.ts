@@ -3,10 +3,19 @@ import { BullModule } from '@nestjs/bullmq'
 import { AuditLogService } from './audit-log.service'
 import { AuditLogProcessor } from './audit-log.processor'
 import { AUDIT_LOG_QUEUE } from './audit-log.queue'
+import { TypedConfigService } from '../config'
 
 @Global()
 @Module({
   imports: [
+    BullModule.forRootAsync({
+      inject: [TypedConfigService],
+      useFactory: (config: TypedConfigService) => ({
+        connection: {
+          url: config.get('REDIS_URL'),
+        },
+      }),
+    }),
     BullModule.registerQueue({
       name: AUDIT_LOG_QUEUE,
       defaultJobOptions: {

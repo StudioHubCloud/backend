@@ -1,5 +1,4 @@
 import { Module } from '@nestjs/common'
-import { BotModule } from 'src/bot/bot.module'
 import {
   LoggerModule,
   ConfigModule,
@@ -25,6 +24,7 @@ import {
   StaffMemberPayoutModule,
   PassActivationRequestModule,
 } from '@app/domain'
+import { BotModule } from 'src/bot/bot.module'
 
 @Module({
   imports: [

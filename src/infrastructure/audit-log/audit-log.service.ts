@@ -12,7 +12,7 @@ export class AuditLogService {
   private defaultTriggerSource: AuditLogTrigger = AuditLogTrigger.SYSTEM
 
   constructor(
-    @InjectQueue('audit-logs') private auditQueue: Queue,
+    @InjectQueue(AUDIT_LOG_QUEUE) private auditQueue: Queue,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(AuditLogService.name)
