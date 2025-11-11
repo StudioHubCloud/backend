@@ -40,9 +40,9 @@ export class ComposerService {
   }
 
   useRootComposer = async (ctx: BotContext, next: TNextFunction) => {
-    if (!ctx.store.user) {
+    if (!UserHelper.getUserUnsafe(ctx)) {
       this.logger.error('User with id %s not found in context store', ctx.from?.id)
-      return ctx.reply('Помилка авторизації')
+      return ctx.reply('Помилка авторизації' + '🚫')
     }
 
     const role = UserHelper.getUserRole(ctx)

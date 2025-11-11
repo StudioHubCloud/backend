@@ -49,4 +49,5 @@ export {
   AuditLogOperationPgEnum,
   AuditLogTriggerPgEnum,
   AuditLogActionsPgEnum,
+  AuditLogEntityPgEnum,
 } from '../database.enums'

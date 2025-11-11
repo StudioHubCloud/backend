@@ -60,6 +60,7 @@ export class BotService {
   }
 
   private initMiddlewares() {
+    this.bot.use(this.middlewareService.auditLogMiddleware)
     this.bot.use(this.middlewareService.timerMiddleware)
     this.bot.use(this.middlewareService.loggingMiddleware)
     this.bot.use(this.middlewareService.authMiddleware)

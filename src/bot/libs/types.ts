@@ -3,7 +3,6 @@ import {
   GroupAgeRestrictionSelectModel,
   GroupSelectModel,
   GroupStyleSelectModel,
-  StudioSelectModel,
   UserProfileSelectModel,
   GroupAgeRestrictionExceptionSelectModel,
   TrainingSelectModel,
@@ -12,7 +11,7 @@ import {
   TrainingSignupSelectModel,
   StaffMemberSelectModel,
 } from '@app/infrastructure/database/models'
-import { PassStatusEnum, UserProfileRoleEnum } from '@app/libs'
+import { AuditLogActions, AuditLogTrigger, PassStatusEnum, UserProfileRoleEnum, AuditLogServiceOperation } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 import { BotContext } from '../bot.context'
 import {
@@ -24,7 +23,7 @@ import {
 
 export type TBotStore = {
   user: AuthUserProfile | null
-  studio: StudioSelectModel | null
+  audit: IAuditLogTelegramContext | null
 }
 
 export type AuthUserProfile = UserProfileSelectModel & {
@@ -120,6 +119,16 @@ export interface TEditEntitySceneMetaData {
   // meta data
   isInitialRun: boolean
   promptMessageId: number
+}
+
+export interface IAuditLogTelegramContext {
+  command?: string
+  action: AuditLogActions
+  actionId: string
+  actionResponseTimeMs: number | null
+  trigger: AuditLogTrigger
+  telegramId: string
+  operations: AuditLogServiceOperation[]
 }
 
 export type TEditGroupSceneAction = (typeof EDIT_GROUP_SCENE_ACTIONS)[keyof typeof EDIT_GROUP_SCENE_ACTIONS]

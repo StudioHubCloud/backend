@@ -13,13 +13,15 @@ import {
 } from '@app/infrastructure/database'
 import {
   API,
+  AuditLogEntity,
+  AuditLogOperation,
   DATE_FORMAT,
   GroupStatusEnum,
   PassStatusEnum,
   TrainingSignupStatusEnum,
   TrainingSignupTypeEnum,
 } from '@app/libs/constants'
-import { TCustomApiResponse } from '@app/libs/types'
+import { AuditLogServiceOperation, TCustomApiResponse } from '@app/libs/types'
 import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
@@ -99,9 +101,11 @@ export class TrainingSignupService {
     trainingId: number
     userProfileId: string
     passId: string
-  }): Promise<TCustomApiResponse & { availableSlots?: number }> {
+  }): Promise<TCustomApiResponse<{ logOperations: AuditLogServiceOperation[] }> & { availableSlots?: number }> {
     const { passId, trainingId, userProfileId } = values
     try {
+      const logOperations: AuditLogServiceOperation[] = []
+
       const [pass, training, isAlreadySignedUp] = await Promise.all([
         this.passService.findPassByConditions({ id: passId, status: PassStatusEnum.ACTIVE }),
         this.trainingService.getTrainingById(trainingId),
@@ -158,6 +162,13 @@ export class TrainingSignupService {
         const endDateString = this.dateTimeProvider.formatDateStringInTz(endDate.toISOString(), DATE_FORMAT.DATE_MAIN)
 
         await this.passService.updatePass(passId, { startDate: startDateString, endDate: endDateString })
+        logOperations.push({
+          entityId: passId,
+          entity: AuditLogEntity.PASS,
+          payload: { startDate: startDateString, endDate: endDateString },
+          operation: AuditLogOperation.UPDATE,
+          metadata: { serviceName: TrainingSignupService.name, methodName: this.signUpForTrainingAsClientViaTelegram.name },
+        })
       }
 
       if (pass.availableSlots <= 0) {
@@ -175,10 +186,18 @@ export class TrainingSignupService {
         }
       }
 
-      await this.signUpForTraining({
+      const signupPayload = {
         ...values,
         groupId: training.groupId,
         type: TrainingSignupTypeEnum.MAIN,
+      }
+      const [trainingSignup] = await this.signUpForTraining(signupPayload)
+      logOperations.push({
+        entityId: trainingSignup.id,
+        entity: AuditLogEntity.TRAINING_SIGNUP,
+        payload: signupPayload,
+        operation: AuditLogOperation.CREATE,
+        metadata: { serviceName: TrainingSignupService.name, methodName: this.signUpForTrainingAsClientViaTelegram.name },
       })
 
       await this.redisCacheService.reset()
@@ -197,6 +216,7 @@ export class TrainingSignupService {
         status: API.RESPONSE.SUCCESS_STRING,
         availableSlots: updatedPass.availableSlots,
         message: '✅ Ти успішно записана на тренування в групі!\nЧекаємо на тебе🫶🏻',
+        data: { logOperations },
       }
     } catch (error) {
       this.logger.error(`Error signing up for training %s for user %s: %j`, userProfileId, trainingId, error.stack)

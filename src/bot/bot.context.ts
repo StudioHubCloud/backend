@@ -9,6 +9,9 @@ export class BotContext extends Context {
 
   constructor(update: Update, api: Telegram, me: UserFromGetMe) {
     super(update, api, me)
-    this.store = { user: null, studio: null }
+    this.store = {
+      user: null,
+      audit: null,
+    }
   }
 }

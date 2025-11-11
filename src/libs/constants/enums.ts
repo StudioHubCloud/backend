@@ -107,29 +107,24 @@ export enum AuditLogOperation {
 }
 
 export enum AuditLogActions {
-  PASS_ACTIVATION = 'pass_activation',
-  PASS_ACTIVATION_AUTO = 'pass_activation_auto',
-  PASS_RENEWAL = 'pass_renewal',
-  PASS_EXPIRATION = 'pass_expiration',
-  PASS_STATUS_CHANGE = 'pass_status_change',
-  PASS_CREATION = 'pass_creation',
-  PASS_DELETION = 'pass_deletion',
-  TRAINING_SIGNUP = 'training_signup',
-  TRAINING_CANCELLATION = 'training_cancellation',
-  TRAINING_CREATION = 'training_creation',
-  TRAINING_UPDATE = 'training_update',
-  PAYMENT_RECEIVED = 'payment_received',
-  PAYMENT_REFUND = 'payment_refund',
-  CLIENT_REGISTRATION = 'client_registration',
-  CLIENT_UPDATE = 'client_update',
-  CLIENT_STATUS_CHANGE = 'client_status_change',
+  TRAINING_SIGNUP_CREATE = 'training_signup_create',
+  TRAINING_SIGNUP_CANCEL = 'training_signup_cancel',
+  TRAINING_SIGNUP_STATUS_CHANGE = 'training_signup_status_change',
 }
 
 export enum AuditLogTrigger {
-  TELEGRAM_COMMAND = 'telegram_command',
   SCHEDULED_TASK = 'scheduled_task',
-  CASCADE = 'cascade',
   ADMIN_ACTION = 'admin_action',
+  CLIENT_ACTION = 'client_action',
   SYSTEM = 'system',
-  API = 'api',
+}
+
+export enum AuditLogEntity {
+  PAYMENT = 'payment',
+  TRAINING_SIGNUP = 'training_signup',
+  TRAINING = 'training',
+  GROUP = 'group',
+  PASS = 'pass',
+  CLIENT = 'client',
+  USER_PROFILE = 'user_profile',
 }

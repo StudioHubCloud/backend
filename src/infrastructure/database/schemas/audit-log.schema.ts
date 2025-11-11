@@ -1,46 +1,27 @@
 import { pgTable, uuid, timestamp, varchar, jsonb, index, integer } from 'drizzle-orm/pg-core'
-import { AuditLogOperationPgEnum, AuditLogTriggerPgEnum, AuditLogActionsPgEnum } from '../database.enums'
+import { AuditLogOperationPgEnum, AuditLogTriggerPgEnum, AuditLogActionsPgEnum, AuditLogEntityPgEnum } from '../database.enums'
 
 export const auditLog = pgTable(
   'audit_log',
   {
     id: uuid('id').primaryKey().defaultRandom(),
+    telegramId: varchar('telegram_id').notNull(),
+    action: AuditLogActionsPgEnum('action').notNull(),
+    entity: AuditLogEntityPgEnum('entity').notNull(),
     timestamp: timestamp('timestamp', { withTimezone: true }).notNull().defaultNow(),
-
-    // Context from decorators
-    serviceName: varchar('service_name').notNull(), // 'PassService'
-    methodName: varchar('method_name').notNull(), // 'activatePass'
-    action: AuditLogActionsPgEnum('action').notNull(), // 'pass_activation'
-
-    // Entity info
-    entityName: varchar('entity_name').notNull(), // 'pass'
-    entityId: varchar('entity_id').notNull(), // polymorphic ID
-    operation: AuditLogOperationPgEnum('operation').notNull(),
-
-    // User context
-    telegramId: varchar('telegram_id'),
-    userRole: varchar('user_role'),
-
-    // Trigger info
-    trigger: AuditLogTriggerPgEnum('trigger').notNull(),
-
-    // Data changes
-    oldValue: jsonb('old_value'),
-    newValue: jsonb('new_value'),
-    changedFields: jsonb('changed_fields'), // array of field names
-
-    // Metadata
+    actionId: uuid('action_id').notNull(),
+    entityId: varchar('entity_id'),
+    operation: AuditLogOperationPgEnum('operation'),
+    trigger: AuditLogTriggerPgEnum('trigger'),
+    payload: jsonb('payload'),
     metadata: jsonb('metadata'),
-
-    // Multi-tenant
+    actionResponseTimeMs: integer('action_response_time_ms'),
     studioId: uuid('studio_id').notNull(),
-
-    // Performance tracking
-    executionTimeMs: integer('execution_time_ms'),
   },
   (table) => [
-    index('audit_log_entity_idx').on(table.entityName, table.entityId),
+    index('audit_log_entity_idx').on(table.entity, table.entityId),
     index('audit_log_timestamp_idx').on(table.timestamp),
+    index('audit_log_action_id_idx').on(table.actionId),
     index('audit_log_action_idx').on(table.action),
     index('audit_log_studio_idx').on(table.studioId),
   ],

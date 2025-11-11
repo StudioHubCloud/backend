@@ -2,13 +2,14 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
-import { API, PassStatusEnum } from '@app/libs'
+import { API, AuditLogActions, AuditLogTrigger, PassStatusEnum } from '@app/libs'
 import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { TrainingSelectPaginatedMenu, GroupSelectPaginatedMenu, ActiveSchedulesPaginatedMenu } from '@app/bot/menus'
 import { BotHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
 import { MESSAGES_CLIENT } from '@app/bot/static/messages'
+import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 @Injectable()
 export class SchedulerComposer {
@@ -111,6 +112,13 @@ export class SchedulerComposer {
       if (response.status === API.RESPONSE.ERROR_STRING) {
         return BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
       }
+
+      AuditLogHelper.startAction(
+        ctx,
+        AuditLogActions.TRAINING_SIGNUP_CREATE,
+        AuditLogTrigger.CLIENT_ACTION,
+        response.data?.logOperations,
+      )
 
       switch (response.availableSlots) {
         case 1:

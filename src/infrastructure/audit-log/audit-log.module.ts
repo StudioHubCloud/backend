@@ -21,7 +21,10 @@ import { TypedConfigService } from '../config'
     BullModule.registerQueue({
       name: AUDIT_LOG_QUEUE,
       defaultJobOptions: {
-        removeOnComplete: 50,
+        removeOnComplete: {
+          age: 3600,
+          count: 100,
+        },
         removeOnFail: 100,
         attempts: 2,
         backoff: {

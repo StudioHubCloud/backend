@@ -1,4 +1,4 @@
-import { API, AuditLogActions, AuditLogOperation, AuditLogTrigger, DATE_FORMAT } from 'src/libs/constants'
+import { API, AuditLogActions, AuditLogEntity, AuditLogOperation, AuditLogTrigger, DATE_FORMAT } from 'src/libs/constants'
 import { AutocompletableString } from './utility'
 import { TrainingSignupSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 
@@ -34,32 +34,30 @@ export type TPayoutStatistics = {
   averagePayoutPerTraining: number
 }
 
-export interface ILogActionOptions {
-  captureOldValue?: boolean
-  sensitive?: string[]
-  includeResult?: boolean
-}
-
 export interface AuditLogPayload {
-  // Required fields
   action: AuditLogActions
-  entityName: string
-  entityId: string
-  operation: AuditLogOperation
-
-  // Optional fields
-  oldValue?: Record<string, any>
-  newValue?: Record<string, any>
+  actionId: string
+  actionResponseTimeMs: number | null
+  telegramId: string
+  entity?: AuditLogEntity
+  entityId?: string
+  operation?: AuditLogOperation
+  payload?: Record<string, any>
   trigger?: AuditLogTrigger
   metadata?: Record<string, any>
+  studioId?: string
+}
 
-  // Context (will be enriched by service)
+export interface AuditLogServiceOperation {
+  entityId: string
+  entity: AuditLogEntity
+  payload: Record<string, any>
+  operation: AuditLogOperation
+  metadata?: AuditLogOperationMetadata
+}
+
+export interface AuditLogOperationMetadata {
   serviceName?: string
   methodName?: string
-  telegramId?: string
-  userRole?: string
-  studioId?: string
-
-  // Performance
-  executionStartTime?: number
+  [key: string]: any
 }

@@ -9,6 +9,8 @@ import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { type TNextFunction } from '@app/bot/libs'
 import { BotHelper } from '@app/bot/helpers/bot.helper'
 import { TypedConfigService } from '@app/infrastructure/config'
+import { AuditLogService } from '@app/infrastructure/audit-log'
+import { AuditLogHelper } from '../helpers/audit-log.helper'
 
 @Injectable()
 export class MiddlewareService {
@@ -19,6 +21,7 @@ export class MiddlewareService {
     private readonly studioService: StudioService,
     private readonly configService: TypedConfigService,
     private readonly userProfileService: UserProfileService,
+    private readonly auditLogService: AuditLogService,
   ) {
     this.logger.setContext(MiddlewareService.name)
     this.STUDIO_ID = this.configService.get('STUDIO_ID')
@@ -34,6 +37,7 @@ export class MiddlewareService {
     const start = Date.now()
     await next()
     const duration = Date.now() - start
+    AuditLogHelper.trackResponseTime(ctx, duration)
 
     switch (true) {
       case duration > 1000 && duration <= 5000:
@@ -66,7 +70,7 @@ export class MiddlewareService {
     if (user) {
       return await next()
     }
-    
+
     const { first_name, last_name, id, username } = from
 
     const studio = await this.studioService.getStudioById(this.STUDIO_ID)
@@ -93,5 +97,24 @@ export class MiddlewareService {
     }
     UserHelper.setUser(ctx, { ...createdUser, client: null })
     return await next()
+  }
+
+  auditLogMiddleware = async (ctx: BotContext, next: TNextFunction) => {
+    await next()
+
+    const auditData = AuditLogHelper.getAuditData(ctx)
+    if (!auditData) {
+      return
+    }
+
+    if (auditData.operations.length === 0) {
+      this.logger.debug('Action %s had no operations to log', auditData.action)
+      AuditLogHelper.clearAuditData(ctx)
+      return
+    }
+    const auditDataCopy = JSON.parse(JSON.stringify(auditData))
+    this.auditLogService.logTelegramAction(auditDataCopy)
+    AuditLogHelper.clearAuditData(ctx)
+    return
   }
 }

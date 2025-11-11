@@ -288,6 +288,13 @@
       "when": 1762557523189,
       "tag": "0067_add audit-log table",
       "breakpoints": true
+    },
+    {
+      "idx": 68,
+      "version": "7",
+      "when": 1762829170979,
+      "tag": "0068_udate audit schema",
+      "breakpoints": true
     }
   ]
 }
