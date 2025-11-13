@@ -9,6 +9,8 @@ export const COMMON = {
   TRAINING_MANAGE_SUBSTRACT_DAYS_THRESHOLD: 7,
 } as const
 
+export const ERA_STUDIO_LOGO_320 = 'AgACAgIAAxkBAAIqK2kVKoaeYgoI2mLw85CTcpzrJlaMAAK6DWsb9uCpSKX5LOSGkH-_AQADAgADbQADNgQ'
+
 export const SCENES = {
   REGISTER: 'register',
   VERIFY_CLIENT: 'verify_client',

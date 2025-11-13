@@ -4,6 +4,7 @@ import { PinoLogger } from 'nestjs-pino'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { ENVIRONMENTS } from '@app/libs'
 import { BotContext } from './bot.context'
+import { BotCommands } from './bot.commands'
 import { MESSAGES_COMMON } from './static/messages'
 import { MiddlewareService } from './middleware'
 import { StageService } from './stage'
@@ -20,6 +21,7 @@ export class BotService {
     private readonly middlewareService: MiddlewareService,
     private readonly stageService: StageService,
     private readonly composerService: ComposerService,
+    private readonly botCommands: BotCommands,
   ) {
     this.logger.setContext(BotService.name)
 
@@ -38,6 +40,8 @@ export class BotService {
     this.bot.use(session())
 
     this.initMiddlewares()
+
+    this.bot.use(this.botCommands.middleware())
 
     this.bot.use(this.stageService.stage.middleware())
 

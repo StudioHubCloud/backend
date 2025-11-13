@@ -6,6 +6,7 @@ import { ComposerModule } from './composer'
 import { BotService } from './bot.service'
 import { BotNotificationService } from './services'
 import { BOT_INSTANCE } from './bot.instance'
+import { BotCommands } from './bot.commands'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { APP } from '@app/libs'
 
@@ -13,6 +14,7 @@ import { APP } from '@app/libs'
   imports: [KeyboardModule, MiddlewareModule, StageModule, ComposerModule],
   providers: [
     BotService,
+    BotCommands,
     BotNotificationService,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
