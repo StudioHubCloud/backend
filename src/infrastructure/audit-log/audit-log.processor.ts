@@ -24,7 +24,7 @@ export class AuditLogProcessor extends WorkerHost implements OnModuleDestroy {
   ) {
     super()
     this.logger.setContext(AuditLogProcessor.name)
-    this.studioId = this.configService.get('STUDIO_ID')
+    this.studioId = this.configService.getStudioId()
   }
 
   async process(job: Job<AuditLogPayload>): Promise<void> {

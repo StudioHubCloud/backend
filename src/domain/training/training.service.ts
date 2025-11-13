@@ -184,7 +184,7 @@ export class TrainingService {
             this.databaseService.drizzle
               .select()
               .from(group)
-              .where(and(eq(group.id, training.groupId), eq(group.studioId, this.configService.get('STUDIO_ID')))),
+              .where(and(eq(group.id, training.groupId), eq(group.studioId, this.configService.getStudioId()))),
           ),
         ),
       with: {
@@ -377,7 +377,7 @@ export class TrainingService {
           .from(group)
           .where(
             and(
-              eq(group.studioId, this.configService.get('STUDIO_ID')),
+              eq(group.studioId, this.configService.getStudioId()),
               eq(group.id, tr.groupId),
               or(
                 // Direct trainer assignment matches

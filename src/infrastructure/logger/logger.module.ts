@@ -10,7 +10,7 @@ import { ConfigModule, TypedConfigService } from '../config';
       imports: [ConfigModule],
       inject: [TypedConfigService],
       useFactory: async (configService: TypedConfigService) => {
-        const isProduction = configService.get('NODE_ENV') === ENVIRONMENTS.PRODUCTION;
+        const isProduction = configService.isProduction()
         const pinoHttpLevel = configService.get('LOG_LEVEL_HTTP')
         const pinoLevel = configService.get('LOG_LEVEL')
 

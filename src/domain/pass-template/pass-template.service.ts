@@ -12,7 +12,7 @@ export class PassTemplateService {
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
   ) {
-    this.studioId = this.configService.get('STUDIO_ID')
+    this.studioId = this.configService.getStudioId()
   }
 
   async getAll() {

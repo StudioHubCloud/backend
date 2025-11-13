@@ -24,7 +24,7 @@ export class MiddlewareService {
     private readonly auditLogService: AuditLogService,
   ) {
     this.logger.setContext(MiddlewareService.name)
-    this.STUDIO_ID = this.configService.get('STUDIO_ID')
+    this.STUDIO_ID = this.configService.getStudioId()
   }
 
   loggingMiddleware = async (ctx: BotContext, next: TNextFunction) => {

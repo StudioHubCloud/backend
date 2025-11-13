@@ -35,7 +35,7 @@ export class PassService {
     private readonly configService: TypedConfigService,
     private readonly passActivationRequestService: PassActivationRequestService,
   ) {
-    this.studioId = this.configService.get('STUDIO_ID')
+    this.studioId = this.configService.getStudioId()
   }
 
   async createNewPass(data: Omit<PassInsertModel, 'studioId'>, tx?: Transaction) {

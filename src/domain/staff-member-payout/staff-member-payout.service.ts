@@ -114,7 +114,7 @@ export class StaffMemberPayoutService {
       where: (staffMemberPayout, { eq, and }) =>
         and(
           eq(staffMemberPayout.staffMemberId, staffMemberId),
-          eq(staffMemberPayout.studioId, this.configService.get('STUDIO_ID')),
+          eq(staffMemberPayout.studioId, this.configService.getStudioId()),
         ),
       orderBy: (staffMemberPayout, { desc }) => [desc(staffMemberPayout.paidAt)],
     })
@@ -160,7 +160,7 @@ export class StaffMemberPayoutService {
           amount,
           paidAt: paidAtDate,
           staffMemberId: staffMember.id,
-          studioId: this.configService.get('STUDIO_ID'),
+          studioId: this.configService.getStudioId(),
           description,
         })
         .returning()

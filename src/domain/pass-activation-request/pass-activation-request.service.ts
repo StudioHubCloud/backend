@@ -13,7 +13,7 @@ export class PassActivationRequestService {
     private readonly configService: TypedConfigService,
     private readonly redisCacheService: RedisCacheService,
   ) {
-    this.studioId = this.configService.get('STUDIO_ID')
+    this.studioId = this.configService.getStudioId()
   }
 
   async createActivationRequest(data: PassActivationRequestInsertModel, tx?: Transaction) {

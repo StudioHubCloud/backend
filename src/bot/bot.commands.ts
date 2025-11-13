@@ -1,12 +1,13 @@
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
 import { BotContext } from './bot.context'
-import { ERA_STUDIO_LOGO_320 } from './libs'
+import { ERA_STUDIO_LOGO_320_DEV, ERA_STUDIO_LOGO_320_PROD } from './libs'
+import { TypedConfigService } from '@app/infrastructure/config'
 
 @Injectable()
 export class BotCommands {
   private readonly composer: Composer<BotContext>
-  constructor() {
+  constructor(private readonly typedConfigService: TypedConfigService) {
     this.composer = new Composer<BotContext>()
     this.initComposerHandlers()
   }
@@ -16,11 +17,6 @@ export class BotCommands {
   }
 
   initComposerHandlers() {
-    this.composer.on('photo', async (ctx, next) => {
-      console.log(ctx.update.message.photo)
-      await next()
-    })
-
     //add schedule commant with screenshots of current schedule
     this.composer.command('start', async (ctx, next) => {
       if (ctx.scene) {
@@ -30,7 +26,8 @@ export class BotCommands {
     })
 
     this.composer.command('info', (ctx) => {
-      return ctx.replyWithPhoto(ERA_STUDIO_LOGO_320, {
+      const logo = this.typedConfigService.isProduction() ? ERA_STUDIO_LOGO_320_PROD : ERA_STUDIO_LOGO_320_DEV
+      return ctx.replyWithPhoto(logo, {
         caption: `⭐ Era Studio Lviv\n\n📍 Хуторівка, 40а, Львів, 79000\n🌐 Instagram: <a href="https://www.instagram.com/era.studio.lviv/">@era.studio.lviv</a>\n\n💳 Оплата через LiqPay`,
         parse_mode: 'HTML',
       })

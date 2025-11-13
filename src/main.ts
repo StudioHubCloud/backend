@@ -20,7 +20,7 @@ async function bootstrap() {
   const redisCacheService = app.get(RedisCacheService);
 
   
-  if (configService.get('NODE_ENV') === ENVIRONMENTS.PRODUCTION) {
+  if (configService.isProduction()) {
     app.use(await botService.getWebhookMiddleware())
   } else {
     botService.startPolling()

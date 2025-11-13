@@ -9,10 +9,26 @@ export class TypedConfigService {
   constructor(private configService: NestConfigService) {}
 
   get<T extends Leaves<Env>>(propertyPath: T): LeafTypes<Env, T> {
-    if (propertyPath === 'STUDIO_ID') {
-      const isProduction = this.configService.get('NODE_ENV') === ENVIRONMENTS.PRODUCTION
-      return this.configService.get(isProduction ? 'STUDIO_ID' : 'STUDIO_ID_TEST') as LeafTypes<Env, T>
-    }
     return this.configService.get(propertyPath) as LeafTypes<Env, T>
+  }
+
+  isProduction(): boolean {
+    return this.configService.get('NODE_ENV') === ENVIRONMENTS.PRODUCTION
+  }
+
+  getToken(): string {
+    const token = this.configService.get(this.isProduction() ? 'BOT_TOKEN' : 'BOT_TOKEN_TEST')
+    if (!token) {
+      throw new Error('Bot token is not provided')
+    }
+    return token
+  }
+
+  getStudioId(): string {
+    const studioId = this.configService.get(this.isProduction() ? 'STUDIO_ID' : 'STUDIO_ID_TEST')
+    if (!studioId) {
+      throw new Error('Studio ID is not provided')
+    }
+    return studioId
   }
 }

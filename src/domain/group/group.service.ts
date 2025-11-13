@@ -21,7 +21,7 @@ export class GroupService {
   ) {}
 
   async getAllStudioGroupsByFilterConditions(filters: Partial<GroupSelectModel> = {}) {
-    const allFilters = { studioId: this.configService.get('STUDIO_ID'), ...filters }
+    const allFilters = { studioId: this.configService.getStudioId(), ...filters }
 
     const cacheKey = GroupCacheKey.groupByFilterConditions(allFilters)
     const groupsCached = await this.redisCacheService.get<typeof groupsFound>(cacheKey)

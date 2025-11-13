@@ -15,7 +15,7 @@ export class StudioPayoutRuleService {
   ) {}
 
   async getStudioPayoutRules() {
-    const studioId = this.configService.get('STUDIO_ID')
+    const studioId = this.configService.getStudioId();
     const cacheKey = StudioPayoutRuleCacheKey.allRulesByStudioId(studioId)
 
     const rulesCached = await this.redisCacheService.get<StudioPayoutRuleSelectModel[]>(cacheKey)
