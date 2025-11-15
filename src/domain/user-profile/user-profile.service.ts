@@ -9,10 +9,11 @@ import {
   staffMember,
   client,
   trainingSignup,
+  PassSelectModel,
 } from '@app/infrastructure/database'
 import { RedisCacheService, UserProfileCacheKey } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { DATE_FORMAT, PassStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { AuditLogServiceOperation, DATE_FORMAT, PassStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { ClientService } from '../client/client.service'
 import { PassService } from '../pass/pass.service'
 import { IVerifyClientSceneState } from '@app/bot/stage/scenes/verify-client/verify-client.scene-helper'
@@ -144,18 +145,18 @@ export class UserProfileService {
     return true
   }
 
-  async verifyClient(data: IVerifyClientSceneState) {
+  async verifyClient(data: IVerifyClientSceneState): Promise<[boolean, AuditLogServiceOperation[]]> {
     const { userProfile, passTemplate, saleDate } = data
 
     const user = await this.getUserProfileById(userProfile.id)
 
     if (user.role !== UserProfileRoleEnum.CLIENT || user.status !== UserProfileStatusEnum.VERIFICATION_REQUESTED) {
-      return false
+      return [false, []]
     }
 
-    await this.databaseService.drizzle.transaction(async (tx) => {
+    const auditLogOperations = await this.databaseService.drizzle.transaction(async (tx) => {
       const client = await this.clientService.createNewClient({ userProfileId: userProfile.id }, tx)
-      await Promise.all([
+      const [passResponse, userProfileResponse] = await Promise.all([
         this.passService.createNewPass(
           {
             clientId: client.id,
@@ -174,8 +175,15 @@ export class UserProfileService {
           tx,
         ),
       ])
+      return [...passResponse[1]]
     })
-    return true
+
+    const allOperationsWithMeta = auditLogOperations.map((op) => ({
+      ...op,
+      metadata: { serviceName: UserProfileService.name, methodName: this.verifyClient.name },
+    }))
+
+    return [true, allOperationsWithMeta]
   }
 
   async verifyClientWithoutPass(userProfileId: string) {
@@ -296,9 +304,10 @@ export class UserProfileService {
     return staffMembers
   }
 
-  async expireAllPastPasses() {
+  async expireAllPastPasses(): Promise<[PassSelectModel[], AuditLogServiceOperation[]]> {
     const now = new Date()
     const todayDateString = this.dateTimeProvider.formatDateStringInTz(now.toISOString(), DATE_FORMAT.DATE_MAIN)
+    const logOperations: AuditLogServiceOperation[] = []
 
     const expiredPasses = await this.databaseService.drizzle.query.pass.findMany({
       where: (pass, { and, lt }) => and(eq(pass.status, PassStatusEnum.ACTIVE), lt(pass.endDate, todayDateString)),
@@ -306,12 +315,18 @@ export class UserProfileService {
     if (expiredPasses.length) {
       await this.databaseService.drizzle.transaction(async (tx) => {
         for (const pass of expiredPasses) {
-          await this.passService.updatePass(pass.id, { status: PassStatusEnum.EXPIRED }, tx)
+          const [_, updateLogOperation] = await this.passService.updatePass(pass.id, { status: PassStatusEnum.EXPIRED }, tx)
+          logOperations.push(...updateLogOperation)
         }
       })
       await this.redisCacheService.reset()
     }
-    return expiredPasses
+
+    const allOperationsWithMeta = logOperations.map((op) => ({
+      ...op,
+      metadata: { serviceName: UserProfileService.name, methodName: this.expireAllPastPasses.name },
+    }))
+    return [expiredPasses, allOperationsWithMeta]
   }
 
   async getClientsUserProfiles({ withArchived = false } = {}) {

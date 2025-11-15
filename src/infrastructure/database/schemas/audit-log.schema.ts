@@ -5,7 +5,7 @@ export const auditLog = pgTable(
   'audit_log',
   {
     id: uuid('id').primaryKey().defaultRandom(),
-    telegramId: varchar('telegram_id').notNull(),
+    telegramId: varchar('telegram_id'),
     action: AuditLogActionsPgEnum('action').notNull(),
     entity: AuditLogEntityPgEnum('entity').notNull(),
     timestamp: timestamp('timestamp', { withTimezone: true }).notNull().defaultNow(),

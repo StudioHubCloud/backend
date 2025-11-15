@@ -107,9 +107,17 @@ export enum AuditLogOperation {
 }
 
 export enum AuditLogActions {
+  PASS_EDIT = 'pass_edit',
+  PASS_REMINDER_SENT = 'pass_reminder_sent',
+  CLIENT_VERIFY_CONFIRM = 'client_verify_confirm',
+  PASS_ACTIVATE_CONFIRM = 'pass_activate_confirm',
+  PASS_ACTIVATE_REJECT = 'pass_activate_reject',
+  PASS_ACTIVATE_REQUEST = 'pass_activate_request',
   TRAINING_SIGNUP_CREATE = 'training_signup_create',
   TRAINING_SIGNUP_CANCEL = 'training_signup_cancel',
   TRAINING_SIGNUP_STATUS_CHANGE = 'training_signup_status_change',
+  EXPIRE_PAST_PASSES = 'expire_past_passes',
+  ACTIVATE_PASSES_AFTER_GRACE_PERIOD = 'activate_passes_after_grace_period',
 }
 
 export enum AuditLogTrigger {
@@ -125,6 +133,7 @@ export enum AuditLogEntity {
   TRAINING = 'training',
   GROUP = 'group',
   PASS = 'pass',
+  PASS_ACTIVATION_REQUEST = 'pass_activation_request',
   CLIENT = 'client',
   USER_PROFILE = 'user_profile',
 }

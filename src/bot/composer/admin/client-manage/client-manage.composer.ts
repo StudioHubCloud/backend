@@ -22,9 +22,10 @@ import {
 import { ClientSelectPaginatedMenu } from '@app/bot/menus'
 import { AdminKeyboards } from '@app/bot/keyboard/storage/admin-keyboards'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
+import { AuditLogActions, AuditLogTrigger, PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
 import { ClientHelper } from '@app/bot/helpers/client.helper'
 import { TrainingSignupService } from '@app/domain/training-signup'
+import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 @Injectable()
 export class ClientManageComposer {
@@ -174,7 +175,7 @@ export class ClientManageComposer {
       pass: clientPass,
       fullName: UserHelper.getDisplayName(clientUserProfile),
       clientUserId: clientUserProfile.id,
-      trainingSignups
+      trainingSignups,
     })
   }
 
@@ -269,7 +270,8 @@ export class ClientManageComposer {
       return
     }
 
-    await this.passService.activatePass(originalPass.id)
+    const [_, logOperations] = await this.passService.activatePass(originalPass.id)
+    AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_CONFIRM, AuditLogTrigger.ADMIN_ACTION, logOperations)
     BotHelper.safeAnswerCbQuery(ctx, '✅ Абонемент успішно активовано.')
     return this.renderPassManageMenu(ctx, clientUserProfile)
   }

@@ -21,7 +21,7 @@ import {
   TrainingSignupStatusEnum,
   TrainingSignupTypeEnum,
 } from '@app/libs/constants'
-import { AuditLogServiceOperation, TCustomApiResponse } from '@app/libs/types'
+import { AuditLogServiceOperation, AuditLogServiceResponse, TCustomApiResponse } from '@app/libs/types'
 import { PassService } from '../pass/pass.service'
 import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
@@ -101,7 +101,7 @@ export class TrainingSignupService {
     trainingId: number
     userProfileId: string
     passId: string
-  }): Promise<TCustomApiResponse<{ logOperations: AuditLogServiceOperation[] }> & { availableSlots?: number }> {
+  }): Promise<TCustomApiResponse<AuditLogServiceResponse> & { availableSlots?: number }> {
     const { passId, trainingId, userProfileId } = values
     try {
       const logOperations: AuditLogServiceOperation[] = []
@@ -161,14 +161,11 @@ export class TrainingSignupService {
 
         const endDateString = this.dateTimeProvider.formatDateStringInTz(endDate.toISOString(), DATE_FORMAT.DATE_MAIN)
 
-        await this.passService.updatePass(passId, { startDate: startDateString, endDate: endDateString })
-        logOperations.push({
-          entityId: passId,
-          entity: AuditLogEntity.PASS,
-          payload: { startDate: startDateString, endDate: endDateString },
-          operation: AuditLogOperation.UPDATE,
-          metadata: { serviceName: TrainingSignupService.name, methodName: this.signUpForTrainingAsClientViaTelegram.name },
+        const [_, updatePassLogOperations] = await this.passService.updatePass(passId, {
+          startDate: startDateString,
+          endDate: endDateString,
         })
+        logOperations.push(...updatePassLogOperations)
       }
 
       if (pass.availableSlots <= 0) {
@@ -191,14 +188,8 @@ export class TrainingSignupService {
         groupId: training.groupId,
         type: TrainingSignupTypeEnum.MAIN,
       }
-      const [trainingSignup] = await this.signUpForTraining(signupPayload)
-      logOperations.push({
-        entityId: trainingSignup.id,
-        entity: AuditLogEntity.TRAINING_SIGNUP,
-        payload: signupPayload,
-        operation: AuditLogOperation.CREATE,
-        metadata: { serviceName: TrainingSignupService.name, methodName: this.signUpForTrainingAsClientViaTelegram.name },
-      })
+      const [_, signUpLogOperations] = await this.signUpForTraining(signupPayload)
+      logOperations.push(...signUpLogOperations)
 
       await this.redisCacheService.reset()
 
@@ -216,7 +207,12 @@ export class TrainingSignupService {
         status: API.RESPONSE.SUCCESS_STRING,
         availableSlots: updatedPass.availableSlots,
         message: '✅ Ти успішно записана на тренування в групі!\nЧекаємо на тебе🫶🏻',
-        data: { logOperations },
+        data: {
+          logOperations: logOperations.map((op) => ({
+            ...op,
+            metadata: { serviceName: TrainingSignupService.name, methodName: this.signUpForTrainingAsClientViaTelegram.name },
+          })),
+        },
       }
     } catch (error) {
       this.logger.error(`Error signing up for training %s for user %s: %j`, userProfileId, trainingId, error.stack)
@@ -547,12 +543,29 @@ export class TrainingSignupService {
     return existingSignup
   }
 
-  private async signUpForTraining(values: Omit<TrainingSignupInsertModel, 'status'>, tx?: Transaction) {
+  private async signUpForTraining(
+    values: Omit<TrainingSignupInsertModel, 'status'>,
+    tx?: Transaction,
+  ): Promise<[TrainingSignupSelectModel, AuditLogServiceOperation[]]> {
     const dbProvider = tx || this.databaseService.drizzle
-    return dbProvider
+    const [createdSignUp] = await dbProvider
       .insert(trainingSignup)
       .values({ ...values, status: TrainingSignupStatusEnum.ACTIVE })
       .returning()
+
+    return [
+      createdSignUp,
+      [
+        {
+          entity: AuditLogEntity.TRAINING_SIGNUP,
+          entityId: createdSignUp.id,
+          operation: AuditLogOperation.CREATE,
+          payload: values,
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: TrainingSignupService.name, methodName: this.signUpForTraining.name },
+        },
+      ],
+    ]
   }
 
   private async signOutFromTraining(values: { id: string }, tx?: Transaction) {

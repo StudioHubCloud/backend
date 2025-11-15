@@ -7,12 +7,19 @@ import { PassActivationRequestsInlineMenu, VerificationInlineMenu } from '@app/b
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
 import { UserProfileService } from '@app/domain/user-profile'
 import { ClientKeyboards, CommonKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
-import { PassActivationRequestTypeEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import {
+  AuditLogActions,
+  AuditLogTrigger,
+  PassActivationRequestTypeEnum,
+  UserProfileRoleEnum,
+  UserProfileStatusEnum,
+} from '@app/libs'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
 import { MESSAGES_STAFF } from '@app/bot/static/messages'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { PassActivationRequestService } from '@app/domain/pass-activation-request'
 import { PassService } from '@app/domain/pass'
+import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 @Injectable()
 export class VerificationRequestComposer {
@@ -142,18 +149,18 @@ export class VerificationRequestComposer {
     return this.handleActivatePassAction(ctx, async (passActivateRequest) => {
       const isRenewRequest = passActivateRequest?.type === PassActivationRequestTypeEnum.RENEW
 
-      const result = await this.passService.acceptPassActivateRequest(
+      const [success, logOperations] = await this.passService.acceptPassActivateRequest(
         passActivateRequest!.pass.id,
         passActivateRequest!.id,
         isRenewRequest,
       )
 
-      if (!result) {
+      if (!success) {
         await BotHelper.safeAnswerCbQuery(ctx, 'Не вдалося активувати абонемент ❌', { show_alert: true })
         return ctx.deleteMessage()
       }
       BotHelper.safeAnswerCbQuery(ctx, 'Абонемент успішно активовано ✅', { show_alert: true })
-      
+      AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_CONFIRM, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
       await Promise.all([
         ctx.deleteMessage(),
@@ -169,13 +176,14 @@ export class VerificationRequestComposer {
 
   private handleRejectPassActivationRequest = async (ctx: BotContext) => {
     return this.handleActivatePassAction(ctx, async (passActivateRequest) => {
-      const result = await this.passService.rejectPassActivateRequest(passActivateRequest!.pass.id)
+      const [success, logOperations] = await this.passService.rejectPassActivateRequest(passActivateRequest!.pass.id)
 
-      if (!result) {
+      if (!success) {
         await BotHelper.safeAnswerCbQuery(ctx, 'Не вдалося відхилити запит ❌', { show_alert: true })
         return ctx.deleteMessage()
       }
       BotHelper.safeAnswerCbQuery(ctx, 'Запит на активацію абонементу відхилено 🚫', { show_alert: true })
+      AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_REJECT, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
       await Promise.all([
         ctx.deleteMessage(),

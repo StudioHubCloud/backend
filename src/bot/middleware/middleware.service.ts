@@ -6,7 +6,7 @@ import { BotContext } from '@app/bot/bot.context'
 import { StudioService } from '@app/domain/studio'
 import { UserProfileService } from '@app/domain/user-profile'
 import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
-import { type TNextFunction } from '@app/bot/libs'
+import { IAuditLogTelegramContext, type TNextFunction } from '@app/bot/libs'
 import { BotHelper } from '@app/bot/helpers/bot.helper'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { AuditLogService } from '@app/infrastructure/audit-log'
@@ -112,8 +112,8 @@ export class MiddlewareService {
       AuditLogHelper.clearAuditData(ctx)
       return
     }
-    const auditDataCopy = JSON.parse(JSON.stringify(auditData))
-    this.auditLogService.logTelegramAction(auditDataCopy)
+    const auditDataCopy = JSON.parse(JSON.stringify(auditData)) as IAuditLogTelegramContext
+    this.auditLogService.logAction(auditDataCopy)
     AuditLogHelper.clearAuditData(ctx)
     return
   }

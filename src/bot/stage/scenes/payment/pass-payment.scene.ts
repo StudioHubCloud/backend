@@ -11,6 +11,8 @@ import { TypedConfigService } from '@app/infrastructure/config'
 import { PassTemplateSelectModel } from '@app/infrastructure/database'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import {
+  AuditLogActions,
+  AuditLogTrigger,
   DATE_FORMAT,
   PassActivationFileTypeEnum,
   PassActivationRequestTypeEnum,
@@ -21,6 +23,7 @@ import { Injectable } from '@nestjs/common'
 import { Scenes } from 'telegraf'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
+import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 interface IPassPaymentSceneState {
   userProfile: AuthUserProfile
@@ -269,7 +272,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     const messagesToDelete = [...fileUpdateMessageIds, menuMessageId, startMessageId].filter((id): id is number => id !== null)
     const fileId = fileIds[0]
 
-    const [_, activationRequest] = await this.passService.createPassWithActivationRequest({
+    const [_, activationRequest, logOperations] = await this.passService.createPassWithActivationRequest({
       saleDate,
       clientId: userProfile.client!.id,
       passTemplateId: passTemplate.id,
@@ -279,6 +282,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       fileType,
       type: requestType,
     })
+    AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_REQUEST, AuditLogTrigger.CLIENT_ACTION, logOperations)
 
     await ctx.deleteMessages(messagesToDelete)
 

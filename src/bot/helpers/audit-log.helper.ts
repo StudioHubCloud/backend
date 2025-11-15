@@ -36,6 +36,17 @@ export class AuditLogHelper {
     }
   }
 
+  static startScheduledTaskAction(action: AuditLogActions, operations: AuditLogServiceOperation[] = []) {
+    const actionId = crypto.randomUUID()
+    return {
+      action,
+      actionId,
+      trigger: AuditLogTrigger.SCHEDULED_TASK,
+      actionResponseTimeMs: null,
+      operations: operations || [],
+    }
+  }
+
   /**
    * Add an operation to the current action
    * Call this in your service methods when data is modified

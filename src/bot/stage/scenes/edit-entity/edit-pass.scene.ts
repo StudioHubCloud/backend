@@ -12,6 +12,8 @@ import { CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { DATE_FORMAT } from '@app/libs/constants/global'
 import { PassSelectModel, PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 import { TrainingSignupService } from '@app/domain/training-signup'
+import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
+import { AuditLogActions, AuditLogTrigger } from '@app/libs'
 
 export interface IEditPassSceneState extends TEditEntitySceneMetaData {
   action: TEditPassSceneAction
@@ -146,9 +148,10 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
         return await ctx.replyWithHTML('❌ Введіть корректну кількість тренувань\n(не менше 1)')
       }
 
-      await this.passService.updatePass(originalPass?.id, {
+      const [_, logOperations] = await this.passService.updatePass(originalPass?.id, {
         lengthOverride: newLength, // Just update the training session count
       })
+      AuditLogHelper.startAction(ctx, AuditLogActions.PASS_EDIT, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
       this.scene.setState(ctx, { originalPass: { ...originalPass, lengthOverride: newLength } })
 
@@ -198,10 +201,8 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
         inputDateFormat: DATE_FORMAT.DATE_INPUT,
       })
 
-      await this.passService.updatePass(originalPass.id, {
-        [field]: newDate,
-      })
-
+      const [_, logOperations] = await this.passService.updatePass(originalPass.id, { [field]: newDate })
+      AuditLogHelper.startAction(ctx, AuditLogActions.PASS_EDIT, AuditLogTrigger.ADMIN_ACTION, logOperations)
       return this.confirmationHandler(ctx) // Go to confirmation
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)

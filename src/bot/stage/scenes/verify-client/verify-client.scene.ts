@@ -9,10 +9,11 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { ClientKeyboards } from '@app/bot/keyboard/storage'
 import { PassTemplateService } from '@app/domain/pass-template/pass-template.service'
 import { CommonSceneKeyboards, PassRelatedKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
-import { DATE_FORMAT, PassTemplateTypeEnum } from '@app/libs'
+import { AuditLogActions, AuditLogTrigger, DATE_FORMAT, PassTemplateTypeEnum } from '@app/libs'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { IVerifyClientSceneState, VerifyClientSceneHelper } from './verify-client.scene-helper'
 import { UserProfileService } from '@app/domain/user-profile'
+import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 @Injectable()
 export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
@@ -87,11 +88,13 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
       const { saleDate, passTemplate, userProfile } = this.verifyClientScene.getState(ctx) as IVerifyClientSceneState
 
-      await this.userProfileService.verifyClient({
+      const [_, logOperations] = await this.userProfileService.verifyClient({
         userProfile,
         passTemplate,
         saleDate,
       })
+
+      AuditLogHelper.startAction(ctx, AuditLogActions.CLIENT_VERIFY_CONFIRM, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
       const { role } = UserHelper.getUser(ctx)
       const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)

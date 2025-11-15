@@ -127,7 +127,7 @@ export interface IAuditLogTelegramContext {
   actionId: string
   actionResponseTimeMs: number | null
   trigger: AuditLogTrigger
-  telegramId: string
+  telegramId?: string
   operations: AuditLogServiceOperation[]
 }
 

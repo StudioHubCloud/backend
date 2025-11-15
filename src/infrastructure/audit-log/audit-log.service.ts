@@ -19,7 +19,7 @@ export class AuditLogService {
    * Log telegram action with multiple operations
    * Called from audit middleware
    */
-  async logTelegramAction(auditData: IAuditLogTelegramContext): Promise<void> {
+  async logAction(auditData: IAuditLogTelegramContext): Promise<void> {
     try {
       for (const operation of auditData.operations) {
         await this.log({
@@ -31,6 +31,7 @@ export class AuditLogService {
           entityId: operation.entityId,
           operation: operation.operation,
           trigger: auditData.trigger,
+          timestamp: operation.timestamp,
           payload: operation.payload,
           metadata: {
             command: auditData.command,

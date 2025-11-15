@@ -11,9 +11,13 @@ import {
   Transaction,
   userProfile,
   client,
+  PassActivationRequestSelectModel,
 } from '@app/infrastructure/database'
 import { PassCacheKey, RedisCacheService } from '@app/infrastructure/redis'
 import {
+  AuditLogEntity,
+  AuditLogOperation,
+  AuditLogServiceOperation,
   DATE_FORMAT,
   PassActivationFileTypeEnum,
   PassActivationRequestTypeEnum,
@@ -38,14 +42,30 @@ export class PassService {
     this.studioId = this.configService.getStudioId()
   }
 
-  async createNewPass(data: Omit<PassInsertModel, 'studioId'>, tx?: Transaction) {
+  async createNewPass(
+    data: Omit<PassInsertModel, 'studioId'>,
+    tx?: Transaction,
+  ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
     const dbProvider = tx || this.databaseService.drizzle
     const [createdPass] = await dbProvider
       .insert(pass)
       .values({ ...data, studioId: this.studioId })
       .returning()
     await this.redisCacheService.reset()
-    return createdPass
+
+    return [
+      createdPass,
+      [
+        {
+          entity: AuditLogEntity.PASS,
+          entityId: createdPass.id,
+          operation: AuditLogOperation.CREATE,
+          payload: { ...data, studioId: this.studioId },
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: PassService.name, methodName: this.createNewPass.name },
+        },
+      ],
+    ]
   }
 
   async createPassWithActivationRequest(
@@ -54,50 +74,51 @@ export class PassService {
       fileType: PassActivationFileTypeEnum
       type: PassActivationRequestTypeEnum
     },
-  ) {
+  ): Promise<[PassSelectModel, PassActivationRequestSelectModel, AuditLogServiceOperation[]]> {
     const { fileId, fileType, clientId, type, ...passData } = data
 
     return await this.databaseService.drizzle.transaction(async (tx) => {
-      const pass = await this.createNewPass({ ...passData, clientId }, tx)
-      const ar = await this.passActivationRequestService.createActivationRequest(
-        {
-          passId: pass.id,
-          studioId: this.studioId,
-          clientId,
-          fileId,
-          fileType,
-          type,
-        },
-        tx,
-      )
+      const [pass, logOperations] = await this.createNewPass({ ...passData, clientId }, tx)
+      const payload = { passId: pass.id, studioId: this.studioId, clientId, fileId, fileType, type }
+
+      const [ar, arLogOperations] = await this.passActivationRequestService.createActivationRequest(payload, tx)
 
       await this.redisCacheService.reset()
-      return [pass, ar] as const
+      const allLogOperations = [...logOperations, ...arLogOperations].map((op) => ({
+        ...op,
+        metadata: { serviceName: PassService.name, methodName: this.createPassWithActivationRequest.name },
+      }))
+      return [pass, ar, allLogOperations]
     })
   }
 
-  async createNewPassForExistingClient(clientId: string, newPassData: PassInsertModel) {
+  async createNewPassForExistingClient(
+    clientId: string,
+    newPassData: PassInsertModel,
+  ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
     return await this.databaseService.drizzle.transaction(async (tx) => {
       const currentPass = await this.findActivePassByClientId(clientId, { withRequested: true })
+      const logOperations: AuditLogServiceOperation[] = []
 
       if (currentPass && currentPass.status === PassStatusEnum.REQUESTED) {
         throw new BadRequestException('Cannot create a new pass when there is a requested pass')
       }
 
       if (currentPass) {
-        await this.updatePass(
-          currentPass.id,
-          {
-            status: PassStatusEnum.EXPIRED,
-          },
-          tx,
-        )
+        const [_, updateLogOperation] = await this.updatePass(currentPass.id, { status: PassStatusEnum.EXPIRED }, tx)
+        logOperations.push(...updateLogOperation)
       }
-      return await this.createNewPass(newPassData, tx)
+      const [pass, createLogOperaion] = await this.createNewPass(newPassData, tx)
+      const allLogOperations = [...logOperations, ...createLogOperaion].map((op) => ({
+        ...op,
+        metadata: { serviceName: PassService.name, methodName: this.createNewPassForExistingClient.name },
+      }))
+      return [pass, allLogOperations]
     })
   }
 
-  async activatePassesAfterGracePeriod() {
+  async activatePassesAfterGracePeriod(): Promise<[number, AuditLogServiceOperation[]]> {
+    const logOperations: AuditLogServiceOperation[] = []
     const now = new Date()
     const todayDateString = this.dateTimeProvider.formatDateStringInTz(now.toISOString(), DATE_FORMAT.DATE_MAIN)
     const sevenDaysAgoString = this.dateTimeProvider.formatDateStringInTz(
@@ -131,25 +152,23 @@ export class PassService {
             addDays(now, pass.passTemplate.durationDays).toISOString(),
             DATE_FORMAT.DATE_MAIN,
           )
-
-          await this.updatePass(
-            pass.id,
-            {
-              startDate: todayDateString,
-              endDate: endDateString,
-            },
-            tx,
-          )
-          count++
+          const [_, updateLogOperation] = await this.updatePass(pass.id, { startDate: todayDateString, endDate: endDateString }, tx)
           this.logger.debug(
             `Auto-activated pass ${pass.id} for client ${pass.client?.userProfile?.firstName} after 7-day grace period`,
           )
+          logOperations.push(...updateLogOperation)
+          count++
         }
       })
 
       await this.redisCacheService.reset()
     }
-    return count
+    const allLogOperations = logOperations.map((op) => ({
+      ...op,
+      metadata: { serviceName: PassService.name, methodName: this.activatePassesAfterGracePeriod.name },
+    }))
+
+    return [count, allLogOperations]
   }
 
   async findPassByConditions({ status, ...conditions }: Partial<PassSelectModel>, { withRequested = false } = {}) {
@@ -212,7 +231,11 @@ export class PassService {
     return pass || null
   }
 
-  async updatePass(id: string, data: Partial<PassInsertModel>, tx?: Transaction) {
+  async updatePass(
+    id: string,
+    data: Partial<PassInsertModel>,
+    tx?: Transaction,
+  ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
     const dbProvider = tx || this.databaseService.drizzle
     const [updateResult] = await dbProvider.update(pass).set(data).where(eq(pass.id, id)).returning()
     const updatedPass = await this.findPassByConditions({ id: updateResult.id })
@@ -222,7 +245,19 @@ export class PassService {
     }
 
     await this.redisCacheService.reset()
-    return updatedPass
+    return [
+      updatedPass,
+      [
+        {
+          entity: AuditLogEntity.PASS,
+          entityId: updatedPass.id,
+          operation: AuditLogOperation.UPDATE,
+          payload: data,
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: PassService.name, methodName: this.updatePass.name },
+        },
+      ],
+    ]
   }
 
   async getExpiringPassesInDays(days: number) {
@@ -288,7 +323,7 @@ export class PassService {
     id: string,
     { withStatusChange }: { withStatusChange: boolean } = { withStatusChange: false },
     tx?: Transaction,
-  ) {
+  ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
     const passToActivate = await this.getPassById(id)
 
     if (!passToActivate) {
@@ -305,7 +340,7 @@ export class PassService {
       DATE_FORMAT.DATE_MAIN,
     )
 
-    return await this.updatePass(
+    const [pass, logOperations] = await this.updatePass(
       id,
       {
         saleDate: todayDateString,
@@ -315,10 +350,20 @@ export class PassService {
       },
       tx,
     )
+    const allLogOperations = logOperations.map((op) => ({
+      ...op,
+      metadata: { serviceName: PassService.name, methodName: this.activatePass.name },
+    }))
+    return [pass, allLogOperations]
   }
 
-  async acceptPassActivateRequest(passId: string, passActivationRequestId: string, isRenewRequest: boolean) {
+  async acceptPassActivateRequest(
+    passId: string,
+    passActivationRequestId: string,
+    isRenewRequest: boolean,
+  ): Promise<[boolean, AuditLogServiceOperation[]]> {
     const passToActivate = await this.getPassById(passId)
+    const logOperations: AuditLogServiceOperation[] = []
     if (!passToActivate) {
       throw new BadRequestException(`Pass with id ${passId} not found`)
     }
@@ -328,25 +373,39 @@ export class PassService {
     }
 
     if (isRenewRequest) {
-      await this.databaseService.drizzle
+      const [updatedPass] = await this.databaseService.drizzle
         .update(pass)
         .set({ status: PassStatusEnum.EXPIRED })
         .where(and(eq(pass.clientId, passToActivate.clientId), eq(pass.status, PassStatusEnum.ACTIVE)))
+        .returning()
+      logOperations.push({
+        entity: AuditLogEntity.PASS,
+        entityId: updatedPass.id,
+        operation: AuditLogOperation.UPDATE,
+        payload: { status: PassStatusEnum.EXPIRED },
+        timestamp: new Date().toISOString(),
+      })
     }
 
-    await this.databaseService.drizzle.transaction(async (tx) => {
+    const transactionLogOperations = await this.databaseService.drizzle.transaction(async (tx) => {
       const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
-      await Promise.all([
+      const [[_, passUpdateLogOperations], [__, deleteActivationResultLogOperations]] = await Promise.all([
         this.updatePass(passId, { saleDate: todayDateString, status: PassStatusEnum.ACTIVE }, tx),
         this.passActivationRequestService.deleteActivationRequest(passActivationRequestId, tx),
       ])
+      return [...passUpdateLogOperations, ...deleteActivationResultLogOperations]
     })
 
+    const allLogOperations = [...transactionLogOperations, ...logOperations].map((op) => ({
+      ...op,
+      metadata: { serviceName: PassService.name, methodName: this.acceptPassActivateRequest.name },
+    }))
+
     await this.redisCacheService.reset()
-    return true
+    return [true, allLogOperations]
   }
 
-  async deletePassById(id: string, tx?: Transaction) {
+  async deletePassById(id: string, tx?: Transaction): Promise<[boolean, AuditLogServiceOperation[]]> {
     const dbProvider = tx || this.databaseService.drizzle
     const result = await dbProvider.delete(pass).where(eq(pass.id, id)).returning()
 
@@ -354,10 +413,22 @@ export class PassService {
       await this.redisCacheService.reset()
     }
 
-    return true
+    return [
+      true,
+      [
+        {
+          entity: AuditLogEntity.PASS,
+          entityId: id,
+          operation: AuditLogOperation.DELETE,
+          payload: {},
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: PassService.name, methodName: this.deletePassById.name },
+        },
+      ],
+    ]
   }
 
-  async rejectPassActivateRequest(passId: string) {
+  async rejectPassActivateRequest(passId: string): Promise<[boolean, AuditLogServiceOperation[]]> {
     const passToReject = await this.getPassById(passId)
     if (!passToReject) {
       throw new BadRequestException(`Pass with id ${passId} not found`)
@@ -367,6 +438,11 @@ export class PassService {
       throw new BadRequestException(`Pass with id ${passId} activation request is already processed`)
     }
 
-    return await this.deletePassById(passId)
+    const [result, logOperations] = await this.deletePassById(passId)
+    const allLogOperations = logOperations.map((op) => ({
+      ...op,
+      metadata: { serviceName: PassService.name, methodName: this.rejectPassActivateRequest.name },
+    }))
+    return [result, allLogOperations]
   }
 }

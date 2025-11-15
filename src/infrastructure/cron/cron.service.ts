@@ -8,7 +8,9 @@ import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
 import { STATIC_CONFIG } from '../config/config.helper'
 import { FeedbackNotificationService } from '@app/domain/feedback-notifications'
-import { TrainingSignupTypeEnum } from '@app/libs'
+import { AuditLogActions, AuditLogTrigger, TrainingSignupTypeEnum } from '@app/libs'
+import { AuditLogService } from '../audit-log'
+import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 @Injectable()
 export class CronService {
@@ -19,6 +21,7 @@ export class CronService {
     private readonly passService: PassService,
     private readonly botNotificationService: BotNotificationService,
     private readonly feedbackNotificationService: FeedbackNotificationService,
+    private readonly auditLogService: AuditLogService,
   ) {
     this.logger.setContext(CronService.name)
   }
@@ -69,8 +72,9 @@ export class CronService {
   })
   async expireAllPastPasses() {
     this.logger.debug('Expire All Past Passes Cron job executed on the first day of the month at midnight')
-    const result = await this.userProfileService.expireAllPastPasses()
-    this.logger.debug(`Expire All Past Passes Cron job completed. Total expired passes: ${result.length}`)
+    const [passes, logOperations] = await this.userProfileService.expireAllPastPasses()
+    this.auditLogService.logAction(AuditLogHelper.startScheduledTaskAction(AuditLogActions.EXPIRE_PAST_PASSES, logOperations))
+    this.logger.debug(`Expire All Past Passes Cron job completed. Total expired passes: ${passes.length}`)
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
@@ -79,7 +83,10 @@ export class CronService {
   })
   async activatePassesAfterGracePeriod() {
     this.logger.debug('Activate Inactive Passes Cron job executed at midnight')
-    const count = await this.passService.activatePassesAfterGracePeriod()
+    const [count, logOperations] = await this.passService.activatePassesAfterGracePeriod()
+    this.auditLogService.logAction(
+      AuditLogHelper.startScheduledTaskAction(AuditLogActions.ACTIVATE_PASSES_AFTER_GRACE_PERIOD, logOperations),
+    )
     this.logger.debug(`Activate Inactive Passes Cron job completed. Total activated passes: ${count}`)
   }
 
@@ -117,10 +124,11 @@ export class CronService {
         this.logger.warn(`No end date found for pass ID: ${pass.id}, skipping notification`)
         continue
       }
-      await Promise.all([
-        this.botNotificationService.sendPassExpirationNotification(pass.client.userProfile, pass.endDate),
+      const [updatePassResults] = await Promise.all([
         this.passService.updatePass(pass.id, { reminderSent: true }),
+        this.botNotificationService.sendPassExpirationNotification(pass.client.userProfile, pass.endDate),
       ])
+      this.auditLogService.logAction(AuditLogHelper.startScheduledTaskAction(AuditLogActions.PASS_REMINDER_SENT, updatePassResults[1]))
     }
     this.logger.debug('Notify For Pass Expiration Cron job completed')
   }
@@ -142,25 +150,27 @@ export class CronService {
     for (const training of trainings) {
       this.logger.debug(`Processing training ID: ${training.id}, date: ${training.date}`)
 
-      training.trainingSignups.filter(s => s.type !== TrainingSignupTypeEnum.SPECIAL).forEach(async (signup) => {
-        if (!signup.userProfile) {
-          return this.logger.warn(`No user profile found for signup ID: ${signup.id} in training ID: ${training.id}`)
-        }
-        const name = signup.userProfile.firstName
-        const groupStyle = signup.group.groupStyle.title
-        const telegramId = signup.userProfile.telegramId
-        await Promise.all([
-          this.botNotificationService.sendTrainingReminderNotification({
-            name,
-            groupStyle,
-            date: training.date,
-            telegramId,
-            min: signup.group.groupAgeRestrictions?.minAge || null,
-            max: signup.group.groupAgeRestrictions?.maxAge || null,
-          }),
-          this.trainingService.updateTraining(training.id, { reminderSent: true }),
-        ])
-      })
+      training.trainingSignups
+        .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
+        .forEach(async (signup) => {
+          if (!signup.userProfile) {
+            return this.logger.warn(`No user profile found for signup ID: ${signup.id} in training ID: ${training.id}`)
+          }
+          const name = signup.userProfile.firstName
+          const groupStyle = signup.group.groupStyle.title
+          const telegramId = signup.userProfile.telegramId
+          await Promise.all([
+            this.botNotificationService.sendTrainingReminderNotification({
+              name,
+              groupStyle,
+              date: training.date,
+              telegramId,
+              min: signup.group.groupAgeRestrictions?.minAge || null,
+              max: signup.group.groupAgeRestrictions?.maxAge || null,
+            }),
+            this.trainingService.updateTraining(training.id, { reminderSent: true }),
+          ])
+        })
 
       this.logger.debug(`Training ID: ${training.id} - Notifications sent for ${training.trainingSignups.length} signups`)
     }

@@ -1,6 +1,13 @@
 import { TypedConfigService } from '@app/infrastructure/config'
-import { DatabaseService, passActivationRequest, PassActivationRequestInsertModel, Transaction } from '@app/infrastructure/database'
+import {
+  DatabaseService,
+  passActivationRequest,
+  PassActivationRequestInsertModel,
+  PassActivationRequestSelectModel,
+  Transaction,
+} from '@app/infrastructure/database'
 import { PassActivationRequestCacheKey, RedisCacheService } from '@app/infrastructure/redis'
+import { AuditLogEntity, AuditLogOperation, AuditLogServiceOperation } from '@app/libs'
 import { Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
 
@@ -16,15 +23,30 @@ export class PassActivationRequestService {
     this.studioId = this.configService.getStudioId()
   }
 
-  async createActivationRequest(data: PassActivationRequestInsertModel, tx?: Transaction) {
+  async createActivationRequest(
+    data: PassActivationRequestInsertModel,
+    tx?: Transaction,
+  ): Promise<[PassActivationRequestSelectModel, AuditLogServiceOperation[]]> {
     const dbProvider = tx || this.databaseService.drizzle
 
     const [createdRequest] = await dbProvider.insert(passActivationRequest).values(data).returning()
     await this.redisCacheService.reset()
-    return createdRequest
+    return [
+      createdRequest,
+      [
+        {
+          entity: AuditLogEntity.PASS_ACTIVATION_REQUEST,
+          entityId: createdRequest.id,
+          operation: AuditLogOperation.CREATE,
+          payload: data,
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: PassActivationRequestService.name, methodName: this.createActivationRequest.name },
+        },
+      ],
+    ]
   }
 
-  async deleteActivationRequest(id: string, tx?: Transaction) {
+  async deleteActivationRequest(id: string, tx?: Transaction): Promise<[boolean, AuditLogServiceOperation[]]> {
     const dbProvider = tx || this.databaseService.drizzle
     const result = await dbProvider.delete(passActivationRequest).where(eq(passActivationRequest.id, id)).returning()
 
@@ -32,7 +54,19 @@ export class PassActivationRequestService {
       await this.redisCacheService.reset()
     }
 
-    return true
+    return [
+      true,
+      [
+        {
+          entity: AuditLogEntity.PASS_ACTIVATION_REQUEST,
+          entityId: id,
+          operation: AuditLogOperation.DELETE,
+          payload: {},
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: PassActivationRequestService.name, methodName: this.deleteActivationRequest.name },
+        },
+      ],
+    ]
   }
 
   async findById(id: string) {

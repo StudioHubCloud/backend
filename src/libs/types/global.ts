@@ -38,13 +38,14 @@ export interface AuditLogPayload {
   action: AuditLogActions
   actionId: string
   actionResponseTimeMs: number | null
-  telegramId: string
+  telegramId?: string
   entity?: AuditLogEntity
   entityId?: string
   operation?: AuditLogOperation
   payload?: Record<string, any>
   trigger?: AuditLogTrigger
   metadata?: Record<string, any>
+  timestamp?: string
   studioId?: string
 }
 
@@ -53,7 +54,12 @@ export interface AuditLogServiceOperation {
   entity: AuditLogEntity
   payload: Record<string, any>
   operation: AuditLogOperation
+  timestamp: string
   metadata?: AuditLogOperationMetadata
+}
+
+export interface AuditLogServiceResponse {
+  logOperations: AuditLogServiceOperation[]
 }
 
 export interface AuditLogOperationMetadata {
