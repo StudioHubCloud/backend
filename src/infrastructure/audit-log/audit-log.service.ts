@@ -9,7 +9,7 @@ import { IAuditLogTelegramContext } from '@app/bot/libs'
 @Injectable()
 export class AuditLogService {
   constructor(
-    @InjectQueue(AUDIT_LOG_QUEUE) private auditQueue: Queue,
+    @InjectQueue(AUDIT_LOG_QUEUE) private readonly auditQueue: Queue,
     private readonly logger: PinoLogger,
   ) {
     this.logger.setContext(AuditLogService.name)
@@ -23,18 +23,18 @@ export class AuditLogService {
     try {
       for (const operation of auditData.operations) {
         await this.log({
-          telegramId: auditData.telegramId,
+          telegramId: auditData.telegramId ?? null,
           action: auditData.action,
-          actionResponseTimeMs: auditData.actionResponseTimeMs,
+          actionResponseTimeMs: auditData.actionResponseTimeMs ?? null,
           entity: operation.entity,
           actionId: auditData.actionId,
           entityId: operation.entityId,
           operation: operation.operation,
           trigger: auditData.trigger,
-          timestamp: operation.timestamp,
+          timestamp: operation.timestamp ?? new Date().toISOString(),
           payload: operation.payload,
           metadata: {
-            command: auditData.command,
+            ...(auditData.command ? { command: auditData.command } : {}),
             ...operation.metadata,
           },
         })

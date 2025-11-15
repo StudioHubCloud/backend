@@ -38,7 +38,7 @@ export interface AuditLogPayload {
   action: AuditLogActions
   actionId: string
   actionResponseTimeMs: number | null
-  telegramId?: string
+  telegramId?: string | null
   entity?: AuditLogEntity
   entityId?: string
   operation?: AuditLogOperation
