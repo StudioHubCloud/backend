@@ -8,7 +8,7 @@ export const auditLog = pgTable(
     telegramId: varchar('telegram_id'),
     action: AuditLogActionsPgEnum('action').notNull(),
     entity: AuditLogEntityPgEnum('entity').notNull(),
-    timestamp: timestamp('timestamp', { withTimezone: true }).notNull().defaultNow(),
+    timestamp: timestamp('timestamp', { withTimezone: true, mode: 'string' }).notNull().defaultNow(),
     actionId: uuid('action_id').notNull(),
     entityId: varchar('entity_id'),
     operation: AuditLogOperationPgEnum('operation'),
