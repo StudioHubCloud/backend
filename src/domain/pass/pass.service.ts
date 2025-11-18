@@ -378,9 +378,11 @@ export class PassService {
         .set({ status: PassStatusEnum.EXPIRED })
         .where(and(eq(pass.clientId, passToActivate.clientId), eq(pass.status, PassStatusEnum.ACTIVE)))
         .returning()
+
+        console.log(updatedPass, 'updatedPass')
       logOperations.push({
         entity: AuditLogEntity.PASS,
-        entityId: updatedPass.id,
+        entityId: updatedPass?.id,
         operation: AuditLogOperation.UPDATE,
         payload: { status: PassStatusEnum.EXPIRED },
         timestamp: new Date().toISOString(),
