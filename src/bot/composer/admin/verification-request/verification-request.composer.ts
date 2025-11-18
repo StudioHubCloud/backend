@@ -150,7 +150,7 @@ export class VerificationRequestComposer {
       const isRenewRequest = passActivateRequest?.type === PassActivationRequestTypeEnum.RENEW
 
       const [success, logOperations] = await this.passService.acceptPassActivateRequest(
-        passActivateRequest!.pass.id,
+        passActivateRequest!.passId,
         passActivateRequest!.id,
         isRenewRequest,
       )
