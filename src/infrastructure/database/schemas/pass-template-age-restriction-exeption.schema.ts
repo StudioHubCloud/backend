@@ -1,4 +1,4 @@
-import { uuid, pgTable as table, serial, uniqueIndex } from 'drizzle-orm/pg-core'
+import { uuid, pgTable as table, serial, uniqueIndex, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { userProfile } from './user-profile.schema'
 import { passTemplate } from './pass-template.schema'
@@ -13,10 +13,10 @@ export const passTemplateAgeRestrictionException = table(
     passTemplateId: uuid('pass_template_id')
       .references(() => passTemplate.id, { onDelete: 'cascade' })
       .notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [uniqueIndex().on(table.userProfileId, table.passTemplateId)],
 )
-
 
 export const pass_template_age_restriction_exception_relations = relations(passTemplateAgeRestrictionException, ({ one }) => ({
   userProfile: one(userProfile, { fields: [passTemplateAgeRestrictionException.userProfileId], references: [userProfile.id] }),

@@ -1,4 +1,4 @@
-import { date, pgTable as table, uniqueIndex, uuid, varchar, boolean } from 'drizzle-orm/pg-core'
+import { date, pgTable as table, uniqueIndex, uuid, varchar, boolean, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { staffMember } from './staff-member.schema'
 import { client } from './client.schema'
@@ -25,6 +25,7 @@ export const userProfile = table(
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
+    createdAt: timestamp('created_at').defaultNow()
   },
   (table) => [
     uniqueIndex().on(table.telegramId, table.role, table.studioId),

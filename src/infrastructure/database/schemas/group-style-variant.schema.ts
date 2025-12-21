@@ -1,4 +1,4 @@
-import { index, integer, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { timestamp, index, integer, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { studio } from './studio.schema'
 import { groupStyle } from './group-style.schema'
@@ -16,6 +16,7 @@ export const groupStyleVariant = table(
     groupStyleId: integer('group_style_id')
       .references(() => groupStyle.id, { onDelete: 'cascade' })
       .notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
     index().on(table.title),

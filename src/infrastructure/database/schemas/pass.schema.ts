@@ -1,4 +1,4 @@
-import { smallint, pgTable as table, uuid, index, date, boolean, uniqueIndex, integer } from 'drizzle-orm/pg-core'
+import { smallint, pgTable as table, uuid, index, date, boolean, uniqueIndex, integer, timestamp } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
 import { group } from './group.schema'
 import { client } from './client.schema'
@@ -30,6 +30,7 @@ export const pass = table(
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
     groupId: integer('group_id').references(() => group.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
     index().on(table.groupId),

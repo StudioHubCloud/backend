@@ -18,12 +18,9 @@ export const subscribtion = table(
     customerId: uuid('customer_id')
       .references(() => customer.id, { onDelete: 'cascade' })
       .notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => [
-    uniqueIndex().on(table.customerId),
-    index().on(table.subscribtionPlanId),
-    index().on(table.customerId, table.status),
-  ],
+  (table) => [uniqueIndex().on(table.customerId), index().on(table.subscribtionPlanId), index().on(table.customerId, table.status)],
 )
 
 export const subscribtion_relations = relations(subscribtion, ({ one }) => ({

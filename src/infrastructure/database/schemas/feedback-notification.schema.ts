@@ -1,4 +1,4 @@
-import { boolean, date, index, smallint, pgTable as table, uniqueIndex, uuid } from 'drizzle-orm/pg-core'
+import { boolean, date, index, smallint, pgTable as table, uniqueIndex, uuid, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { userProfile } from './user-profile.schema'
 
@@ -15,6 +15,7 @@ export const feedbackNotification = table(
     userProfileId: uuid('user_profile_id')
       .references(() => userProfile.id, { onDelete: 'cascade' })
       .notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
     uniqueIndex().on(table.userProfileId),

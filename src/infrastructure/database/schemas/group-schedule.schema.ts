@@ -1,4 +1,4 @@
-import { smallint, pgTable as table, varchar, uniqueIndex, uuid, integer} from 'drizzle-orm/pg-core'
+import { smallint, pgTable as table, varchar, uniqueIndex, uuid, integer, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
 import { groupScheduleDay } from './group-schedule-day.schema'
@@ -16,6 +16,7 @@ export const groupSchedule = table(
       .references(() => groupScheduleDay.id, { onDelete: 'restrict' })
       .notNull(),
     groupStyleVariantId: uuid('group_style_variant_id').references(() => groupStyleVariant.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [uniqueIndex().on(table.groupId, table.time, table.groupScheduleDayId)],
 )

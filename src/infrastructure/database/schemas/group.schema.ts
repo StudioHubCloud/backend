@@ -1,4 +1,4 @@
-import { index, smallint, integer, pgTable as table, uuid, varchar, serial, foreignKey } from 'drizzle-orm/pg-core'
+import { index, smallint, integer, pgTable as table, uuid, varchar, serial, foreignKey, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { training } from './training.schema'
 import { pass } from './pass.schema'
@@ -26,6 +26,7 @@ export const group = table(
       .references(() => groupStyle.id, { onDelete: 'restrict' })
       .notNull(),
     staffMemberId: uuid('staff_member_id').references(() => staffMember.id, { onDelete: 'set null' }),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
     index().on(table.studioId, table.status),
@@ -35,9 +36,8 @@ export const group = table(
     foreignKey({
       columns: [table.studioId, table.groupStyleId],
       foreignColumns: [groupStyle.studioId, groupStyle.id],
-      name: 'fk_group_studio_style'
-    })
-    
+      name: 'fk_group_studio_style',
+    }),
   ],
 )
 

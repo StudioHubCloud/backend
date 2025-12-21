@@ -1,4 +1,4 @@
-import { uuid, pgTable as table, uniqueIndex, varchar, integer, smallint } from 'drizzle-orm/pg-core'
+import { uuid, pgTable as table, uniqueIndex, varchar, integer, smallint, timestamp } from 'drizzle-orm/pg-core'
 import { PASS_CONFIG } from '@app/bot/libs'
 import { relations } from 'drizzle-orm'
 import { PassTemplateTypePgEnum, PassTemplateStatusPgEnum } from '../database.enums'
@@ -21,6 +21,7 @@ export const passTemplate = table(
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [uniqueIndex().on(table.studioId, table.name)],
 )

@@ -1,4 +1,4 @@
-import { pgTable as table, uuid, index, uniqueIndex, integer, text } from 'drizzle-orm/pg-core'
+import { pgTable as table, uuid, index, uniqueIndex, integer, text, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { TrainingSignupStatusPgEnum, TrainingSignupTypePgEnum } from '../database.enums'
 import { userProfile } from './user-profile.schema'
@@ -21,6 +21,7 @@ export const trainingSignup = table(
     trainingId: integer('training_id')
       .references(() => training.id, { onDelete: 'cascade' })
       .notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
     index().on(table.userProfileId),

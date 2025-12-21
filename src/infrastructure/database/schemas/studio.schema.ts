@@ -1,4 +1,4 @@
-import { pgTable as table, uuid, varchar, boolean } from 'drizzle-orm/pg-core'
+import { pgTable as table, uuid, varchar, boolean, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
 import { groupStyle } from './group-style.schema'
@@ -20,6 +20,7 @@ export const studio = table('studio', {
   customerId: uuid('customer_id')
     .references(() => customer.id, { onDelete: 'cascade' })
     .notNull(),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 export const studio_relations = relations(studio, ({ one, many }) => ({
   customer: one(customer, { fields: [studio.customerId], references: [customer.id] }),

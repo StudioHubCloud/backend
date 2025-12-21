@@ -1,7 +1,6 @@
-import { index, serial, smallint, pgTable as table, integer } from 'drizzle-orm/pg-core'
+import { index, serial, smallint, pgTable as table, integer, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
-
 
 export const groupAgeRestriction = table(
   'group_age_restriction',
@@ -13,10 +12,9 @@ export const groupAgeRestriction = table(
     groupId: integer('group_id')
       .references(() => group.id, { onDelete: 'cascade' })
       .notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
-  (table) => [
-    index().on(table.groupId),
-  ],
+  (table) => [index().on(table.groupId)],
 )
 
 export const group_age_restriction_relations = relations(groupAgeRestriction, ({ one }) => ({

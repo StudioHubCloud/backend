@@ -1,4 +1,4 @@
-import { pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
+import { timestamp, pgTable as table, uniqueIndex, uuid, varchar } from 'drizzle-orm/pg-core'
 import { relations, sql } from 'drizzle-orm'
 import { subscribtion } from './subscribtion.schema'
 import { studio } from './studio.schema'
@@ -14,6 +14,7 @@ export const customer = table(
     phoneNumber: varchar('phone_number').unique(),
     telegramId: varchar('telegram_id').unique(),
     countryCode: varchar('country_code').default('UA'),
+    createdAt: timestamp('created_at').notNull().defaultNow()
   },
   (table) => [uniqueIndex('customer-emailAddress').on(sql`LOWER(${table.emailAddress})`), uniqueIndex().on(table.telegramId)],
 )
