@@ -1,4 +1,4 @@
-import { deunionize } from 'telegraf'
+import { deunionize, Telegram } from 'telegraf'
 import { BotContext } from '../bot.context'
 import { User } from '@telegraf/types'
 import { FmtString } from 'telegraf/typings/format'
@@ -96,9 +96,9 @@ export class BotHelper {
     }
   }
 
-  static async safeSendMessage(ctx: BotContext, chatId: number | string, text: string | FmtString, options?: ExtraReplyMessage) {
+  static async safeSendMessage(telegram: Telegram, chatId: number | string, text: string | FmtString, options?: ExtraReplyMessage) {
     try {
-      await ctx.telegram.sendMessage(chatId, text, options)
+      await telegram.sendMessage(chatId, text, options)
     } catch (error) {
       console.error('Error sending message:', error.message, chatId, text)
     }

@@ -9,6 +9,7 @@ import { API, DATE_FORMAT } from '@app/libs'
 import { MESSAGES_COMMON } from '../static/messages'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { MessageHelper } from '../helpers/message.helper'
+import { BotHelper } from '../helpers'
 
 export interface NotificationResult {
   success: number
@@ -51,7 +52,7 @@ export class BotNotificationService {
           continue
         }
 
-        await this.bot.telegram.sendMessage(user.telegramId, MESSAGES_COMMON.BIRTHDAY_MESSAGE, {
+        await BotHelper.safeSendMessage(this.bot.telegram, user.telegramId, MESSAGES_COMMON.BIRTHDAY_MESSAGE, {
           parse_mode: 'HTML',
         })
 
@@ -70,7 +71,7 @@ export class BotNotificationService {
   async sendTrainingReminderNotification({ name, groupStyle, date, telegramId, min, max }: ITrainingReminderInput): Promise<void> {
     try {
       const message = this.generateTrainingReminderMessage(name, date, groupStyle, min, max)
-      await this.bot.telegram.sendMessage(telegramId, message, {
+      await BotHelper.safeSendMessage(this.bot.telegram, telegramId, message, {
         parse_mode: 'HTML',
       })
       this.logger.debug(`Training reminder sent to user ${telegramId}`)
@@ -83,7 +84,7 @@ export class BotNotificationService {
   async sendPassExpirationNotification(userProfile: UserProfileSelectModel, expirationDate: string): Promise<void> {
     const message = this.generatePassExpirationMessage(userProfile.firstName, expirationDate)
     try {
-      await this.bot.telegram.sendMessage(userProfile.telegramId, message, {
+      await BotHelper.safeSendMessage(this.bot.telegram, userProfile.telegramId, message, {
         parse_mode: 'HTML',
       })
       this.logger.debug(`Pass expiration notification sent to ${userProfile.telegramId}`)
@@ -95,7 +96,7 @@ export class BotNotificationService {
 
   async sendCustomNotification(chatId: string | number, message: string, options?: any) {
     try {
-      await this.bot.telegram.sendMessage(chatId, message, options)
+      await BotHelper.safeSendMessage(this.bot.telegram, chatId, message, options)
       this.logger.debug(`Custom notification sent to ${chatId}`)
       return { success: true }
     } catch (error) {
@@ -106,7 +107,6 @@ export class BotNotificationService {
   }
 
   async sendFeedbackNotificationToUser(userProfile: UserProfileSelectModel): Promise<void> {
-
     const googleReviewUrl = `${API.GOOGLE_REVIEW_URL}${this.configService.get('GOOGLE_PLACE_ID')}`
     const keyboard = {
       reply_markup: {
@@ -131,7 +131,13 @@ export class BotNotificationService {
     })
   }
 
-  private generateTrainingReminderMessage(name: string, workoutTime: string, groupStyle: string, min: number | null, max: number | null): string {
+  private generateTrainingReminderMessage(
+    name: string,
+    workoutTime: string,
+    groupStyle: string,
+    min: number | null,
+    max: number | null,
+  ): string {
     workoutTime = this.dateTimeProvider.formatDateStringInTz(workoutTime, DATE_FORMAT.TIME_MAIN)
     const ageRestrictions = MessageHelper.getAgeRestrictionsMessageShort(min, max)
     const grouptitle = ageRestrictions ? `${groupStyle} (${ageRestrictions})` : groupStyle

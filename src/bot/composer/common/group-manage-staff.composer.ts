@@ -173,7 +173,7 @@ export class GroupManageStaffComposer {
             .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
             .map((signup) => {
               return BotHelper.safeSendMessage(
-                ctx,
+                ctx.telegram,
                 String(signup.userProfile?.telegramId),
                 MessageHelper.constructTrainingCancelMessage(
                   { date: training.date, groupName: signup?.group?.name },
@@ -198,7 +198,7 @@ export class GroupManageStaffComposer {
             .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
             .map((signup) => {
               return BotHelper.safeSendMessage(
-                ctx,
+                ctx.telegram,
                 String(signup.userProfile?.telegramId),
                 MessageHelper.constructTrainingActivateMessage(
                   { date: training.date, groupName: signup?.group?.name },
@@ -496,7 +496,7 @@ export class GroupManageStaffComposer {
 
         if (now < trainingDate) {
           BotHelper.safeSendMessage(
-            ctx,
+            ctx.telegram,
             String(userProfile.telegramId),
             MessageHelper.constructTrainingSignoutByAdminMessage(
               { date: training.date, groupName: group.name },
@@ -562,7 +562,7 @@ export class GroupManageStaffComposer {
 
         if (now < trainingDate) {
           BotHelper.safeSendMessage(
-            ctx,
+            ctx.telegram,
             String(userProfile.telegramId),
             MessageHelper.constructTrainingSigninByAdminMessage(
               { date: training.date, groupName: group.name },
@@ -627,7 +627,7 @@ export class GroupManageStaffComposer {
           if (!signup.userProfile?.telegramId) return
 
           try {
-            await BotHelper.safeSendMessage(ctx, String(signup.userProfile.telegramId), message, { parse_mode: 'HTML' })
+            await BotHelper.safeSendMessage(ctx.telegram, String(signup.userProfile.telegramId), message, { parse_mode: 'HTML' })
             return { success: true, telegramId: signup.userProfile.telegramId }
           } catch (error) {
             console.error(`Failed to send substitute trainer notification to ${signup.userProfile.telegramId}:`, error)

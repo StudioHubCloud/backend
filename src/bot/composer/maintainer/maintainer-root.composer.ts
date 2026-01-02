@@ -49,7 +49,7 @@ export class MaintainerRootComposer {
 
       await Promise.all(
         clients.map(async (userProfile) => {
-          BotHelper.safeSendMessage(ctx, userProfile.telegramId, '🔄 Оновлення головного меню', ClientKeyboards.mainMenu())
+          BotHelper.safeSendMessage(ctx.telegram, userProfile.telegramId, '🔄 Оновлення головного меню', ClientKeyboards.mainMenu())
         }),
       )
 

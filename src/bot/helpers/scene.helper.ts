@@ -40,7 +40,7 @@ export class SceneHelper<T extends Record<string, any>> {
   }
 
   async handleAdminSceneError(ctx: BotContext, error: any, maintainerChatId: string) {
-    await BotHelper.safeSendMessage(ctx, maintainerChatId, `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`)
+    await BotHelper.safeSendMessage(ctx.telegram, maintainerChatId, `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`)
     const user = UserHelper.getUser(ctx)
     const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role)
     await ctx.replyWithHTML(

@@ -1,19 +1,19 @@
+import { TypedConfigService } from '@app/infrastructure/config'
+import { APP, DATE_FORMAT, TDateFormats } from '@app/libs'
 import { Inject, Injectable } from '@nestjs/common'
 import {
-  format,
   addMonths,
-  startOfMonth,
-  endOfMonth,
-  eachDayOfInterval,
-  parse,
-  endOfDay,
   differenceInYears,
+  eachDayOfInterval,
+  endOfDay,
+  endOfMonth,
+  format,
+  parse,
   startOfDay,
+  startOfMonth,
 } from 'date-fns'
 import { formatInTimeZone, fromZonedTime } from 'date-fns-tz'
 import { uk } from 'date-fns/locale'
-import { APP, DATE_FORMAT, TDateFormats } from '@app/libs'
-import { TypedConfigService } from '@app/infrastructure/config'
 
 export const DateTimeProviderInjector = () => Inject(APP.PROVIDERS.DATE_TIME_PROVIDER)
 

@@ -143,7 +143,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       const staffMessage = InitiatePayoutSceneHelper.getStaffInfoMessage(state)
 
       await Promise.all([
-        BotHelper.safeSendMessage(ctx, state.staffUserProfile.telegramId, staffMessage, { parse_mode: 'HTML' }),
+        BotHelper.safeSendMessage(ctx.telegram, state.staffUserProfile.telegramId, staffMessage, { parse_mode: 'HTML' }),
         ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.REGISTER_SUCCESS, this.exitKeyboard),
       ])
       return ctx.scene.leave()
@@ -158,7 +158,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
 
   private async handleError(ctx: BotContext, error: any) {
     await BotHelper.safeSendMessage(
-      ctx,
+      ctx.telegram,
       this.configService.get('MAINTAINER_CHAT_ID'),
       `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`,
     )

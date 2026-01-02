@@ -2,7 +2,6 @@ import { session, Telegraf } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { ENVIRONMENTS } from '@app/libs'
 import { BotContext } from './bot.context'
 import { BotCommands } from './bot.commands'
 import { MESSAGES_COMMON } from './static/messages'
@@ -46,7 +45,7 @@ export class BotService {
       this.logger.error(`Encountered an error for ctx.update: %o, with message: %s`, ctx.update, err?.message)
       ctx?.scene?.leave()
       BotHelper.safeSendMessage(
-        ctx,
+        ctx.telegram,
         this.configService.get('MAINTAINER_CHAT_ID'),
         `Error: ${err.message}\n\nUpdate: ${JSON.stringify(ctx?.update)}`,
       )

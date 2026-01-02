@@ -97,7 +97,7 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
 
   private async handleError(ctx: BotContext, error: any) {
     await BotHelper.safeSendMessage(
-      ctx,
+      ctx.telegram,
       this.configService.get('MAINTAINER_CHAT_ID'),
       `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`,
     )

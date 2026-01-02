@@ -69,6 +69,11 @@ export class ClientManageComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.MANAGE), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) => this.renderPassManageMenu(ctx, clientUserProfile))
     })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ADD_NEW), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) => this.handleAddNewPassAction(ctx, clientUserProfile))
+    })
+
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) => this.handleActivatePassAction(ctx, clientUserProfile))
     })
@@ -78,11 +83,13 @@ export class ClientManageComposer {
         this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_LENGTH),
       )
     })
+
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_END_DATE), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_END_DATE),
       )
     })
+
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_START_DATE), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_START_DATE),
@@ -100,6 +107,7 @@ export class ClientManageComposer {
         this.handleChangeStatusAction(ctx, clientUserProfile, CLIENT_STATUS_CHANGE_ACTIONS.ARCHIVE),
       )
     })
+
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_MENU), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) => this.renderClientManageMenu(ctx, clientUserProfile.id))
     })
@@ -113,11 +121,13 @@ export class ClientManageComposer {
         this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_NAME),
       )
     })
+
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_PHONE), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_PHONE),
       )
     })
+
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_DATE_OF_BIRTH), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_DATE_OF_BIRTH),
@@ -274,6 +284,11 @@ export class ClientManageComposer {
     AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_CONFIRM, AuditLogTrigger.ADMIN_ACTION, logOperations)
     BotHelper.safeAnswerCbQuery(ctx, '✅ Абонемент успішно активовано.')
     return this.renderPassManageMenu(ctx, clientUserProfile)
+  }
+
+  private handleAddNewPassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
+    console.log(clientUserProfile, 'clientUserProfile ')
+    ctx.reply('✅ Перехід до створення нового абонементу для клієнта.')
   }
 
   private withClientIdAction = async (ctx: BotContext, action: (userProfile: UserProfileWithClient) => Promise<any>) => {

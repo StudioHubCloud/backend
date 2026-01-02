@@ -364,8 +364,8 @@ export class AdminKeyboards {
     ])
   }
 
-  static passManageMenu(clientUserId: string, isActive: boolean): TReplyInlineKeyboard {
-    const activateButton = !isActive
+  static passManageMenu(clientUserId: string, isPassActivated: boolean): TReplyInlineKeyboard {
+    const activateButton = !isPassActivated
       ? [
           {
             text: BUTTON_PATTERNS.ACTIVATE,
@@ -376,6 +376,12 @@ export class AdminKeyboards {
 
     return KeyboardHelper.createInlineKeyboard([
       [...activateButton],
+      [
+        {
+          text: BUTTON_PATTERNS.PASS_ADD_NEW,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ADD_NEW, clientUserId),
+        },
+      ],
       [
         {
           text: BUTTON_PATTERNS.PASS_EDIT_LENGTH,

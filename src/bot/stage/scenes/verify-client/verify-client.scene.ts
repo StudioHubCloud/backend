@@ -101,7 +101,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
       await Promise.all([
         BotHelper.safeSendMessage(
-          ctx,
+          ctx.telegram,
           userProfile.telegramId,
           VerifyClientSceneHelper.getClientInfoMessage({ saleDate, passTemplate, userProfile }),
           {

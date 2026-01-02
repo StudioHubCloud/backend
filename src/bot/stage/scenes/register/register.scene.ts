@@ -189,7 +189,8 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     const sendMessageToStudioAdmins = async (ctx: BotContext) => {
       const studioAdmins = await this.userProfileService.findStudioAdmins()
       studioAdmins.forEach((admin) => {
-        ctx.telegram.sendMessage(
+        BotHelper.safeSendMessage(
+          ctx.telegram,
           admin.telegramId,
           MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
           {
