@@ -1,11 +1,11 @@
 import Redis from 'ioredis'
-import { Inject, Injectable } from '@nestjs/common'
+import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
 import { REDIS_CACHE_CLIENT } from './redis-cache.symbol'
 import { CACHE } from '@app/libs'
 
 @Injectable()
-export class RedisCacheService {
+export class RedisCacheService implements OnModuleDestroy {
   constructor(
     @Inject(REDIS_CACHE_CLIENT) private readonly redis: Redis,
     private readonly logger: PinoLogger,
@@ -49,6 +49,17 @@ export class RedisCacheService {
       this.logger.debug('[CLEAR CACHE] success')
     } catch (error) {
       this.logger.error('Error clearing cache: %j', error)
+    }
+  }
+
+  async onModuleDestroy() {
+    try {
+      await this.redis.flushdb()
+      console.warn('[REDIS] Cache cleared')
+      await this.redis.quit()
+      console.warn('[REDIS] Connection closed gracefully')
+    } catch (error) {
+      console.error('[REDIS] Error during cleanup:', error)
     }
   }
 }

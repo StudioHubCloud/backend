@@ -32,6 +32,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     Stage.EditUserProfileScene,
     Stage.PassPaymentScene,
     Stage.SpecialScheduleScene,
+    Stage.PassOpenScene,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,

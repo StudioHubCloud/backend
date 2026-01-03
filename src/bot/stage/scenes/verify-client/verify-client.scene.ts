@@ -203,5 +203,5 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
     console.error(`${message}:`, error)
     await ctx.replyWithHTML(`❌ Виникла помилка: ${message}. Спробуйте ще раз або зверніться до адміністратора.`)
     return ctx.scene.leave()
-  }
+  } 
 }

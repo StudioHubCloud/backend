@@ -17,6 +17,7 @@ import { AuditLogServiceOperation, DATE_FORMAT, PassStatusEnum, UserProfileRoleE
 import { ClientService } from '../client/client.service'
 import { PassService } from '../pass/pass.service'
 import { IVerifyClientSceneState } from '@app/bot/stage/scenes/verify-client/verify-client.scene-helper'
+import { IPassOpenSceneState } from '@app/bot/stage/scenes/pass/pass-open.scene-helper'
 import { StaffMemberService } from '../staff-member'
 import { UserProfileWithRoleRelations } from '@app/bot/libs'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
@@ -145,7 +146,7 @@ export class UserProfileService {
     return true
   }
 
-  async verifyClient(data: IVerifyClientSceneState): Promise<[boolean, AuditLogServiceOperation[]]> {
+  async verifyClient(data: IVerifyClientSceneState | IPassOpenSceneState): Promise<[boolean, AuditLogServiceOperation[]]> {
     const { userProfile, passTemplate, saleDate } = data
 
     const user = await this.getUserProfileById(userProfile.id)

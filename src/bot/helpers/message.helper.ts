@@ -8,7 +8,7 @@ import {
   UserProfileStatusEnum,
 } from '@app/libs'
 import { TextHelper } from './text.helper'
-import { GetGroupByIdResponse, GetTrainingByIdResponse, IRegisterSceneState } from '../libs'
+import { GetGroupByIdResponse, GetTrainingByIdResponse, IRegisterSceneState, PassTemplateWithAgeRestrictions } from '../libs'
 import {
   GroupAgeRestrictionSelectModel,
   PassTemplateAgeRestrictionSelectModel,
@@ -54,16 +54,18 @@ export class MessageHelper {
       : `${modeText}${mainContent}`
   }
 
-  static getClientPassPaymentRequestMessage(userProfile: UserProfileSelectModel, passTemplate: PassTemplateSelectModel, requestType: PassActivationRequestTypeEnum) {
+  static getClientPassPaymentRequestMessage(
+    userProfile: UserProfileSelectModel,
+    passTemplate: PassTemplateSelectModel,
+    requestType: PassActivationRequestTypeEnum,
+  ) {
     const fullName = UserHelper.getDisplayName(userProfile)
     const price = PassHelper.toDisplayPrice(passTemplate.price)
     const requestTypeText = requestType === PassActivationRequestTypeEnum.PURCHASE ? 'Активацію' : 'Поновлення'
     return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}`
   }
 
-  static constructPassSelectMessage(
-    data: PassTemplateSelectModel & { passTemplateAgeRestriction: PassTemplateAgeRestrictionSelectModel | null },
-  ) {
+  static constructPassSelectMessage(data: PassTemplateWithAgeRestrictions) {
     const { name, price, length, passTemplateAgeRestriction, durationDays } = data
 
     const ageRestrictionInfo = passTemplateAgeRestriction

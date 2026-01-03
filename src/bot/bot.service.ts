@@ -1,18 +1,18 @@
-import { session, Telegraf } from 'telegraf'
-import { Injectable } from '@nestjs/common'
-import { PinoLogger } from 'nestjs-pino'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { BotContext } from './bot.context'
+import { Injectable, OnModuleDestroy } from '@nestjs/common'
+import { PinoLogger } from 'nestjs-pino'
+import { session, Telegraf } from 'telegraf'
 import { BotCommands } from './bot.commands'
-import { MESSAGES_COMMON } from './static/messages'
-import { MiddlewareService } from './middleware'
-import { StageService } from './stage'
+import { BotContext } from './bot.context'
 import { ComposerService } from './composer'
 import { BotHelper, KeyboardHelper, RegexHelper, UserHelper } from './helpers'
 import { CALLBACK_DATA } from './libs'
+import { MiddlewareService } from './middleware'
+import { StageService } from './stage'
+import { MESSAGES_COMMON } from './static/messages'
 
 @Injectable()
-export class BotService {
+export class BotService implements OnModuleDestroy {
   private readonly bot: Telegraf<BotContext>
   constructor(
     private readonly logger: PinoLogger,
@@ -99,12 +99,12 @@ export class BotService {
     })
   }
 
-  stopBot(reason: 'SIGINT' | 'SIGTERM') {
-    this.bot.stop(reason)
-    this.logger.warn('Bot stopped with reason: %s', reason)
-  }
-
   getBotInstance(): Telegraf<BotContext> {
     return this.bot
+  }
+
+  onModuleDestroy() {
+    this.bot.stop('SIGTERM')
+    console.log('[BOT] Bot stopped successfully')
   }
 }

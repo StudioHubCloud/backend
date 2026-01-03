@@ -10,6 +10,8 @@ import {
   GroupStyleVariantSelectModel,
   TrainingSignupSelectModel,
   StaffMemberSelectModel,
+  PassTemplateSelectModel,
+  PassTemplateAgeRestrictionSelectModel,
 } from '@app/infrastructure/database/models'
 import { AuditLogActions, AuditLogTrigger, PassStatusEnum, UserProfileRoleEnum, AuditLogServiceOperation } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
@@ -34,6 +36,7 @@ export type UserProfileWithRoleRelations = UserProfileSelectModel & { client: Cl
   staffMember: StaffMemberSelectModel | null
 }
 export type UserProfileWithClient = UserProfileWithRoleRelations & { client: NonNullable<UserProfileWithRoleRelations['client']> }
+export type PassTemplateWithAgeRestrictions = PassTemplateSelectModel & { passTemplateAgeRestriction: PassTemplateAgeRestrictionSelectModel | null }
 
 export type TNextFunction = () => Promise<void>
 

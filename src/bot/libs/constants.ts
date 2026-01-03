@@ -23,6 +23,7 @@ export const SCENES = {
   EDIT_PASS: 'edit_pass',
   EDIT_USER_PROFILE: 'edit_profile_name',
   PASS_PAYMENT: 'pass_payment',
+  PASS_OPEN: 'pass_open',
 } as const
 
 export const CALLBACK_DATA = {
