@@ -1,31 +1,41 @@
 import { UserProfileWithClient, PassTemplateWithAgeRestrictions } from '@app/bot/libs'
 import { TextHelper, MessageHelper } from '@app/bot/helpers'
-import { PassTemplateAgeRestrictionSelectModel, PassTemplateSelectModel } from '@app/infrastructure/database'
+import {
+  PassSelectModel,
+  PassTemplateSelectModel,
+  UserProfileSelectModel,
+} from '@app/infrastructure/database'
+import { PassTemplateTypeEnum } from '@app/libs'
 
 export interface IPassOpenSceneState {
   userProfile: UserProfileWithClient
   passTemplate: PassTemplateWithAgeRestrictions
+  startMessageId: number
+  mainMessageId: number
   saleDate: string
+  selectedPassType: PassTemplateTypeEnum | null
+  originalPass: PassSelectModel & {
+    client: { userProfile: UserProfileSelectModel | null } | null
+    passTemplate: PassTemplateSelectModel
+  }
+  newPassId: string
 }
 
 export class PassOpenSceneHelper {
   static getInfoMessageForConfirm(data: IPassOpenSceneState): string {
-    const { userProfile, passTemplate, saleDate } = data
+    const { userProfile, passTemplate } = data
 
-    const passInfo = MessageHelper.constructPassSelectMessage(passTemplate)
-    const userInfo = `👤 ${TextHelper.bold('Клієнт:')}\n${userProfile.firstName} ${userProfile.lastName}\n📱 ${userProfile.phoneNumber}\n📅 ${userProfile.dateOfBirth}`
-    const saleDateInfo = `📅 ${TextHelper.bold('Дата продажу:')}\n${saleDate}`
+    const userInfo = `👤 Клієнт: ${userProfile.firstName} ${userProfile.lastName}`
+    const passInfo = MessageHelper.constructPassSelectMessage(passTemplate, true)
 
-    return `${userInfo}\n\n${passInfo}\n\n${saleDateInfo}\n\n${TextHelper.bold('Підтвердити відкриття абонементу?')}`
+    return `${TextHelper.bold('❓ Підтвердити відкриття абонементу?')}\n\n${userInfo}\n\n${passInfo}\n\nℹ️ <i>При підтврердженні клієнт отримає сповіщення про відкриття абонементу.</i>`
   }
 
   static getClientInfoMessage(data: IPassOpenSceneState): string {
-    const { userProfile, passTemplate, saleDate } = data
-
-    const passInfo = MessageHelper.constructPassSelectMessage(passTemplate)
-    const userInfo = `👤 ${TextHelper.bold('Вітаємо!')}\n${userProfile.firstName} ${userProfile.lastName}`
-    const saleDateInfo = `📅 ${TextHelper.bold('Дата відкриття:')}\n${saleDate}`
-
-    return `${userInfo}\n\n${passInfo}\n\n${saleDateInfo}\n\n${TextHelper.bold('Ваш абонемент успішно відкрито! 🎉')}`
+    const { passTemplate, saleDate } = data
+    const { length, durationDays, name } = passTemplate
+    const passInfo = `ℹ️ Назва абонементу "${TextHelper.bold(name)}"\n🎫 Кількість: ${TextHelper.bold(`${length} тренувань`)}\n📅 Тривалість: ${TextHelper.bold(`${durationDays} днів`)}`
+    const saleDateInfo = `📅 Дата активації: ${TextHelper.bold(`${saleDate}`)}`
+    return `${TextHelper.bold('🔥🎉 Вам відкрито новий абонемент!')}\n\n${passInfo}\n\n${saleDateInfo}`
   }
 }

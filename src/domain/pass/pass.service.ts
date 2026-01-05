@@ -94,7 +94,8 @@ export class PassService {
 
   async createNewPassForExistingClient(
     clientId: string,
-    newPassData: PassInsertModel,
+    newPassData: Omit<PassInsertModel, 'studioId'>,
+    durationDays: number,
   ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
     return await this.databaseService.drizzle.transaction(async (tx) => {
       const currentPass = await this.findActivePassByClientId(clientId, { withRequested: true })
@@ -108,7 +109,16 @@ export class PassService {
         const [_, updateLogOperation] = await this.updatePass(currentPass.id, { status: PassStatusEnum.EXPIRED }, tx)
         logOperations.push(...updateLogOperation)
       }
-      const [pass, createLogOperaion] = await this.createNewPass(newPassData, tx)
+      const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN) // todo: make if from saleDate
+      const endDateString = this.dateTimeProvider.formatDateStringInTz(
+        addDays(new Date(), durationDays).toISOString(),
+        DATE_FORMAT.DATE_MAIN,
+      )
+
+      const [pass, createLogOperaion] = await this.createNewPass(
+        { ...newPassData, saleDate: todayDateString, startDate: newPassData.saleDate, endDate: endDateString },
+        tx,
+      )
       const allLogOperations = [...logOperations, ...createLogOperaion].map((op) => ({
         ...op,
         metadata: { serviceName: PassService.name, methodName: this.createNewPassForExistingClient.name },
@@ -379,7 +389,7 @@ export class PassService {
         .where(and(eq(pass.clientId, passToActivate.clientId), eq(pass.status, PassStatusEnum.ACTIVE)))
         .returning()
 
-        console.log(updatedPass, 'updatedPass')
+      console.log(updatedPass, 'updatedPass')
       logOperations.push({
         entity: AuditLogEntity.PASS,
         entityId: updatedPass?.id,

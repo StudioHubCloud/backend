@@ -108,6 +108,7 @@ export enum AuditLogOperation {
 
 export enum AuditLogActions {
   PASS_EDIT = 'pass_edit',
+  PASS_CREATE = 'pass_create',
   PASS_REMINDER_SENT = 'pass_reminder_sent',
   CLIENT_VERIFY_CONFIRM = 'client_verify_confirm',
   PASS_ACTIVATE_CONFIRM = 'pass_activate_confirm',

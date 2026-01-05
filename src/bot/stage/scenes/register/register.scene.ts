@@ -194,7 +194,6 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
           admin.telegramId,
           MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
           {
-            parse_mode: 'HTML',
             ...AdminKeyboards.verifyActions(id, this.REQUESTED_ROLE),
           },
         )

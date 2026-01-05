@@ -145,3 +145,22 @@ export class InitiatePayoutSceneKeyboards {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.INITIATE_PAYOUT.CONFIRM)
   }
 }
+
+export class OpenPassSceneKeyboards {
+  static confirmPassOpenKeyboard(): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        {
+          text: BUTTON_PATTERNS.CONFIRM,
+          callback_data: CALLBACK_PREFIX.SCENES.PASS.CONFIRM_OPEN,
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.BACK,
+          callback_data: CALLBACK_PREFIX.SCENES.PASS.BACK_TO_TYPE_SELECT,
+        },
+      ],
+    ])
+  }
+}

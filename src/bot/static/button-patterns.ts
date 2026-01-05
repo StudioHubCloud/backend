@@ -40,7 +40,7 @@ export const BUTTON_PATTERNS = {
   PASS_EDIT_START_DATE: '📆 Змінити дату початку',
   PASS_EDIT_END_DATE: '📆 Змінити дату закінчення',
   PASS_EDIT_LENGTH: '✏️ Редагувати кількість тренувань', // це кількість доступних тренувань
-  PASS_ADD_NEW: '✅ Відкрити новий абонемент',
+  PASS_ADD_NEW: '🆕 Відкрити новий абонемент',
   PAYMENT: '💳 Реквізити для оплати',
   REGISTER_FINISH: '✅ Завершити реєстрацію',
   REQUESTS: '👤 Запити на верифікацію',

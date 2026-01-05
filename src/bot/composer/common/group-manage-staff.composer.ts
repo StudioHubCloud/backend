@@ -179,9 +179,6 @@ export class GroupManageStaffComposer {
                   { date: training.date, groupName: signup?.group?.name },
                   this.dateTimeProvider,
                 ),
-                {
-                  parse_mode: 'HTML',
-                },
               )
             }),
         )
@@ -204,7 +201,6 @@ export class GroupManageStaffComposer {
                   { date: training.date, groupName: signup?.group?.name },
                   this.dateTimeProvider,
                 ),
-                { parse_mode: 'HTML' },
               )
             }),
         )
@@ -502,7 +498,6 @@ export class GroupManageStaffComposer {
               { date: training.date, groupName: group.name },
               this.dateTimeProvider,
             ),
-            { parse_mode: 'HTML' },
           )
         }
       }
@@ -568,7 +563,6 @@ export class GroupManageStaffComposer {
               { date: training.date, groupName: group.name },
               this.dateTimeProvider,
             ),
-            { parse_mode: 'HTML' },
           )
         }
       }
@@ -627,7 +621,7 @@ export class GroupManageStaffComposer {
           if (!signup.userProfile?.telegramId) return
 
           try {
-            await BotHelper.safeSendMessage(ctx.telegram, String(signup.userProfile.telegramId), message, { parse_mode: 'HTML' })
+            await BotHelper.safeSendMessage(ctx.telegram, String(signup.userProfile.telegramId), message)
             return { success: true, telegramId: signup.userProfile.telegramId }
           } catch (error) {
             console.error(`Failed to send substitute trainer notification to ${signup.userProfile.telegramId}:`, error)

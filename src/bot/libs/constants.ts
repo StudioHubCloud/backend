@@ -132,6 +132,7 @@ export const CALLBACK_PREFIX = {
       TEMPLATE_DETAILS: 'sc.pass.tp.prvw',
       TEMPLATE_SELECT: 'sc.pass.tpl.sel',
       BACK_TO_LIST: 'sc.pass.tp.b.lst',
+      CONFIRM_OPEN: 'sc.pass.op.cfm',
     },
     FILE: {
       BACK: 'sc.file.b',

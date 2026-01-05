@@ -65,7 +65,7 @@ export class MessageHelper {
     return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}`
   }
 
-  static constructPassSelectMessage(data: PassTemplateWithAgeRestrictions) {
+  static constructPassSelectMessage(data: PassTemplateWithAgeRestrictions, withoutHeader?: boolean) {
     const { name, price, length, passTemplateAgeRestriction, durationDays } = data
 
     const ageRestrictionInfo = passTemplateAgeRestriction
@@ -73,7 +73,7 @@ export class MessageHelper {
       : '👶 Вікові обмеження відсутні'
 
     return (
-      `🎫 Інформація про абонемент "${TextHelper.italic(name)}":\n\n` +
+      `${withoutHeader ? '' : `🎫 Інформація про абонемент "${TextHelper.italic(name)}":\n\n`}` +
       `💰 Ціна: ${TextHelper.bold(PassHelper.toDisplayPrice(price))}\n` +
       `🎫 Кількість: ${TextHelper.bold(`${length} тренувань`)}\n` +
       `📅 Тривалість: ${TextHelper.bold(`${durationDays} днів`)}\n` +

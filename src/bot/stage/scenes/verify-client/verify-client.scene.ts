@@ -105,7 +105,6 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
           userProfile.telegramId,
           VerifyClientSceneHelper.getClientInfoMessage({ saleDate, passTemplate, userProfile }),
           {
-            parse_mode: 'HTML',
             ...ClientKeyboards.mainMenu(),
           },
         ),

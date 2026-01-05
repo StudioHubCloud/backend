@@ -287,8 +287,10 @@ export class ClientManageComposer {
   }
 
   private handleAddNewPassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
-    console.log(clientUserProfile, 'clientUserProfile ')
-    ctx.reply('✅ Перехід до створення нового абонементу для клієнта.')
+    const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
+    BotHelper.safeAnswerCbQuery(ctx)
+    ctx.deleteMessage()
+    return ctx.scene.enter(SCENES.PASS_OPEN, { userProfile: clientUserProfile, originalPass })
   }
 
   private withClientIdAction = async (ctx: BotContext, action: (userProfile: UserProfileWithClient) => Promise<any>) => {

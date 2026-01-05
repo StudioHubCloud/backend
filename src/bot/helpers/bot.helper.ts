@@ -98,7 +98,7 @@ export class BotHelper {
 
   static async safeSendMessage(telegram: Telegram, chatId: number | string, text: string | FmtString, options?: ExtraReplyMessage) {
     try {
-      await telegram.sendMessage(chatId, text, options)
+      await telegram.sendMessage(chatId, text, { parse_mode: 'HTML', ...options })
     } catch (error) {
       console.error('Error sending message:', error.message, chatId, text)
     }

@@ -92,7 +92,12 @@ export class VerificationRequestComposer {
           return
         }
 
-        await BotHelper.safeSendMessage(ctx.telegram, userProfile.telegramId, MESSAGES_STAFF.VERIFY_SUCCESS, TrainerKeyboards.mainMenu())
+        await BotHelper.safeSendMessage(
+          ctx.telegram,
+          userProfile.telegramId,
+          MESSAGES_STAFF.VERIFY_SUCCESS,
+          TrainerKeyboards.mainMenu(),
+        )
         await BotHelper.safeAnswerCbQuery(ctx, 'Тренер успішно верифікований ✅', { show_alert: true })
         ctx.deleteMessage()
         return
@@ -126,7 +131,12 @@ export class VerificationRequestComposer {
     await this.handleVerifyUserProfileAction(ctx, async ({ id, telegramId }) => {
       await this.userProfileService.rejectVerificationRequest(id)
       await Promise.all([
-        BotHelper.safeSendMessage(ctx.telegram, telegramId, `Ваша заявка на підтвердження була відхилена ❌`, CommonKeyboards.registerAs()),
+        BotHelper.safeSendMessage(
+          ctx.telegram,
+          telegramId,
+          `Ваша заявка на підтвердження була відхилена ❌`,
+          CommonKeyboards.registerAs(),
+        ),
         BotHelper.safeAnswerCbQuery(ctx, 'Ви відхилили запит на реєстрацію ❌'),
       ])
       await ctx.deleteMessage()
@@ -138,7 +148,12 @@ export class VerificationRequestComposer {
     await this.handleVerifyUserProfileAction(ctx, async ({ id, telegramId }) => {
       await this.userProfileService.rejectVerificationRequestAndBlockUser(id)
       await Promise.all([
-        BotHelper.safeSendMessage(ctx.telegram, telegramId, `Доступ до боту було обмежено 🚫`, KeyboardHelper.removeReplyMarkupKeyboard()),
+        BotHelper.safeSendMessage(
+          ctx.telegram,
+          telegramId,
+          `Доступ до боту було обмежено 🚫`,
+          KeyboardHelper.removeReplyMarkupKeyboard(),
+        ),
         BotHelper.safeAnswerCbQuery(ctx, 'Ви заблокували користувача 🚫'),
       ])
       await ctx.deleteMessage()
@@ -168,7 +183,7 @@ export class VerificationRequestComposer {
           ctx.telegram,
           passActivateRequest!.client.userProfile.telegramId,
           `✅ Оплату за абонемент <b>${passActivateRequest!.pass.passTemplate.name}</b> підтверджено!\n\n Абонемент активується при записі на перше тренування та діятиме <b><u>30 днів</u></b>\n\n<i>Без запису впродовж 7 днів - автоактивація</i> 🔄`,
-          { ...ClientKeyboards.mainMenu(), parse_mode: 'HTML' },
+          { ...ClientKeyboards.mainMenu() },
         ),
       ])
     })

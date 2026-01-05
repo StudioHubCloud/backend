@@ -1,0 +1,1 @@
+ALTER TYPE "public"."audit_log_actions_enum" ADD VALUE 'pass_create' BEFORE 'pass_reminder_sent';

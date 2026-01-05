@@ -52,9 +52,7 @@ export class BotNotificationService {
           continue
         }
 
-        await BotHelper.safeSendMessage(this.bot.telegram, user.telegramId, MESSAGES_COMMON.BIRTHDAY_MESSAGE, {
-          parse_mode: 'HTML',
-        })
+        await BotHelper.safeSendMessage(this.bot.telegram, user.telegramId, MESSAGES_COMMON.BIRTHDAY_MESSAGE)
 
         results.success++
         this.logger.debug(`Birthday message sent to user ${user.id}`)
@@ -71,9 +69,7 @@ export class BotNotificationService {
   async sendTrainingReminderNotification({ name, groupStyle, date, telegramId, min, max }: ITrainingReminderInput): Promise<void> {
     try {
       const message = this.generateTrainingReminderMessage(name, date, groupStyle, min, max)
-      await BotHelper.safeSendMessage(this.bot.telegram, telegramId, message, {
-        parse_mode: 'HTML',
-      })
+      await BotHelper.safeSendMessage(this.bot.telegram, telegramId, message)
       this.logger.debug(`Training reminder sent to user ${telegramId}`)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -84,9 +80,7 @@ export class BotNotificationService {
   async sendPassExpirationNotification(userProfile: UserProfileSelectModel, expirationDate: string): Promise<void> {
     const message = this.generatePassExpirationMessage(userProfile.firstName, expirationDate)
     try {
-      await BotHelper.safeSendMessage(this.bot.telegram, userProfile.telegramId, message, {
-        parse_mode: 'HTML',
-      })
+      await BotHelper.safeSendMessage(this.bot.telegram, userProfile.telegramId, message)
       this.logger.debug(`Pass expiration notification sent to ${userProfile.telegramId}`)
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Unknown error'
