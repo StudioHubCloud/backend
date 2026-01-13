@@ -13,7 +13,7 @@ import { DATE_FORMAT } from '@app/libs/constants/global'
 import { PassSelectModel, PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
-import { AuditLogActions, AuditLogTrigger } from '@app/libs'
+import { AuditLogActions, AuditLogTrigger, PassStatusEnum } from '@app/libs'
 
 export interface IEditPassSceneState extends TEditEntitySceneMetaData {
   action: TEditPassSceneAction
@@ -201,7 +201,15 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
         inputDateFormat: DATE_FORMAT.DATE_INPUT,
       })
 
-      const [_, logOperations] = await this.passService.updatePass(originalPass.id, { [field]: newDate })
+      const isPassExpired = originalPass.status === PassStatusEnum.EXPIRED
+      const prevPassEndDate = originalPass.endDate
+      const shouldSetToActive =
+        field === 'endDate' && prevPassEndDate && isPassExpired && this.dateTimeProvider.isBefore(prevPassEndDate, newDate)
+
+      const [_, logOperations] = await this.passService.updatePass(originalPass.id, {
+        [field]: newDate,
+        ...(shouldSetToActive ? { status: PassStatusEnum.ACTIVE } : {}),
+      })
       AuditLogHelper.startAction(ctx, AuditLogActions.PASS_EDIT, AuditLogTrigger.ADMIN_ACTION, logOperations)
       return this.confirmationHandler(ctx) // Go to confirmation
     } catch (error) {

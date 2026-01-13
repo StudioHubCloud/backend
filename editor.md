@@ -4,6 +4,8 @@
 - ctrl + SHIFT + N create new folder
 - ctrl + T - global search for symbols
 - ctrl + R - toggle right panel
+- ctrl + J - toggle bottom panel
+- ctrl + B - toggle left panel
 - ctrl + SHIFT + B - open outline panel
 - ctrl + SHIFT + O - open outline panel inline
 - ctrl + P search project files

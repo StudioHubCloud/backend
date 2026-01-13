@@ -9,6 +9,7 @@ import {
   endOfMonth,
   format,
   parse,
+  isBefore,
   startOfDay,
   startOfMonth,
 } from 'date-fns'
@@ -101,6 +102,12 @@ export class DateTimeProvider {
 
   getTodayDateStringInTz(format: string = DATE_FORMAT.DATE_INPUT): string {
     return this.formatDateStringInTz(new Date().toISOString(), format)
+  }
+
+  isBefore(date1: Date | string, date2: Date | string): boolean {
+    const d1 = typeof date1 === 'string' ? new Date(date1) : date1
+    const d2 = typeof date2 === 'string' ? new Date(date2) : date2
+    return isBefore(d1, d2)
   }
 }
 
