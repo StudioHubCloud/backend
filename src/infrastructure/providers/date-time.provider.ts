@@ -10,6 +10,7 @@ import {
   format,
   parse,
   isBefore,
+  isAfter,
   startOfDay,
   startOfMonth,
 } from 'date-fns'
@@ -108,6 +109,12 @@ export class DateTimeProvider {
     const d1 = typeof date1 === 'string' ? new Date(date1) : date1
     const d2 = typeof date2 === 'string' ? new Date(date2) : date2
     return isBefore(d1, d2)
+  }
+
+  isAfter(date1: Date | string, date2: Date | string): boolean {
+    const d1 = typeof date1 === 'string' ? new Date(date1) : date1
+    const d2 = typeof date2 === 'string' ? new Date(date2) : date2
+    return isAfter(d1, d2)
   }
 }
 

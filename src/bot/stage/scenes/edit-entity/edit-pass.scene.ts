@@ -203,8 +203,13 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
 
       const isPassExpired = originalPass.status === PassStatusEnum.EXPIRED
       const prevPassEndDate = originalPass.endDate
+      
       const shouldSetToActive =
-        field === 'endDate' && prevPassEndDate && isPassExpired && this.dateTimeProvider.isBefore(prevPassEndDate, newDate)
+        field === 'endDate' &&
+        prevPassEndDate &&
+        isPassExpired &&
+        this.dateTimeProvider.isBefore(prevPassEndDate, newDate) &&
+        this.dateTimeProvider.isAfter(newDate, new Date())
 
       const [_, logOperations] = await this.passService.updatePass(originalPass.id, {
         [field]: newDate,
