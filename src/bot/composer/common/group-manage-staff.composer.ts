@@ -225,11 +225,13 @@ export class GroupManageStaffComposer {
       async (ctx: BotContext) => {
         return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
           BotHelper.safeAnswerCbQuery(ctx)
+
           const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
-          return ctx.editMessageText(MessageHelper.constructSignupListMessage(activeSignUps, TrainingSignupStatusEnum.ACTIVE), {
-            parse_mode: 'HTML',
-            ...AdminKeyboards.backForTrainingManage(trainingId, backButtonCallbackData, staffUserId),
-          })
+          return BotHelper.safeEditMessageText(
+            ctx,
+            MessageHelper.constructSignupListMessage(activeSignUps, TrainingSignupStatusEnum.ACTIVE),
+            AdminKeyboards.backForTrainingManage(trainingId, backButtonCallbackData, staffUserId),
+          )
         })
       },
     )
@@ -240,10 +242,11 @@ export class GroupManageStaffComposer {
         return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
           BotHelper.safeAnswerCbQuery(ctx)
           const canceledSignups = await this.trainingSignupService.getTrainingCancelledSignups(+trainingId)
-          return ctx.editMessageText(MessageHelper.constructSignupListMessage(canceledSignups, TrainingSignupStatusEnum.CANCELED), {
-            parse_mode: 'HTML',
-            ...AdminKeyboards.backForTrainingManage(trainingId, backButtonCallbackData, staffUserId),
-          })
+          return BotHelper.safeEditMessageText(
+            ctx,
+            MessageHelper.constructSignupListMessage(canceledSignups, TrainingSignupStatusEnum.CANCELED),
+            AdminKeyboards.backForTrainingManage(trainingId, backButtonCallbackData, staffUserId),
+          )
         })
       },
     )
@@ -449,21 +452,26 @@ export class GroupManageStaffComposer {
 
     const backButtonCallbackData = fromUpcomingTrainingsMenu ? CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST : null
 
-    return ctx.editMessageText(MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider), {
-      parse_mode: 'HTML',
-      ...(isAdmin
-        ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer)
-        : TrainerKeyboards.trainingManageMenu(training, backButtonCallbackData)),
-    })
+    return BotHelper.safeEditMessageText(
+      ctx,
+      MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider),
+      {
+        ...(isAdmin
+          ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer)
+          : TrainerKeyboards.trainingManageMenu(training, backButtonCallbackData)),
+      },
+    )
   }
 
   private renderGroupManageMenu = async (ctx: BotContext, groupId: string, context: Record<string, any> = {}) => {
     BotHelper.safeAnswerCbQuery(ctx)
     const group = await this.groupService.getGroupById(+groupId)
-    return ctx.editMessageText(MessageHelper.constructGroupSelectMessage(group), {
-      parse_mode: 'HTML',
-      ...AdminKeyboards.groupManageMenu(+groupId, context.staffUserId),
-    })
+
+    return BotHelper.safeEditMessageText(
+      ctx,
+      MessageHelper.constructGroupSelectMessage(group),
+      AdminKeyboards.groupManageMenu(+groupId, context.staffUserId),
+    )
   }
 
   private handleClientSignOutPaginatedSelect = async (ctx: BotContext, signupId: string, context: Record<string, any> = {}) => {

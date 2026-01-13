@@ -165,8 +165,8 @@ export class SchedulerComposer {
     const activeSignups = await this.trainingSignupService.getClientSignups(id)
 
     if (!activeSignups?.length && renderOptions?.shouldEdit) {
-      return ctx.editMessageText(MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS)
-    }
+      return BotHelper.safeEditMessageText(ctx, MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS)
+      }
 
     return this.activeSchedulesPaginatedMenu.initMenu(ctx, { data: activeSignups }, renderOptions)
   }

@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { UserProfileService } from '@app/domain/user-profile'
 import { UserProfileRoleEnum } from '@app/libs'
-import { KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
@@ -62,26 +62,28 @@ export class VerificationInlineMenu {
   }
 
   private initMenuActions() {
-    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.REQUEST_CLIENT_VERIFICATION), async (ctx) => {
-      const userId = ctx.match[1]
-      const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id, fullName } =
-        await this.userProfileService.getUserProfileById(userId)
-      return ctx.editMessageText(
-        MessageHelper.getVerifyRequestMessage(
-          {
-            date_of_birth: dateOfBirth ?? '',
-            firstName,
-            lastName: lastName ?? '',
-            phone: phoneNumber ?? '',
-            telegramUsername: telegramUsername ?? '',
-          },
-          { completed: true, role },
-        ),
-        {
-          ...AdminKeyboards.verifyActions(id, role),
-          parse_mode: 'HTML',
-        },
-      )
-    })
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.REQUEST_CLIENT_VERIFICATION),
+      async (ctx) => {
+        const userId = ctx.match[1]
+        const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id, fullName } =
+          await this.userProfileService.getUserProfileById(userId)
+
+        return BotHelper.safeEditMessageText(
+          ctx,
+          MessageHelper.getVerifyRequestMessage(
+            {
+              date_of_birth: dateOfBirth ?? '',
+              firstName,
+              lastName: lastName ?? '',
+              phone: phoneNumber ?? '',
+              telegramUsername: telegramUsername ?? '',
+            },
+            { completed: true, role },
+          ),
+          AdminKeyboards.verifyActions(id, role),
+        )
+      },
+    )
   }
 }

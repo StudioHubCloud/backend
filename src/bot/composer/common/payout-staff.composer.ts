@@ -77,7 +77,7 @@ export class PayoutStaffComposer {
     }
 
     if (isEdit) {
-      return ctx.editMessageText(message, { parse_mode: 'HTML', ...keyboard })
+      return BotHelper.safeEditMessageText(ctx, message, keyboard)
     }
     return ctx.reply(message, { parse_mode: 'HTML', ...keyboard })
   }
@@ -96,7 +96,7 @@ export class PayoutStaffComposer {
       ? AdminKeyboards.staffmemberPayoutDetailsMenu(userId)
       : TrainerKeyboards.staffmemberPayoutDetailsMenu(userId)
     BotHelper.safeAnswerCbQuery(ctx)
-    return ctx.editMessageText(message, { parse_mode: 'HTML', ...keyboard })
+    return BotHelper.safeEditMessageText(ctx, message, keyboard)
   }
 
   private async renderStaffMemberPayoutClientInfoMenu(ctx: BotContext, userId: string, isAdmin: boolean) {
@@ -106,7 +106,7 @@ export class PayoutStaffComposer {
       ? AdminKeyboards.staffmemberPayoutClientInfoMenu(userId)
       : TrainerKeyboards.staffmemberPayoutClientInfoMenu(userId)
     BotHelper.safeAnswerCbQuery(ctx)
-    return ctx.editMessageText(message, { parse_mode: 'HTML', ...keyboard })
+    return BotHelper.safeEditMessageText(ctx, message, keyboard)
   }
 
   private async handlePaymentAction(ctx: BotContext, action: (userId: string, isAdmin: boolean) => Promise<any>) {

@@ -104,20 +104,27 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
     },
   ) {
     const { pass, fullName, clientUserId, shouldEdit = true, trainingSignups = [] } = data
+    try {
+      const message = PassHelper.getPassWithSignupsInfoMessage(pass, dateTimeProvider, fullName, trainingSignups)
+      const isPassActivated = PassHelper.isPassActivated(pass)
+      if (!shouldEdit) {
+        if (data.editMessageId) {
+          return await ctx.telegram.editMessageText(ctx.chat!.id, data.editMessageId, undefined, message, {
+            parse_mode: 'HTML',
+            ...AdminKeyboards.passManageMenu(clientUserId, isPassActivated),
+          })
+        }
 
-    const message = PassHelper.getPassWithSignupsInfoMessage(pass, dateTimeProvider, fullName, trainingSignups)
-    const isPassActivated = PassHelper.isPassActivated(pass)
-    if (!shouldEdit) {
-      if (data.editMessageId) {
-        return await ctx.telegram.editMessageText(ctx.chat!.id, data.editMessageId, undefined, message, {
-          parse_mode: 'HTML',
-          ...AdminKeyboards.passManageMenu(clientUserId, isPassActivated),
-        })
+        return await ctx.replyWithHTML(message, AdminKeyboards.passManageMenu(clientUserId, isPassActivated))
       }
 
-      return await ctx.replyWithHTML(message, AdminKeyboards.passManageMenu(clientUserId, isPassActivated))
+      return await ctx.editMessageText(message, {
+        ...AdminKeyboards.passManageMenu(clientUserId, isPassActivated),
+        parse_mode: 'HTML',
+      })
+    } catch (error) {
+      console.error('Error in renderPassManageMenu:', error)
+      return
     }
-
-    return await ctx.editMessageText(message, { ...AdminKeyboards.passManageMenu(clientUserId, isPassActivated), parse_mode: 'HTML' })
   }
 }

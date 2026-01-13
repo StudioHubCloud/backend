@@ -212,10 +212,11 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
 
   private async handleTemplateDetailsAction(ctx: BotContext, templateId: string) {
     const passTemplateData = await this.passTemplateService.getById(templateId)
-    return ctx.editMessageText(MessageHelper.constructPassSelectMessage(passTemplateData), {
-      ...PassRelatedKeyboards.passTemplateSelectInlineKeyboard(templateId),
-      parse_mode: 'HTML',
-    })
+    return BotHelper.safeEditMessageText(
+      ctx,
+      MessageHelper.constructPassSelectMessage(passTemplateData),
+      PassRelatedKeyboards.passTemplateSelectInlineKeyboard(templateId),
+    )
   }
 
   private handlePassTemplateSelectAction = async (ctx: BotContext, templateId: string) => {
@@ -312,10 +313,11 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
 
   private renderPassTypeSelectMenu = async (ctx: BotContext, shouldEdit: boolean) => {
     if (shouldEdit) {
-      return ctx.editMessageText(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, {
-        ...PassRelatedKeyboards.passTypeInlineKeyboard(),
-        parse_mode: 'HTML',
-      })
+      return BotHelper.safeEditMessageText(
+        ctx,
+        MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE,
+        PassRelatedKeyboards.passTypeInlineKeyboard(),
+      )
     } else {
       return ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS_TYPE, {
         ...PassRelatedKeyboards.passTypeInlineKeyboard(),
@@ -334,10 +336,11 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       return await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.NO_PASS_TEMPLATES)
     }
 
-    return ctx.editMessageText(MESSAGES_SCENE.PAYMENT.SELECT_PASS_TEMPLATE, {
-      ...PassRelatedKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates),
-      parse_mode: 'HTML',
-    })
+    return BotHelper.safeEditMessageText(
+      ctx,
+      MESSAGES_SCENE.PAYMENT.SELECT_PASS_TEMPLATE,
+      PassRelatedKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates),
+    )
   }
 
   private renderFileUploadMenu = async (ctx: BotContext, shouldEdit: boolean = true): Promise<number | undefined> => {
@@ -352,11 +355,13 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     }
 
     if (shouldEdit) {
-      const result = await ctx.editMessageText(message, {
-        ...PassRelatedKeyboards.passPurchaseFileUploadInlineKeyboard(Boolean(fileIds.length)),
-        parse_mode: 'HTML',
-      })
-      if (result === true) {
+      const result = await BotHelper.safeEditMessageText(
+        ctx,
+        message,
+        PassRelatedKeyboards.passPurchaseFileUploadInlineKeyboard(Boolean(fileIds.length)),
+      )
+
+      if (typeof result === 'boolean') {
         BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка оновлення повідомлення. Спробуйте ще раз.', { show_alert: true })
       } else {
         return result?.message_id

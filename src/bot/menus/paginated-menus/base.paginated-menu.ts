@@ -57,7 +57,7 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
     const promptMessage = this.getMessageText(ctx, this.config.promptMessage || 'Виберіть елемент зі списку')
 
     if (this.renderOptions.shouldEdit) {
-      return ctx.editMessageText(promptMessage, { reply_markup: menu, parse_mode: 'HTML' })
+      return BotHelper.safeEditMessageText(ctx, promptMessage, { reply_markup: menu })
     }
     return ctx.reply(promptMessage, { reply_markup: menu, parse_mode: 'HTML' })
   }
@@ -98,10 +98,11 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
       this.appendBackButton(menu)
       this.appendExitButton(menu)
 
-      return ctx.editMessageText(this.getMessageText(ctx, this.config.promptMessage || 'Виберіть елемент зі списку'), {
-        reply_markup: menu,
-        parse_mode: 'HTML',
-      })
+      return BotHelper.safeEditMessageText(
+        ctx,
+        this.getMessageText(ctx, this.config.promptMessage || 'Виберіть елемент зі списку'),
+        { reply_markup: menu },
+      )
     })
   }
 

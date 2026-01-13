@@ -120,10 +120,11 @@ export class StaffManageComposer {
 
     BotHelper.safeAnswerCbQuery(ctx)
 
-    return ctx.editMessageText(`👤 Обраний тренер: ${UserHelper.getDisplayName(user)}`, {
-      parse_mode: 'HTML',
-      ...AdminKeyboards.staffmemberManageMenu(user.id),
-    })
+    return BotHelper.safeEditMessageText(
+      ctx,
+      `👤 Обраний тренер: ${UserHelper.getDisplayName(user)}`,
+      AdminKeyboards.staffmemberManageMenu(user.id),
+    )
   }
 
   private renderGroupSelectMenu = async (

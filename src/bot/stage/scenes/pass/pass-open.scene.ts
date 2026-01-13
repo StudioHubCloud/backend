@@ -76,7 +76,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
       const message = await this.renderPassTypeSelectMenu(ctx, false)
       if (typeof message !== 'boolean') {
         this.scene.setState(ctx, {
-          mainMessageId: message.message_id,
+          mainMessageId: message?.message_id,
         })
       }
       return ctx.wizard.next()
@@ -135,10 +135,11 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
 
   private renderPassTypeSelectMenu = async (ctx: BotContext, shouldEdit: boolean) => {
     if (shouldEdit) {
-      return ctx.editMessageText(MESSAGES_SCENE.PASS_OPEN.SELECT_PASS_TYPE, {
-        ...PassRelatedKeyboards.passTypeInlineKeyboard(),
-        parse_mode: 'HTML',
-      })
+      return BotHelper.safeEditMessageText(
+        ctx,
+        MESSAGES_SCENE.PASS_OPEN.SELECT_PASS_TYPE,
+        PassRelatedKeyboards.passTypeInlineKeyboard(),
+      )
     } else {
       return ctx.replyWithHTML(MESSAGES_SCENE.PASS_OPEN.SELECT_PASS_TYPE, {
         ...PassRelatedKeyboards.passTypeInlineKeyboard(),
@@ -157,18 +158,21 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
       return await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.NO_PASS_TEMPLATES)
     }
 
-    return ctx.editMessageText(MESSAGES_SCENE.PAYMENT.SELECT_PASS_TEMPLATE, {
-      ...PassRelatedKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates),
-      parse_mode: 'HTML',
-    })
+    return BotHelper.safeEditMessageText(
+      ctx,
+      MESSAGES_SCENE.PAYMENT.SELECT_PASS_TEMPLATE,
+      PassRelatedKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates),
+    )
   }
 
   private renderConfirmMenu = async (ctx: BotContext) => {
     const state = this.scene.getState(ctx)
-    return ctx.editMessageText(PassOpenSceneHelper.getInfoMessageForConfirm(state), {
-      ...OpenPassSceneKeyboards.confirmPassOpenKeyboard(),
-      parse_mode: 'HTML',
-    })
+
+    return BotHelper.safeEditMessageText(
+      ctx,
+      PassOpenSceneHelper.getInfoMessageForConfirm(state),
+      OpenPassSceneKeyboards.confirmPassOpenKeyboard(),
+    )
   }
 
   private handlePassTypeSelectAction = async (ctx: BotContext, type: string) => {
@@ -177,12 +181,13 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
   }
 
   private async handleTemplateDetailsAction(ctx: BotContext, templateId: string) {
-    console.log('handleTemplateDetailsAction')
     const passTemplateData = await this.passTemplateService.getById(templateId)
-    return ctx.editMessageText(MessageHelper.constructPassSelectMessage(passTemplateData), {
-      ...PassRelatedKeyboards.passTemplateSelectInlineKeyboard(templateId),
-      parse_mode: 'HTML',
-    })
+
+    return BotHelper.safeEditMessageText(
+      ctx,
+      MessageHelper.constructPassSelectMessage(passTemplateData),
+      PassRelatedKeyboards.passTemplateSelectInlineKeyboard(templateId),
+    )
   }
 
   private handlePassTemplateSelectAction = async (ctx: BotContext, templateId: string) => {

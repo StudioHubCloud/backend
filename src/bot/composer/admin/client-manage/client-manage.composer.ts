@@ -263,7 +263,7 @@ export class ClientManageComposer {
 
   private renderClientEditMenu = async (ctx: BotContext, clientUserProfile: UserProfileWithRoleRelations) => {
     const message = MessageHelper.getClientManageHeaderMessage(clientUserProfile)
-    return ctx.editMessageText(message, { ...AdminKeyboards.userProfileEditMenu(clientUserProfile.id), parse_mode: 'HTML' })
+    return BotHelper.safeEditMessageText(ctx, message, AdminKeyboards.userProfileEditMenu(clientUserProfile.id))
   }
 
   private handleActivatePassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {

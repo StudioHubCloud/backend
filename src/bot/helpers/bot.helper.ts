@@ -2,7 +2,7 @@ import { deunionize, Telegram } from 'telegraf'
 import { BotContext } from '../bot.context'
 import { User } from '@telegraf/types'
 import { FmtString } from 'telegraf/typings/format'
-import { ExtraAnswerCbQuery, ExtraReplyMessage } from 'telegraf/typings/telegram-types'
+import { ExtraAnswerCbQuery, ExtraEditMessageText, ExtraReplyMessage } from 'telegraf/typings/telegram-types'
 import { PassActivationFileTypeEnum } from '@app/libs'
 
 export class BotHelper {
@@ -101,6 +101,20 @@ export class BotHelper {
       await telegram.sendMessage(chatId, text, { parse_mode: 'HTML', ...options })
     } catch (error) {
       console.error('Error sending message:', error.message, chatId, text)
+    }
+  }
+
+  static async safeEditMessageText(ctx: BotContext, text: string | FmtString, extra?: ExtraEditMessageText) {
+    try {
+      return await ctx.editMessageText(text, { parse_mode: 'HTML', ...extra })
+    } catch (error: any) {
+      console.error('Error editing message text:', error.message)
+      // return original message
+      if (error?.response?.error_code === 400 && error?.response?.description?.includes('message is not modified')) {
+        return false
+      }
+      //rethrow for further handling
+      throw error
     }
   }
 }
