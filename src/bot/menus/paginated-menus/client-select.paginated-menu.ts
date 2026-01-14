@@ -20,11 +20,11 @@ export class ClientSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
     const { data = [] } = this.sessionParams
 
     const getPriority = (item: (typeof data)[0]) => {
-      if (item.hasActivePass === false && item.status === UserProfileStatusEnum.ACTIVE) return 1
-      if (item.availableSlots === 0 && item.status === UserProfileStatusEnum.ACTIVE) return 2
-      if (item.availableSlots === 1 && item.status === UserProfileStatusEnum.ACTIVE) return 3
-      if (item.status === UserProfileStatusEnum.BLOCKED) return 6
-      if (item.status === UserProfileStatusEnum.ARCHIVED) return 5
+      if (item.availableSlots === 0 && item.status === UserProfileStatusEnum.ACTIVE) return 1
+      if (item.availableSlots === 1 && item.status === UserProfileStatusEnum.ACTIVE) return 2
+      if (item.hasActivePass === false && item.status === UserProfileStatusEnum.ACTIVE) return 5
+      if (item.status === UserProfileStatusEnum.BLOCKED) return 7
+      if (item.status === UserProfileStatusEnum.ARCHIVED) return 6
       return 4 // rest of active clients
     }
 
