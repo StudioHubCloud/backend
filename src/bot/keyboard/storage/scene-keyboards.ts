@@ -14,6 +14,10 @@ export class CommonSceneKeyboards {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.COMMON.BACK_EXIT)
   }
 
+  static backExitConfirm(): TReplyMarkupKeyboard {
+    return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.COMMON.BACK_EXIT_CONFIRM)
+  }
+
   static confirm(): TReplyMarkupKeyboard {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.COMMON.CONFIRM)
   }

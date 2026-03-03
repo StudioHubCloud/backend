@@ -9,7 +9,8 @@ export const REGISTER_SCENE_CURSOR_MAP = {
   NAME_HANDLER: 1,
   PHONE_HANDLER: 2,
   DOB_HANDLER: 3,
-  COMPLETE_HANDLER: 4,
+  FILE_UPLOAD_HANDLER: 4,
+  COMPLETE_HANDLER: 5,
 } as const
 
 export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneState> = {
@@ -55,7 +56,7 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
       next: {
         cursor: REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER,
         message: ({ data, role }) => MessageHelper.getVerifyRequestMessage(data, { role }),
-        keyboard: CommonSceneKeyboards.confirm(),
+        keyboard: CommonSceneKeyboards.backExitConfirm(),
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER,
@@ -67,9 +68,13 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
   [REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER]: {
     default: {
       next: {
-        cursor: REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER,
-        message: ({ data, role }) => MessageHelper.getVerifyRequestMessage(data, { role }),
-        keyboard: CommonSceneKeyboards.confirm(),
+        cursor: REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER,
+        message:
+          '📸 <b>Завантаж фото</b> або 📄 <b>файл підтвердження оплати</b>\n\n' +
+          'Це може бути скріншот, фото чеку або будь-який документ, що підтверджує оплату.\n\n' +
+          'Після завантаження файлу тобі буде показано всі введені дані для остаточного підтвердження. Якщо все вірно — тисни <b>Підтвердити</b>. Якщо потрібно щось змінити — скористайся кнопкою "Назад".\n\n' +
+          'Якщо виникли питання — звертайся до тренера чи адміна! 😊',
+        keyboard: CommonSceneKeyboards.backExitConfirm(),
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER,
@@ -81,7 +86,7 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
       next: {
         cursor: REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER,
         message: ({ data, role }) => MessageHelper.getVerifyRequestMessage(data, { role }),
-        keyboard: CommonSceneKeyboards.confirm(),
+        keyboard: CommonSceneKeyboards.backExitConfirm(),
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER,
@@ -89,9 +94,46 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
         keyboard: CommonSceneKeyboards.exit(),
       },
     },
+    [UserProfileRoleEnum.TRAINER]: {
+      next: {
+        cursor: REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER,
+        message: ({ data, role }) => MessageHelper.getVerifyRequestMessage(data, { role }),
+        keyboard: CommonSceneKeyboards.backExitConfirm(),
+      },
+      prev: {
+        cursor: REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER,
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_PHONE,
+        keyboard: CommonSceneKeyboards.backWithExit(),
+      },
+    },
+  },
+  [REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER]: {
+    default: {
+      next: {
+        cursor: REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER,
+        message: ({ data, role }) => MessageHelper.getVerifyRequestMessage(data, { role }),
+        keyboard: CommonSceneKeyboards.backExitConfirm(),
+      },
+      prev: {
+        cursor: REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER,
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,
+        keyboard: CommonSceneKeyboards.backWithExit(),
+      },
+    },
   },
   [REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER]: {
     default: {
+      prev: {
+        cursor: REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER,
+        message:
+          '📸 <b>Завантаж фото</b> або 📄 <b>файл підтвердження оплати</b>\n\n' +
+          'Це може бути скріншот, фото чеку або будь-який документ, що підтверджує оплату.\n\n' +
+          'Після завантаження файлу тобі буде показано всі введені дані для остаточного підтвердження. Якщо все вірно — тисни <b>Підтвердити</b>. Якщо потрібно щось змінити — скористайся кнопкою "Назад".\n\n' +
+          'Якщо виникли питання — звертайся до тренера чи адміна! 😊',
+        keyboard: CommonSceneKeyboards.backExitConfirm(),
+      },
+    },
+    [UserProfileRoleEnum.GUEST]: {
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER,
         message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,

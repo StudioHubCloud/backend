@@ -330,6 +330,13 @@
       "when": 1772548784297,
       "tag": "0073_add-user-profile-request-schema",
       "breakpoints": true
+    },
+    {
+      "idx": 74,
+      "version": "7",
+      "when": 1772553797302,
+      "tag": "0074_add-fileId-to-user",
+      "breakpoints": true
     }
   ]
 }

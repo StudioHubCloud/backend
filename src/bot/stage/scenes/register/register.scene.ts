@@ -1,7 +1,7 @@
 import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { DATE_FORMAT, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { DATE_FORMAT, FileTypeEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { IRegisterSceneState, SCENES, TNextFunction } from '@app/bot/libs'
 import { SceneHelper, BotHelper, UserHelper, TextHelper, KeyboardHelper, NameHelper } from '@app/bot/helpers'
 import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
@@ -31,6 +31,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       (ctx) => this.nameHandler(ctx),
       (ctx) => this.phoneHandler(ctx),
       (ctx) => this.dateOfBirthHandler(ctx),
+      (ctx) => this.fileUploadHandler(ctx),
       (ctx) => this.completeHandler(ctx),
     )
 
@@ -146,6 +147,42 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     return await this.sceneNavigation.handleNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
   }
 
+  private fileUploadHandler = async (ctx: BotContext) => {
+    const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER)
+
+    const { textPayload, isFileUpdate, fileId, fileType } = BotHelper.getUpdatePayload(ctx)
+    const state = this.registerScene.getState(ctx)
+
+    switch (textPayload) {
+      case BUTTON_PATTERNS.BACK:
+        return await this.sceneNavigation.handleBack(ctx, prev, {
+          data: state,
+          role: this.REQUESTED_ROLE,
+        })
+      default:
+        break
+    }
+
+    if (isFileUpdate && fileId && fileType) {
+      this.registerScene.setState(ctx, { fileId, fileType })
+
+      if (fileType === FileTypeEnum.PHOTO) {
+        await ctx.replyWithPhoto(fileId, { caption: '📸 Фото успішно отримано' })
+      }
+
+      if (fileType === FileTypeEnum.DOCUMENT) {
+        await ctx.replyWithDocument(fileId, { caption: '📄 Файл успішно отримано' })
+      }
+      await ctx.deleteMessage().catch(() => null)
+      return await this.sceneNavigation.handleNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+    }
+
+    return ctx.replyWithHTML(
+      '📸 <b>Завантаж фото</b> або 📄 <b>документ підтвердження оплати</b> для завершення реєстрації.',
+      CommonSceneKeyboards.backExitConfirm(),
+    )
+  }
+
   private completeHandler = async (ctx: BotContext) => {
     const { prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER)
 
@@ -163,7 +200,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       return
     }
 
-    const { firstName, lastName, phone, date_of_birth } = state
+    const { firstName, lastName, phone, date_of_birth, fileId = null, fileType = null } = state
     const { id } = UserHelper.getUser(ctx)
     const isGuest = this.REQUESTED_ROLE === UserProfileRoleEnum.GUEST
 
@@ -183,20 +220,31 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       fullName: UserHelper.getFullName(firstName!, lastName),
       phoneNumber: phone,
       role: this.REQUESTED_ROLE,
+      fileId,
+      fileType,
       status: isGuest ? UserProfileStatusEnum.ACTIVE : UserProfileStatusEnum.VERIFICATION_REQUESTED,
     })
 
     const sendMessageToStudioAdmins = async (ctx: BotContext) => {
       const studioAdmins = await this.userProfileService.findStudioAdmins()
       studioAdmins.forEach((admin) => {
-        BotHelper.safeSendMessage(
-          ctx.telegram,
-          admin.telegramId,
-          MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
-          {
+        if (fileId && fileType) {
+          const method = fileType === FileTypeEnum.PHOTO ? 'sendPhoto' : 'sendDocument'
+          ctx.telegram[method](admin.telegramId, fileId, {
+            caption: MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
             ...AdminKeyboards.verifyActions(id, this.REQUESTED_ROLE),
-          },
-        )
+            parse_mode: 'HTML',
+          })
+        } else {
+          BotHelper.safeSendMessage(
+            ctx.telegram,
+            admin.telegramId,
+            MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
+            {
+              ...AdminKeyboards.verifyActions(id, this.REQUESTED_ROLE),
+            },
+          )
+        }
       })
     }
 

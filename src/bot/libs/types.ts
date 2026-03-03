@@ -13,7 +13,14 @@ import {
   PassTemplateSelectModel,
   PassTemplateAgeRestrictionSelectModel,
 } from '@app/infrastructure/database/models'
-import { AuditLogActions, AuditLogTrigger, PassStatusEnum, UserProfileRoleEnum, AuditLogServiceOperation } from '@app/libs'
+import {
+  AuditLogActions,
+  AuditLogTrigger,
+  PassStatusEnum,
+  UserProfileRoleEnum,
+  AuditLogServiceOperation,
+  FileTypeEnum,
+} from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 import { BotContext } from '../bot.context'
 import {
@@ -36,7 +43,9 @@ export type UserProfileWithRoleRelations = UserProfileSelectModel & { client: Cl
   staffMember: StaffMemberSelectModel | null
 }
 export type UserProfileWithClient = UserProfileWithRoleRelations & { client: NonNullable<UserProfileWithRoleRelations['client']> }
-export type PassTemplateWithAgeRestrictions = PassTemplateSelectModel & { passTemplateAgeRestriction: PassTemplateAgeRestrictionSelectModel | null }
+export type PassTemplateWithAgeRestrictions = PassTemplateSelectModel & {
+  passTemplateAgeRestriction: PassTemplateAgeRestrictionSelectModel | null
+}
 
 export type TNextFunction = () => Promise<void>
 
@@ -93,6 +102,8 @@ export interface IRegisterSceneState {
   lastNameAlt?: string
   phone?: string
   date_of_birth?: string
+  fileId?: string
+  fileType: FileTypeEnum
 }
 
 export interface GetGroupByIdResponse extends GroupSelectModel {
