@@ -2,8 +2,8 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { UserProfileService } from '@app/domain/user-profile'
-import { UserProfileRoleEnum } from '@app/libs'
-import { BotHelper, KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { FileTypeEnum, UserProfileRoleEnum } from '@app/libs'
+import { KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
@@ -66,23 +66,33 @@ export class VerificationInlineMenu {
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.REQUEST_CLIENT_VERIFICATION),
       async (ctx) => {
         const userId = ctx.match[1]
-        const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id, fullName } =
+        const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id, fileId, fileType } =
           await this.userProfileService.getUserProfileById(userId)
 
-        return BotHelper.safeEditMessageText(
-          ctx,
-          MessageHelper.getVerifyRequestMessage(
-            {
-              date_of_birth: dateOfBirth ?? '',
-              firstName,
-              lastName: lastName ?? '',
-              phone: phoneNumber ?? '',
-              telegramUsername: telegramUsername ?? '',
-            },
-            { completed: true, role },
-          ),
-          AdminKeyboards.verifyActions(id, role),
+        await ctx.deleteMessage()
+
+        const caption = MessageHelper.getVerifyRequestMessage(
+          {
+            date_of_birth: dateOfBirth ?? '',
+            firstName,
+            lastName: lastName ?? '',
+            phone: phoneNumber ?? '',
+            telegramUsername: telegramUsername ?? '',
+          },
+          { completed: true, role },
         )
+        const keyboard = AdminKeyboards.verifyActions(id, role)
+
+        if (fileId) {
+          const method = fileType === FileTypeEnum.DOCUMENT ? ctx.replyWithDocument : ctx.replyWithPhoto
+          return method.call(ctx, fileId, {
+            caption,
+            parse_mode: 'HTML',
+            ...keyboard,
+          })
+        }
+
+        return ctx.reply(caption, { parse_mode: 'HTML', ...keyboard })
       },
     )
   }
