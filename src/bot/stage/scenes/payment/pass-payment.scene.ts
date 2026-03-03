@@ -14,7 +14,7 @@ import {
   AuditLogActions,
   AuditLogTrigger,
   DATE_FORMAT,
-  PassActivationFileTypeEnum,
+  FileTypeEnum,
   PassActivationRequestTypeEnum,
   PassStatusEnum,
   PassTemplateTypeEnum,
@@ -28,7 +28,7 @@ import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 interface IPassPaymentSceneState {
   userProfile: AuthUserProfile
   fileIds: string[]
-  fileType: PassActivationFileTypeEnum
+  fileType: FileTypeEnum
   requestType: PassActivationRequestTypeEnum
   fileUpdateMessageIds: (number | null)[]
   passTemplate: PassTemplateSelectModel
@@ -288,7 +288,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     await ctx.deleteMessages(messagesToDelete)
 
     const studioAdmins = await this.userProfileService.findStudioAdmins()
-    const method = fileType === PassActivationFileTypeEnum.PHOTO ? 'sendPhoto' : 'sendDocument'
+    const method = fileType === FileTypeEnum.PHOTO ? 'sendPhoto' : 'sendDocument'
 
     for (const admin of studioAdmins) {
       await ctx.telegram[method](admin.telegramId, fileId, {

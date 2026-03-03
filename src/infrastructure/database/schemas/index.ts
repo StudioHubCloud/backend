@@ -28,6 +28,7 @@ export { studioPayoutRule, studio_payout_rule_relations } from './studio-payout-
 export { staffMemberPayout, staff_member_payout_relations } from './staff-member-payout.schema'
 export { passActivationRequest, pass_activation_request_relations } from './pass-activation-request.schema'
 export { auditLog } from './audit-log.schema'
+export { userRegisterRequest, user_register_request_relations } from './user-register-request.schema'
 
 export {
   PassStatusPgEnum,
@@ -43,7 +44,7 @@ export {
   PaymentMethodPgEnum,
   PaymentStatusPgEnum,
   StudioPayoutRuleTypePgEnum,
-  PassActivationFileTypePgEnum,
+  FileTypePgEnum,
   PassActivationRequestTypePgEnum,
   PassTemplateStatusPgEnum,
   AuditLogOperationPgEnum,

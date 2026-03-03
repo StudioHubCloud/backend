@@ -90,7 +90,7 @@ export enum StudioPayoutRuleTypeEnum {
   PER_SIGNUP = 'per_signup',
 }
 
-export enum PassActivationFileTypeEnum {
+export enum FileTypeEnum {
   PHOTO = 'photo',
   DOCUMENT = 'document',
 }

@@ -19,7 +19,7 @@ import {
   AuditLogOperation,
   AuditLogServiceOperation,
   DATE_FORMAT,
-  PassActivationFileTypeEnum,
+  FileTypeEnum,
   PassActivationRequestTypeEnum,
   PassStatusEnum,
   UserProfileStatusEnum,
@@ -71,7 +71,7 @@ export class PassService {
   async createPassWithActivationRequest(
     data: Omit<PassInsertModel, 'studioId'> & {
       fileId: string
-      fileType: PassActivationFileTypeEnum
+      fileType: FileTypeEnum
       type: PassActivationRequestTypeEnum
     },
   ): Promise<[PassSelectModel, PassActivationRequestSelectModel, AuditLogServiceOperation[]]> {

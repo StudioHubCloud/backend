@@ -19,3 +19,4 @@ export { StaffMemberPayoutModule } from './staff-member-payout/staff-member-payo
 export { PaymentModule } from './payment/payment.module'
 export { StudioPayoutRuleModule } from './studio-payout-rule/studio-payout-rule.module'
 export { PassActivationRequestModule } from './pass-activation-request/pass-activation-request.module'
+export { UserRegisterModule } from './user-register-request/user-register.module'

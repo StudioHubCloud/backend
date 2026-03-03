@@ -3,7 +3,7 @@ import { BotContext } from '../bot.context'
 import { User } from '@telegraf/types'
 import { FmtString } from 'telegraf/typings/format'
 import { ExtraAnswerCbQuery, ExtraEditMessageText, ExtraReplyMessage } from 'telegraf/typings/telegram-types'
-import { PassActivationFileTypeEnum } from '@app/libs'
+import { FileTypeEnum } from '@app/libs'
 
 export class BotHelper {
   static getFrom(ctx: BotContext) {
@@ -23,7 +23,7 @@ export class BotHelper {
   static getUpdatePayload(ctx: BotContext): {
     textPayload: string
     fileId: string | null
-    fileType: PassActivationFileTypeEnum | null
+    fileType: FileTypeEnum | null
     isTextUpdate: boolean
     isCallbackQueryUpdate: boolean
     isInlineQueryUpdate: boolean
@@ -37,7 +37,7 @@ export class BotHelper {
     let isCallbackQueryUpdate = false
     let isInlineQueryUpdate = false
     let isFileUpdate = false
-    let fileType: PassActivationFileTypeEnum | null = null
+    let fileType: FileTypeEnum | null = null
 
     switch (true) {
       case !!update.callback_query:
@@ -53,11 +53,11 @@ export class BotHelper {
         if (message?.document) {
           fileId = message.document.file_id
           isFileUpdate = true
-          fileType = PassActivationFileTypeEnum.DOCUMENT
+          fileType = FileTypeEnum.DOCUMENT
         } else if (message?.photo && message.photo.length) {
           fileId = message.photo[message.photo.length - 1].file_id
           isFileUpdate = true
-          fileType = PassActivationFileTypeEnum.PHOTO
+          fileType = FileTypeEnum.PHOTO
         }
         break
       case !!update.inline_query:

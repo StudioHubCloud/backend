@@ -14,6 +14,7 @@ import {
   StudioPayoutRuleModule,
   StaffMemberPayoutModule,
   PassActivationRequestModule,
+  UserRegisterModule,
 } from '@app/domain'
 import {
   AuditLogModule,
@@ -50,6 +51,7 @@ import { BotModule } from 'src/bot/bot.module'
     StudioPayoutRuleModule,
     StaffMemberPayoutModule,
     PassActivationRequestModule,
+    UserRegisterModule,
   ],
   providers: [],
 })

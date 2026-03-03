@@ -3,12 +3,12 @@ import { relations } from 'drizzle-orm'
 import { studio } from './studio.schema'
 import { pass } from './pass.schema'
 import { client } from './client.schema'
-import { PassActivationFileTypePgEnum, PassActivationRequestTypePgEnum } from '../database.enums'
+import { FileTypePgEnum, PassActivationRequestTypePgEnum } from '../database.enums'
 
 export const passActivationRequest = table('pass_activation_request', {
   id: uuid('id').primaryKey().defaultRandom(),
   fileId: varchar('file_id').notNull(),
-  fileType: PassActivationFileTypePgEnum().notNull(),
+  fileType: FileTypePgEnum().notNull(),
   type: PassActivationRequestTypePgEnum().notNull(),
   passId: uuid('pass_id')
     .references(() => pass.id, { onDelete: 'cascade' })

@@ -323,6 +323,13 @@
       "when": 1772495943239,
       "tag": "0072_add_is_locked_to_training",
       "breakpoints": true
+    },
+    {
+      "idx": 73,
+      "version": "7",
+      "when": 1772548784297,
+      "tag": "0073_add-user-profile-request-schema",
+      "breakpoints": true
     }
   ]
 }
