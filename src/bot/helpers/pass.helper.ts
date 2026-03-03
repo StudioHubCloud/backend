@@ -17,6 +17,10 @@ export class PassHelper {
   }
 
   static getPassDisplayStatus(status: PassStatusEnum, isInactive: boolean): { label: string; icon: string } {
+    if (status === PassStatusEnum.EXPIRED) {
+      return { icon: '❌', label: 'Недійсний' }
+    }
+
     if (isInactive) {
       return { icon: '⚪️', label: 'Потребує активації' }
     }

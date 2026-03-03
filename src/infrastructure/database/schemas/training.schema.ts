@@ -12,6 +12,7 @@ export const training = table(
     id: serial('id').primaryKey(),
     date: timestamp('date', { mode: 'string', withTimezone: true }).notNull(),
     isCancelled: boolean('is_cancelled').notNull().default(false),
+    isLocked: boolean('is_locked').notNull().default(false),
     groupId: integer('group_id')
       .references(() => group.id, { onDelete: 'cascade' })
       .notNull(),
@@ -19,13 +20,14 @@ export const training = table(
     groupScheduleId: uuid('group_schedule_id').references(() => groupSchedule.id, { onDelete: 'set null' }),
     reminderSent: boolean('reminder_sent').notNull().default(false),
     staffMemberPayoutId: uuid('staff_member_payout_id').references(() => staffMemberPayout.id, { onDelete: 'set null' }),
-    createdAt: timestamp('created_at').defaultNow()
+    createdAt: timestamp('created_at').defaultNow(),
   },
   (table) => [
     uniqueIndex().on(table.date, table.groupId),
     index().on(table.groupId),
     index().on(table.trainerId),
     index().on(table.date, table.isCancelled),
+    index().on(table.isLocked),
     index()
       .on(table.isCancelled)
       .where(sql`${table.isCancelled} = true`),

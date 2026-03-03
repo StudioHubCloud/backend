@@ -124,6 +124,15 @@ export class TrainingSignupService {
           message: `Запис неможливий — група не знайдена або неактивна🥺\nСпробуй обрати іншу групу🫶🏻`,
         }
       }
+
+      if (training.isLocked) {
+        this.logger.warn('Training %s is locked', trainingId)
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `На жаль, запис на це тренування заблокований 😔\nЗа уточненнями звертайся до тренера 🙏`,
+        }
+      }
+
       if (!ageRestrictionPassed) {
         this.logger.warn('User %s does not pass age restriction for group %s', userProfileId, training.groupId)
         return {
@@ -223,6 +232,7 @@ export class TrainingSignupService {
     }
   }
 
+  //unused
   async signUpForTrainingAsGuestViaTelegram(values: { trainingId: number; userProfileId: string }): Promise<TCustomApiResponse> {
     const training = await this.trainingService.getTrainingById(values.trainingId)
     if (!training) {

@@ -1,6 +1,6 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common'
 import { and, eq, gte, lte } from 'drizzle-orm'
-import { addDays } from 'date-fns'
+import { addDays, endOfDay, startOfDay } from 'date-fns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import {
   DatabaseService,
@@ -42,7 +42,7 @@ export class TrainingService {
       return cachedTrainings
     }
 
-    const edgeDate = addDays(new Date(), -COMMON.TRAINING_MANAGE_SUBSTRACT_DAYS_THRESHOLD).toISOString()
+    const edgeDate = startOfDay(addDays(new Date(), -COMMON.TRAINING_MANAGE_SUBSTRACT_DAYS_THRESHOLD)).toISOString()
 
     const trainings = await this.databaseService.drizzle.query.training.findMany({
       where: (training, { eq, and, gte }) => and(eq(training.groupId, groupId), gte(training.date, edgeDate)),
@@ -135,7 +135,9 @@ export class TrainingService {
     }
 
     const startDateBoundary = new Date().toISOString()
-    const endDateBoundary = pass.endDate || addDays(startDateBoundary, PASS_CONFIG.ACTIVATION_GRACE_PERIOD).toISOString()
+    const endDateBoundary = endOfDay(
+      new Date(pass.endDate || addDays(startDateBoundary, PASS_CONFIG.ACTIVATION_GRACE_PERIOD)),
+    ).toISOString()
 
     const trainings = await this.databaseService.drizzle.query.training.findMany({
       where: (training, { eq, and, lte, gte }) =>
@@ -299,7 +301,7 @@ export class TrainingService {
     const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: userId })
 
     const now = new Date().toISOString()
-    const sevenDaysFromNow = addDays(now, COMMON.INCOMING_TRAININGS_DAYS_RANGE).toISOString()
+    const sevenDaysFromNow = endOfDay(addDays(new Date(now), COMMON.INCOMING_TRAININGS_DAYS_RANGE)).toISOString()
 
     return this.databaseService.drizzle.query.training.findMany({
       where: (training, { eq, and, gte, lte, exists, or, isNull }) =>
@@ -317,12 +319,13 @@ export class TrainingService {
   }
 
   async getAllTrainingsForStaffMemberSalary(staffMemberId: string, startDate: string, endDate: string) {
+    const endDateBoundary = endOfDay(new Date(endDate)).toISOString()
     return this.databaseService.drizzle.query.training.findMany({
       where: (training, helpers) => {
         const { and, gte, eq, exists, inArray, isNull } = helpers
         return and(
           gte(training.date, startDate),
-          lte(training.date, endDate),
+          lte(training.date, endDateBoundary),
           eq(training.isCancelled, false),
           isNull(training.staffMemberPayoutId),
           this.staffMemberTrainingFilter(staffMemberId)(training, helpers),

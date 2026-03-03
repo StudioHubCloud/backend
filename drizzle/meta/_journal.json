@@ -316,6 +316,13 @@
       "when": 1767571040836,
       "tag": "0071_add-new-enum-value-to-log-actions",
       "breakpoints": true
+    },
+    {
+      "idx": 72,
+      "version": "7",
+      "when": 1772495943239,
+      "tag": "0072_add_is_locked_to_training",
+      "breakpoints": true
     }
   ]
 }
