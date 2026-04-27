@@ -4,7 +4,7 @@ import { BotContext } from '@app/bot/bot.context'
 import { UserProfileService } from '@app/domain/user-profile'
 import { FileTypeEnum, UserProfileRoleEnum } from '@app/libs'
 import { KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
-import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
+import { InlineKeyboardButton } from '@telegraf/types'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
@@ -78,6 +78,7 @@ export class VerificationInlineMenu {
             lastName: lastName ?? '',
             phone: phoneNumber ?? '',
             telegramUsername: telegramUsername ?? '',
+            isCashPayment: !fileId,
           },
           { completed: true, role },
         )

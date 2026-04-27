@@ -18,7 +18,7 @@ import { MessageHelper } from '@app/bot/helpers/message.helper'
 export class RegisterScene extends Scenes.WizardScene<BotContext> {
   private readonly registerScene = new SceneHelper<IRegisterSceneState>()
   private readonly sceneNavigation = new RegisterSceneNavigation<IRegisterSceneState>(REGISTER_SCENE_NAVIGATION_MAP)
-  private REQUESTED_ROLE: UserProfileRoleEnum
+  private REQUESTED_ROLE: UserProfileRoleEnum = UserProfileRoleEnum.GUEST
 
   constructor(
     private readonly userProfileService: UserProfileService,
@@ -159,12 +159,18 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
           data: state,
           role: this.REQUESTED_ROLE,
         })
+      case BUTTON_PATTERNS.PAY_CASH:
+        this.registerScene.setState(ctx, { isCashPayment: true })
+        return await this.sceneNavigation.handleNext(ctx, next, {
+          data: { ...state, isCashPayment: true },
+          role: this.REQUESTED_ROLE,
+        })
       default:
         break
     }
 
     if (isFileUpdate && fileId && fileType) {
-      this.registerScene.setState(ctx, { fileId, fileType })
+      this.registerScene.setState(ctx, { fileId, fileType, isCashPayment: false })
 
       if (fileType === FileTypeEnum.PHOTO) {
         await ctx.replyWithPhoto(fileId, { caption: '📸 Фото успішно отримано' })
@@ -179,7 +185,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     return ctx.replyWithHTML(
       '📸 <b>Завантаж фото</b> або 📄 <b>документ підтвердження оплати</b> для завершення реєстрації.',
-      CommonSceneKeyboards.backExitConfirm(),
+      CommonSceneKeyboards.backExitWithCash(),
     )
   }
 

@@ -42,15 +42,15 @@ export class MessageHelper {
     data: Partial<IRegisterSceneState>,
     { completed = false, role }: { completed?: boolean; role: UserProfileRoleEnum },
   ) {
-    const { firstName, date_of_birth, lastName, phone, telegramUsername } = data
+    const { firstName, date_of_birth, lastName, phone, telegramUsername, isCashPayment } = data
     const modeText = completed
       ? `${role === UserProfileRoleEnum.CLIENT ? 'Клієнт' : 'Тренер'} відправив запит на реєстрацію: ✅\n\n`
       : `🔍 Перевір, чи все вірно:\n\n`
 
-    const mainContent = `👤 Ім'я: ${TextHelper.bold(`${UserHelper.getFullName(firstName!, lastName)}\n`)}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${telegramUsername ? `\n➡️ Telegram: ${TextHelper.bold(`@${telegramUsername}`)}` : ''}`
+    const mainContent = `👤 Ім'я: ${TextHelper.bold(`${UserHelper.getFullName(firstName!, lastName)}\n`)}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${telegramUsername ? `\n➡️ Telegram: ${TextHelper.bold(`@${telegramUsername}`)}` : ''}${isCashPayment ? `\n\n💵 <b>Оплата готівкою</b>` : ''}`
 
     return !completed
-      ? `${modeText}${mainContent}\n\n👌 Якщо все правильно — тисни “✅ Підтвердити”\n❌ А якщо щось хочеш змінити — просто натисни "⬅️ Назад"`
+      ? `${modeText}${mainContent}\n\n👌 Якщо все правильно — тисни “✅ Підтвердити”\n❌ А якщо щось хочеш змінити — просто натисни “⬅️ Назад”`
       : `${modeText}${mainContent}`
   }
 

@@ -4,7 +4,7 @@ import { NestExpressApplication } from '@nestjs/platform-express'
 import { API, ENVIRONMENTS } from './libs'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { Logger } from 'nestjs-pino'
-import { BotService } from 'src/bot/bot.service'
+import { BotService } from '@app/bot/bot.service'
 import { RedisCacheService } from './infrastructure/redis'
 
 async function bootstrap() {

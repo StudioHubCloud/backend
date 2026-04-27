@@ -74,7 +74,7 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
           'Це може бути скріншот, фото чеку або будь-який документ, що підтверджує оплату.\n\n' +
           'Після завантаження файлу тобі буде показано всі введені дані для остаточного підтвердження. Якщо все вірно — тисни <b>Підтвердити</b>. Якщо потрібно щось змінити — скористайся кнопкою "Назад".\n\n' +
           'Якщо виникли питання — звертайся до тренера чи адміна! 😊',
-        keyboard: CommonSceneKeyboards.backExitConfirm(),
+        keyboard: CommonSceneKeyboards.backExitWithCash(),
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER,
@@ -130,7 +130,7 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
           'Це може бути скріншот, фото чеку або будь-який документ, що підтверджує оплату.\n\n' +
           'Після завантаження файлу тобі буде показано всі введені дані для остаточного підтвердження. Якщо все вірно — тисни <b>Підтвердити</b>. Якщо потрібно щось змінити — скористайся кнопкою "Назад".\n\n' +
           'Якщо виникли питання — звертайся до тренера чи адміна! 😊',
-        keyboard: CommonSceneKeyboards.backExitConfirm(),
+        keyboard: CommonSceneKeyboards.backExitWithCash(),
       },
     },
     [UserProfileRoleEnum.GUEST]: {

@@ -104,6 +104,7 @@ export interface IRegisterSceneState {
   date_of_birth?: string
   fileId?: string
   fileType: FileTypeEnum
+  isCashPayment?: boolean
 }
 
 export interface GetGroupByIdResponse extends GroupSelectModel {

@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 
 import { BotHelper, KeyboardHelper, PassHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
-import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
+import { InlineKeyboardButton } from '@telegraf/types'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
@@ -82,7 +82,7 @@ export class PassActivationRequestsInlineMenu {
         )
       } catch (error) {
         await ctx.deleteMessage().catch(() => {})
-        throw new Error(error)
+        throw error instanceof Error ? error : new Error(String(error))
       }
     })
   }

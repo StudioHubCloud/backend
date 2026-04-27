@@ -1,7 +1,7 @@
 import { KeyboardHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
 import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
 import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
-import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
+import { InlineKeyboardButton } from '@telegraf/types'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { COMMON_BUTTONS } from './common-keyboards'
 import { PassActivationRequestTypeEnum, UserProfileRoleEnum } from '@app/libs'

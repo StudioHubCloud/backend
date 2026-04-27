@@ -1,4 +1,4 @@
-import { API, AuditLogActions, AuditLogEntity, AuditLogOperation, AuditLogTrigger, DATE_FORMAT } from 'src/libs/constants'
+import { API, AuditLogActions, AuditLogEntity, AuditLogOperation, AuditLogTrigger, DATE_FORMAT } from '@app/libs/constants'
 import { AutocompletableString } from './utility'
 import { TrainingSignupSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 

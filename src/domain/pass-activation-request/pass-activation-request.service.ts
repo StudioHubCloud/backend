@@ -78,7 +78,7 @@ export class PassActivationRequestService {
     }
 
     const result = await this.databaseService.drizzle.query.passActivationRequest.findFirst({
-      where: (passActivationRequest, { eq }) => eq(passActivationRequest.id, id),
+      where: (par, { eq }) => eq(par.id, id),
       with: {
         client: {
           with: {
@@ -110,7 +110,7 @@ export class PassActivationRequestService {
     }
 
     const results = await this.databaseService.drizzle.query.passActivationRequest.findMany({
-      where: (passActivationRequest, { eq }) => eq(passActivationRequest.studioId, this.studioId),
+      where: (par, { eq }) => eq(par.studioId, this.studioId),
       with: {
         client: {
           with: {
@@ -123,7 +123,7 @@ export class PassActivationRequestService {
           },
         },
       },
-      orderBy: (passActivationRequest, { desc }) => desc(passActivationRequest.createdAt),
+      orderBy: (par, { desc }) => desc(par.createdAt),
     })
 
     if (results) {

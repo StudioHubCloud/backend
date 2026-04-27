@@ -4,7 +4,7 @@ import { TReplyMarkupKeyboard, TReplyInlineKeyboard, CALLBACK_PREFIX } from '@ap
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { GroupSelectModel, PassTemplateSelectModel } from '@app/infrastructure/database'
 import { PassTemplateTypeEnum } from '@app/libs'
-import { InlineKeyboardButton } from 'telegraf/typings/core/types/typegram'
+import { InlineKeyboardButton } from '@telegraf/types'
 
 export class CommonSceneKeyboards {
   static exit(): TReplyMarkupKeyboard {
@@ -16,6 +16,10 @@ export class CommonSceneKeyboards {
 
   static backExitConfirm(): TReplyMarkupKeyboard {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.COMMON.BACK_EXIT_CONFIRM)
+  }
+
+  static backExitWithCash(): TReplyMarkupKeyboard {
+    return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.COMMON.BACK_EXIT_CASH)
   }
 
   static confirm(): TReplyMarkupKeyboard {
