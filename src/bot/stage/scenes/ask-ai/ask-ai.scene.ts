@@ -94,6 +94,7 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
       const fileLink = await ctx.telegram.getFileLink(voiceFileId)
       transcribedText = await this.audioTranscribeService.transcribe(fileLink)
     } catch (error) {
+      console.error('Error transcribing voice message:', error)
       return BotHelper.safeEditMessageTextById(
         ctx,
         chatId,
@@ -116,10 +117,10 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
     const result = await this.aiAssistantService.handleMessage(actor, text, conversationId)
 
     if (result.pendingConfirmation && result.pendingActionId) {
-      return ctx.replyWithMarkdownV2(result.replyText, this.buildConfirmationKeyboard(result.pendingActionId))
+      return ctx.replyWithHTML(result.replyText, this.buildConfirmationKeyboard(result.pendingActionId))
     }
 
-    return ctx.replyWithMarkdownV2(result.replyText)
+    return ctx.replyWithHTML(result.replyText)
   }
 
   private handleConfirm = async (ctx: BotContext) => {
@@ -142,7 +143,7 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
     // the Confirm/Cancel buttons attached and tappable, which is exactly the stale-button case
     // the per-action id above is meant to guard against. A fresh message has no buttons to stray-tap.
     await BotHelper.safeDeleteMessage(ctx)
-    return ctx.replyWithMarkdownV2(result.replyText)
+    return ctx.replyWithHTML(result.replyText)
   }
 
   private handleCancel = async (ctx: BotContext) => {
