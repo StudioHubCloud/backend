@@ -119,6 +119,7 @@ export enum AuditLogActions {
   TRAINING_SIGNUP_STATUS_CHANGE = 'training_signup_status_change',
   EXPIRE_PAST_PASSES = 'expire_past_passes',
   ACTIVATE_PASSES_AFTER_GRACE_PERIOD = 'activate_passes_after_grace_period',
+  AI_ASSISTANT_ACTION = 'ai_assistant_action',
 }
 
 export enum AuditLogTrigger {

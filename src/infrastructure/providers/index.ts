@@ -1,1 +1,1 @@
-export * from './date-time.provider'
+export { DateTimeProvider, DateTimeProviderInjector } from './date-time.provider'

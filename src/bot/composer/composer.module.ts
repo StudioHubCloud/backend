@@ -9,6 +9,8 @@ import {
   StaffMemberPayoutModule,
   PassActivationRequestModule,
 } from '@app/domain'
+import { DateTimeProvider } from '@app/infrastructure/providers'
+import { APP } from '@app/libs'
 import ClientComposers from './client'
 import TrainerComposers from './trainer'
 import AdminComposers from './admin'
@@ -17,8 +19,6 @@ import CommonComposers from './common'
 import MaintainerComposers from './maintainer'
 import { ComposerService } from './composer.service'
 import { MenuModule } from '@app/bot/menus/menu.module'
-import { APP } from '@app/libs'
-import { DateTimeProvider } from '@app/infrastructure/providers'
 
 @Module({
   imports: [

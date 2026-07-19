@@ -10,8 +10,9 @@ import {
   TrainingSignupModule,
   UserProfileModule,
 } from '@app/domain'
-import { APP } from '@app/libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
+import { AiModule } from '@app/infrastructure/ai'
+import { APP } from '@app/libs'
 
 @Module({
   imports: [
@@ -22,6 +23,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     StaffMemberPayoutModule,
     PassModule,
     TrainingModule,
+    AiModule,
   ],
   providers: [
     StageService,
@@ -33,6 +35,7 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
     Stage.PassPaymentScene,
     Stage.SpecialScheduleScene,
     Stage.PassOpenScene,
+    Stage.AskAiScene,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,

@@ -16,6 +16,10 @@ export const environmentsSchema = z.object({
   STUDIO_ID: z.string(),
   STUDIO_ID_TEST: z.string().default(''),
   GOOGLE_PLACE_ID: z.string(),
+  AI_API_KEY: z.string(),
+  AI_MODEL_STANDARD: z.string(),
+  AI_MODEL_CRITICAL: z.string(),
+  AI_DAILY_CALL_LIMIT: z.coerce.number(),
 })
 
 export type Env = z.infer<typeof environmentsSchema>

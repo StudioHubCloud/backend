@@ -99,8 +99,8 @@ export class BotHelper {
   static async safeSendMessage(telegram: Telegram, chatId: number | string, text: string | FmtString, options?: ExtraReplyMessage) {
     try {
       await telegram.sendMessage(chatId, text, { parse_mode: 'HTML', ...options })
-    } catch (error) {
-      console.error('Error sending message:', error.message, chatId, text)
+    } catch (error: any) {
+      console.error('Error sending message:', error?.message, chatId, text)
     }
   }
 
@@ -115,6 +115,15 @@ export class BotHelper {
       }
       //rethrow for further handling
       throw error
+    }
+  }
+
+  static async safeDeleteMessage(ctx: BotContext) {
+    try {
+      return await ctx.deleteMessage()
+    } catch (error: any) {
+      console.error('Error deleting message:', error.message)
+      return false
     }
   }
 }

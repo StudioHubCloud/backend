@@ -1,9 +1,9 @@
 import { Composer } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
 import { BotHelper, KeyboardHelper, RegexHelper } from '@app/bot/helpers'
-import { CALLBACK_DATA, ISelectInlineMenuConfig, TNormalizedOption, TPaginatedMenuRenderOptions } from '@app/bot/libs'
+import { ISelectInlineMenuConfig, TNormalizedOption, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
-import { InlineKeyboardMarkup } from 'telegraf/typings/core/types/typegram'
+import { InlineKeyboardMarkup } from '@telegraf/types'
 import { COMMON_BUTTONS } from '@app/bot/keyboard/storage/common-keyboards'
 
 export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any>> {

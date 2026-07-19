@@ -8,6 +8,7 @@ import { GroupManageStaffComposer } from '../common/group-manage-staff.composer'
 import { PayoutStaffComposer } from '../common/payout-staff.composer'
 import { MESSAGES_STAFF } from '@app/bot/static/messages'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
+import { AskAiComposer } from './ask-ai/ask-ai.composer'
 
 @Injectable()
 export class AdminRootComposer {
@@ -19,6 +20,7 @@ export class AdminRootComposer {
     private readonly requestVerificationComposer: VerificationRequestComposer,
     private readonly payoutStaffComposer: PayoutStaffComposer,
     private readonly groupManageStaffComposer: GroupManageStaffComposer,
+    private readonly askAiComposer: AskAiComposer,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -41,5 +43,6 @@ export class AdminRootComposer {
     //common staff
     this.composer.use(this.groupManageStaffComposer.middleware())
     this.composer.use(this.payoutStaffComposer.middleware())
+    this.composer.use(this.askAiComposer.middleware())
   }
 }

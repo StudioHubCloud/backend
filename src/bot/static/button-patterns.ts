@@ -74,4 +74,5 @@ export const BUTTON_PATTERNS = {
   BACK_TO_MAIN_MENU: '🔙 Назад до головного меню',
   CONFIGURE_BOT: '⚙️ Налаштування бота',
   PAY_CASH: '💵 Оплатити готівкою',
+  ASK_AI: '🤖 Запитати AI',
 } as const

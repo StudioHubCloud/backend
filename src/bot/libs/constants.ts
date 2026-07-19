@@ -24,6 +24,7 @@ export const SCENES = {
   EDIT_USER_PROFILE: 'edit_profile_name',
   PASS_PAYMENT: 'pass_payment',
   PASS_OPEN: 'pass_open',
+  ASK_AI: 'ask_ai',
 } as const
 
 export const CALLBACK_DATA = {
@@ -142,6 +143,10 @@ export const CALLBACK_PREFIX = {
   },
   COMMON: {
     AGREE_TO_RULES: 'cmn.agree.to.rules',
+  },
+  AI: {
+    CONFIRM: 'ai.cfm',
+    CANCEL: 'ai.cxl',
   },
 } as const
 
