@@ -2,7 +2,7 @@ import { Injectable } from '@nestjs/common'
 import { ConfigService as NestConfigService } from '@nestjs/config'
 import { Env } from './environments'
 import { LeafTypes, Leaves } from '@app/libs/types'
-import { ENVIRONMENTS } from '@app/libs'
+import { ENVIRONMENTS } from '@app/libs/constants'
 
 @Injectable()
 export class TypedConfigService {

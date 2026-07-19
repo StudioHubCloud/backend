@@ -1,5 +1,5 @@
-import { ENVIRONMENTS } from '@app/libs'
-import z, { optional } from 'zod'
+import { ENVIRONMENTS } from '@app/libs/constants'
+import z from 'zod'
 
 export const environmentsSchema = z.object({
   PORT: z.coerce.number().default(3000),
