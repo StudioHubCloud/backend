@@ -2,12 +2,15 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { AiAssistantService } from '@app/infrastructure/ai'
+import { AudioTranscribeService } from '@app/infrastructure/audio-transcribe'
 import { AiHelper, AuditLogHelper, BotHelper, KeyboardHelper, RegexHelper, SceneHelper } from '@app/bot/helpers'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { CALLBACK_PREFIX, SCENES, TEditEntitySceneMetaData, TReplyInlineKeyboard } from '@app/bot/libs'
 import { CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { AuditLogTrigger } from '@app/libs'
 import { TypedConfigService } from '@app/infrastructure/config'
+
+const MAX_VOICE_DURATION_SECONDS = 60
 
 export interface IAskAiSceneState extends TEditEntitySceneMetaData {}
 
@@ -21,6 +24,7 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
 
   constructor(
     private readonly aiAssistantService: AiAssistantService,
+    private readonly audioTranscribeService: AudioTranscribeService,
     private readonly configService: TypedConfigService,
   ) {
     super(SCENES.ASK_AI, (ctx) => this.queryHandler(ctx))
@@ -54,24 +58,68 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
         return this.scene.setState(ctx, { isInitialRun: false, promptMessageId: result.message_id })
       }
 
-      const { textPayload } = BotHelper.getUpdatePayload(ctx)
+      const { textPayload, isVoiceUpdate } = BotHelper.getUpdatePayload(ctx)
+
+      if (isVoiceUpdate) {
+        return this.handleVoiceQuery(ctx)
+      }
+
       if (!textPayload) {
         return
       }
 
-      await ctx.sendChatAction('typing')
-
-      const { actor, conversationId } = AiHelper.getActorContext(ctx)
-      const result = await this.aiAssistantService.handleMessage(actor, textPayload, conversationId)
-
-      if (result.pendingConfirmation && result.pendingActionId) {
-        return ctx.reply(result.replyText, this.buildConfirmationKeyboard(result.pendingActionId))
-      }
-
-      return ctx.reply(result.replyText)
+      return this.processQuery(ctx, textPayload)
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
     }
+  }
+
+  // Only ever called from queryHandler, which already wraps every branch in the same
+  // try/catch — no need to duplicate that here.
+  private handleVoiceQuery = async (ctx: BotContext) => {
+    const { voiceFileId, voiceDuration } = BotHelper.getUpdatePayload(ctx)
+    if (!voiceFileId) {
+      return
+    }
+
+    if ((voiceDuration ?? 0) > MAX_VOICE_DURATION_SECONDS) {
+      return ctx.reply(`🎤 Голосове повідомлення задовге. Максимум — ${MAX_VOICE_DURATION_SECONDS} секунд.`)
+    }
+
+    const placeholder = await ctx.reply('🎤 Розпізнаю голосове повідомлення...')
+    const chatId = ctx.chat?.id
+
+    let transcribedText: string
+    try {
+      const fileLink = await ctx.telegram.getFileLink(voiceFileId)
+      transcribedText = await this.audioTranscribeService.transcribe(fileLink)
+    } catch (error) {
+      return BotHelper.safeEditMessageTextById(
+        ctx,
+        chatId,
+        placeholder.message_id,
+        '❌ Не вдалося розпізнати голосове повідомлення. Спробуйте ще раз або напишіть текстом.',
+      )
+    }
+
+    // Show what was heard before acting on it — the transcript can be wrong, and the admin
+    // should see what the AI is actually about to work from, same as if they'd typed it.
+    await BotHelper.safeEditMessageTextById(ctx, chatId, placeholder.message_id, `📝 ${transcribedText}`)
+
+    return this.processQuery(ctx, transcribedText)
+  }
+
+  private processQuery = async (ctx: BotContext, text: string) => {
+    await ctx.sendChatAction('typing')
+
+    const { actor, conversationId } = AiHelper.getActorContext(ctx)
+    const result = await this.aiAssistantService.handleMessage(actor, text, conversationId)
+
+    if (result.pendingConfirmation && result.pendingActionId) {
+      return ctx.replyWithMarkdownV2(result.replyText, this.buildConfirmationKeyboard(result.pendingActionId))
+    }
+
+    return ctx.replyWithMarkdownV2(result.replyText)
   }
 
   private handleConfirm = async (ctx: BotContext) => {
@@ -94,7 +142,7 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
     // the Confirm/Cancel buttons attached and tappable, which is exactly the stale-button case
     // the per-action id above is meant to guard against. A fresh message has no buttons to stray-tap.
     await BotHelper.safeDeleteMessage(ctx)
-    return ctx.reply(result.replyText)
+    return ctx.replyWithMarkdownV2(result.replyText)
   }
 
   private handleCancel = async (ctx: BotContext) => {

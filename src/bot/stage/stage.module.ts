@@ -12,6 +12,7 @@ import {
 } from '@app/domain'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { AiModule } from '@app/infrastructure/ai'
+import { AudioTranscribeModule } from '@app/infrastructure/audio-transcribe'
 import { APP } from '@app/libs'
 
 @Module({
@@ -24,6 +25,7 @@ import { APP } from '@app/libs'
     PassModule,
     TrainingModule,
     AiModule,
+    AudioTranscribeModule,
   ],
   providers: [
     StageService,

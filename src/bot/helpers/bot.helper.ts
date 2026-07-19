@@ -28,6 +28,9 @@ export class BotHelper {
     isCallbackQueryUpdate: boolean
     isInlineQueryUpdate: boolean
     isFileUpdate: boolean
+    isVoiceUpdate: boolean
+    voiceFileId: string | null
+    voiceDuration: number | null
   } {
     const update = deunionize(ctx.update)
 
@@ -37,7 +40,10 @@ export class BotHelper {
     let isCallbackQueryUpdate = false
     let isInlineQueryUpdate = false
     let isFileUpdate = false
+    let isVoiceUpdate = false
     let fileType: FileTypeEnum | null = null
+    let voiceFileId: string | null = null
+    let voiceDuration: number | null = null
 
     switch (true) {
       case !!update.callback_query:
@@ -58,6 +64,10 @@ export class BotHelper {
           fileId = message.photo[message.photo.length - 1].file_id
           isFileUpdate = true
           fileType = FileTypeEnum.PHOTO
+        } else if (message?.voice) {
+          isVoiceUpdate = true
+          voiceFileId = message.voice.file_id
+          voiceDuration = message.voice.duration
         }
         break
       case !!update.inline_query:
@@ -76,6 +86,9 @@ export class BotHelper {
       isCallbackQueryUpdate,
       isInlineQueryUpdate,
       isFileUpdate,
+      isVoiceUpdate,
+      voiceFileId,
+      voiceDuration,
     }
   }
 
@@ -114,6 +127,26 @@ export class BotHelper {
         return false
       }
       //rethrow for further handling
+      throw error
+    }
+  }
+
+  // For editing a message other than the one implied by the current update (e.g. a placeholder
+  // sent earlier by ctx.reply()) — ctx.editMessageText()'s extra type deliberately excludes
+  // message_id/inline_message_id, since it can only ever target "the current" message.
+  static async safeEditMessageTextById(
+    ctx: BotContext,
+    chatId: number | string | undefined,
+    messageId: number | undefined,
+    text: string | FmtString,
+  ) {
+    try {
+      return await ctx.telegram.editMessageText(chatId, messageId, undefined, text, { parse_mode: 'HTML' })
+    } catch (error: any) {
+      console.error('Error editing message text by id:', error.message)
+      if (error?.response?.error_code === 400 && error?.response?.description?.includes('message is not modified')) {
+        return false
+      }
       throw error
     }
   }
