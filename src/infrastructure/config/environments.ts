@@ -18,10 +18,10 @@ export const environmentsSchema = z.object({
   GOOGLE_PLACE_ID: z.string(),
   AI_API_KEY: z.string(),
   AI_MODEL_STANDARD: z.string(),
-  AI_MODEL_CRITICAL: z.string(),
   AI_DAILY_CALL_LIMIT: z.coerce.number(),
   TRANSCRIPTION_SHARED_SECRET: z.string(),
   TRANSCRIPTION_SERVICE_URL: z.string(),
+  INTERNAL_API_KEY: z.string(),
 })
 
 export type Env = z.infer<typeof environmentsSchema>

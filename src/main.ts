@@ -1,11 +1,12 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { NestExpressApplication } from '@nestjs/platform-express'
-import { API, ENVIRONMENTS } from './libs'
+import { API } from './libs'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { Logger } from 'nestjs-pino'
 import { BotService } from '@app/bot/bot.service'
-import { RedisCacheService } from './infrastructure/redis'
+import { ValidationPipe } from '@nestjs/common'
+import helmet from 'helmet'
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -13,8 +14,16 @@ async function bootstrap() {
   })
   const logger = app.get(Logger)
   app.useLogger(logger)
+  app.use(helmet())
   app.setGlobalPrefix(API.GLOBAL_API_PREFIX_V1)
   app.enableShutdownHooks()
+  app.useGlobalPipes(
+    new ValidationPipe({
+      whitelist: true,
+      forbidNonWhitelisted: true,
+      transform: true,
+    }),
+  )
 
   const configService = app.get(TypedConfigService)
   const botService = app.get(BotService)

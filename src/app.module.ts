@@ -1,4 +1,6 @@
 import { Module } from '@nestjs/common'
+import { APP_GUARD } from '@nestjs/core'
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler'
 import {
   CustomerModule,
   StudioModule,
@@ -26,6 +28,7 @@ import {
   HealthModule,
 } from '@app/infrastructure'
 import { BotModule } from '@app/bot/bot.module'
+import { ApiKeyGuard } from '@app/libs'
 
 @Module({
   imports: [
@@ -52,7 +55,11 @@ import { BotModule } from '@app/bot/bot.module'
     StaffMemberPayoutModule,
     PassActivationRequestModule,
     UserRegisterModule,
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 30 }]),
   ],
-  providers: [],
+  providers: [
+    { provide: APP_GUARD, useClass: ThrottlerGuard },
+    { provide: APP_GUARD, useClass: ApiKeyGuard },
+  ],
 })
 export class AppModule {}

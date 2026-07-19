@@ -25,7 +25,9 @@ Rules:
 - If a request is ambiguous (e.g. multiple trainings could match), ask a short clarifying question instead of guessing.
 - Keep replies short and in plain text suitable for a Telegram message — no markdown headers, no long preambles. Telegraph messages are limited to 4096 characters, so if you need to send a long list, break it into multiple messages.
 - Format your reply properly and answer in a friendly, helpful tone. Use emojis where appropriate. Target audience is a fitness studio admin, not a developer. Its okay to say "I don't know" or "I can't do that" if you don't have enough information or if the request is outside your capabilities.
-- You never execute a mutating action directly; the system handles confirmation for those automatically.`
+- You never execute a mutating action directly; the system handles confirmation for those automatically.
+- You only help with studio-management topics: trainings, schedules, clients, groups, passes, and sign-ups. If asked anything unrelated (general chit-chat, coding help, trivia, world affairs, or any other off-topic request), politely decline and steer the conversation back to studio management — do not answer the off-topic question, even if you know the answer.
+- Respond in Ukrainian by default — that's the language the studio's admins use. If the admin writes to you in a different language, reply in that language instead.`
 
 // This service is transport-agnostic on purpose: it knows nothing about Telegram (see AiActor
 // and the plain string conversationId below) so a future non-Telegram consumer of this backend
@@ -53,64 +55,95 @@ export class AiAssistantService {
   async handleMessage(actor: AiActor, text: string, conversationId: string): Promise<AiAssistantResult> {
     const allowed = await this.aiRateLimiterService.tryConsume()
     if (!allowed) {
-      return { replyText: '🚫 Daily AI limit reached for today. Please try again tomorrow, or use the regular menus.' }
+      return { replyText: '🚫 Досягнуто денний ліміт запитів до AI. Спробуйте завтра або скористайтесь звичайними меню.' }
     }
 
     const history = await this.getHistory(conversationId)
     let currentMessages: Anthropic.MessageParam[] = [...history, { role: 'user', content: text }]
 
-    const standardModel = this.configService.get('AI_MODEL_STANDARD')
-    const criticalModel = this.configService.get('AI_MODEL_CRITICAL')
+    const model = this.configService.get('AI_MODEL_STANDARD')
     const anthropicTools = this.toAnthropicTools(this.tools)
 
-    for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration++) {
-      let response = await this.aiClientProvider.createMessage({
-        model: standardModel,
-        system: SYSTEM_PROMPT,
-        tools: anthropicTools,
-        messages: currentMessages,
-      })
-
-      const initialToolUseBlocks = this.getToolUseBlocks(response)
-      const shouldEscalate = initialToolUseBlocks.some((block) => this.getTool(block.name)?.riskTier === AI_RISK_TIER.CRITICAL)
-
-      if (shouldEscalate) {
-        // Re-issue the same conversation to the critical-tier model rather than trusting the
-        // cheap model's tool call for a mutating/destructive action — see plan's "Model choice & cost".
-        response = await this.aiClientProvider.createMessage({
-          model: criticalModel,
+    try {
+      for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration++) {
+        const response = await this.aiClientProvider.createMessage({
+          model,
           system: SYSTEM_PROMPT,
           tools: anthropicTools,
           messages: currentMessages,
         })
+
+        // The model itself can refuse to engage with a request (safety classifiers), separate
+        // from any tool logic — treat it the same as an off-topic redirect, not an error.
+        if (response.stop_reason === 'refusal') {
+          return { replyText: '⚠️ Я не можу допомогти з цим запитом. Будь ласка, запитайте щось повʼязане з управлінням студією.' }
+        }
+
+        const toolUseBlocks = this.getToolUseBlocks(response)
+
+        if (response.stop_reason !== 'tool_use' || toolUseBlocks.length === 0) {
+          const replyText = this.extractText(response)
+          await this.saveHistory(conversationId, [...currentMessages, { role: 'assistant', content: response.content }])
+          return { replyText }
+        }
+
+        const criticalBlock = toolUseBlocks.find((block) => this.getTool(block.name)?.riskTier === AI_RISK_TIER.CRITICAL)
+        if (criticalBlock) {
+          const result = await this.handleCriticalToolUse(conversationId, criticalBlock)
+          // Deliberately not persisted to conversation history: an unresolved tool_use with no
+          // matching tool_result would break every future turn, and the pending action itself
+          // already carries everything needed to execute on confirmation.
+          return result
+        }
+
+        const toolResults = await this.executeStandardTools(actor, toolUseBlocks)
+        currentMessages = [
+          ...currentMessages,
+          { role: 'assistant', content: response.content },
+          { role: 'user', content: toolResults },
+        ]
       }
-
-      const toolUseBlocks = this.getToolUseBlocks(response)
-
-      if (response.stop_reason !== 'tool_use' || toolUseBlocks.length === 0) {
-        const replyText = this.extractText(response)
-        await this.saveHistory(conversationId, [...currentMessages, { role: 'assistant', content: response.content }])
-        return { replyText }
+    } catch (error) {
+      const mappedReply = this.mapApiError(error)
+      if (!mappedReply) {
+        throw error
       }
-
-      const criticalBlock = toolUseBlocks.find((block) => this.getTool(block.name)?.riskTier === AI_RISK_TIER.CRITICAL)
-      if (criticalBlock) {
-        const result = await this.handleCriticalToolUse(conversationId, criticalBlock)
-        // Deliberately not persisted to conversation history: an unresolved tool_use with no
-        // matching tool_result would break every future turn, and the pending action itself
-        // already carries everything needed to execute on confirmation.
-        return result
-      }
-
-      const toolResults = await this.executeStandardTools(actor, toolUseBlocks)
-      currentMessages = [
-        ...currentMessages,
-        { role: 'assistant', content: response.content },
-        { role: 'user', content: toolResults },
-      ]
+      return mappedReply
     }
 
-    return { replyText: "I couldn't finish that in a reasonable number of steps — please try rephrasing your question." }
+    return { replyText: '⚠️ Не вдалося обробити запит за розумну кількість кроків — спробуйте переформулювати питання.' }
+  }
+
+  // Anthropic's error.type reflects the API response body (billing_error, overloaded_error, ...),
+  // which is far more reliable than guessing from the HTTP status code or error message text.
+  // Returns null for anything that isn't a recognized Anthropic API error, so genuine bugs still
+  // bubble up to the scene's generic error handler (which alerts the maintainer) instead of being
+  // silently swallowed here.
+  private mapApiError(error: unknown): AiAssistantResult | null {
+    if (!(error instanceof Anthropic.APIError)) {
+      return null
+    }
+
+    this.logger.error(`Anthropic API error [${error.type ?? error.status}]: ${error.message}`)
+
+    switch (error.type) {
+      case 'billing_error':
+        return { replyText: '💳 На AI-сервісі закінчились кредити. Зверніться до адміністратора студії, щоб поповнити рахунок.' }
+      case 'rate_limit_error':
+        return { replyText: '⏳ AI-сервіс зараз отримує забагато запитів. Спробуйте ще раз за хвилину.' }
+      case 'overloaded_error':
+        return { replyText: '🔧 AI-сервіс тимчасово перевантажений. Спробуйте ще раз трохи пізніше.' }
+      case 'authentication_error':
+      case 'permission_error':
+        return { replyText: '🚫 AI-сервіс налаштовано неправильно або доступ обмежено. Зверніться до адміністратора студії.' }
+      case 'timeout_error':
+        return { replyText: '⌛ AI-сервіс занадто довго відповідав. Спробуйте ще раз.' }
+      case 'not_found_error':
+      case 'invalid_request_error':
+      case 'api_error':
+      default:
+        return { replyText: '⚠️ AI-сервіс зіткнувся з проблемою при обробці запиту. Спробуйте ще раз або скористайтесь звичайними меню.' }
+    }
   }
 
   async confirmPendingAction(actor: AiActor, conversationId: string, actionId: string): Promise<AiAssistantResult> {
@@ -118,24 +151,24 @@ export class AiAssistantService {
     await this.clearPendingAction(conversationId, actionId)
 
     if (!pending) {
-      return { replyText: 'This action has expired, was already handled, or was replaced by a newer request. Please ask again.' }
+      return { replyText: '⚠️ Ця дія вже неактуальна, була виконана раніше або замінена новішим запитом. Спробуйте запитати ще раз.' }
     }
 
     const tool = this.getTool(pending.toolName)
     if (!tool) {
       this.logger.error(`Pending action referenced unknown tool "${pending.toolName}"`)
-      return { replyText: 'Something went wrong completing that action.' }
+      return { replyText: '❌ Щось пішло не так під час виконання дії.' }
     }
 
     try {
       const { logOperations } = await tool.execute(actor, pending.input)
       return {
-        replyText: tool.successMessage ?? '✅ Done.',
+        replyText: tool.successMessage ?? '✅ Готово.',
         logOperations,
         auditAction: AuditLogActions.AI_ASSISTANT_ACTION,
       }
     } catch (error) {
-      return { replyText: `❌ Couldn't complete that action: ${this.getErrorMessage(error)}` }
+      return { replyText: `❌ Не вдалося виконати дію: ${this.getErrorMessage(error)}` }
     }
   }
 
@@ -147,7 +180,7 @@ export class AiAssistantService {
     const tool = this.getTool(block.name)
     if (!tool || !tool.describeConfirmation) {
       this.logger.error(`Critical tool "${block.name}" is missing describeConfirmation`)
-      return { replyText: 'Something went wrong preparing that action. Please try again.' }
+      return { replyText: '❌ Щось пішло не так під час підготовки дії. Спробуйте ще раз.' }
     }
 
     // Each pending action gets its own id/key rather than sharing one slot per conversation —
@@ -206,7 +239,7 @@ export class AiAssistantService {
       .join('\n')
       .trim()
 
-    return text || "I don't have a response for that."
+    return text || '🤔 У мене немає відповіді на це.'
   }
 
   private getErrorMessage(error: unknown): string {
