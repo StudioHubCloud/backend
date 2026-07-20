@@ -122,12 +122,7 @@ export class BotHelper {
       return await ctx.editMessageText(text, { parse_mode: 'HTML', ...extra })
     } catch (error: any) {
       console.error('Error editing message text:', error.message)
-      // return original message
-      if (error?.response?.error_code === 400 && error?.response?.description?.includes('message is not modified')) {
-        return false
-      }
-      //rethrow for further handling
-      throw error
+      return false
     }
   }
 
@@ -144,10 +139,7 @@ export class BotHelper {
       return await ctx.telegram.editMessageText(chatId, messageId, undefined, text, { parse_mode: 'HTML' })
     } catch (error: any) {
       console.error('Error editing message text by id:', error.message)
-      if (error?.response?.error_code === 400 && error?.response?.description?.includes('message is not modified')) {
-        return false
-      }
-      throw error
+      return false
     }
   }
 
