@@ -33,7 +33,6 @@ export class AudioTranscribeService {
 
   private sign(timestamp: number, audioBuffer: Buffer): string {
     const secret = this.configService.get('TRANSCRIPTION_SHARED_SECRET')
-    console.log('[DEBUG] client TRANSCRIPTION_SHARED_SECRET length:', secret.length)
     // Buffer.concat, not string concatenation — audio bytes aren't valid UTF-8 text.
     const payload = Buffer.concat([Buffer.from(`${timestamp}.`), audioBuffer])
     return createHmac('sha256', secret).update(payload).digest('hex')
