@@ -1,5 +1,6 @@
 export { DatabaseModule, Transaction } from './database.module'
 export { DatabaseService } from './database.service'
+export { DATABASE_POOL_READONLY } from './database.connection'
 export * from './models'
 export * from './database.enums'
 export * from './schemas'

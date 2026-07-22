@@ -1,17 +1,19 @@
-import { Injectable, Logger } from '@nestjs/common'
+import { Inject, Injectable, Logger } from '@nestjs/common'
 import { randomUUID } from 'crypto'
 import Anthropic from '@anthropic-ai/sdk'
+import { Pool } from 'pg'
 import { RedisCacheService } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
+import { DATABASE_POOL_READONLY } from '@app/infrastructure/database'
 import { GroupService } from '@app/domain/group'
 import { TrainingService } from '@app/domain/training'
-import { TrainingSignupService } from '@app/domain/training-signup'
-import { UserProfileService } from '@app/domain/user-profile'
 import { AuditLogActions } from '@app/libs'
 import { AiClientProvider } from './ai-client.provider'
 import { AiRateLimiterService } from './ai-rate-limiter.service'
-import { buildAdminTools } from './ai-admin-tools'
+import { buildAdminTools, getSchemaSummary } from './tools'
 import { AI_RISK_TIER, AiActor, AiAssistantResult, AiPendingAction, AiToolDefinition } from './ai.types'
+
+const RUN_READONLY_QUERY_TOOL_NAME = 'run_readonly_query'
 
 const MAX_TOOL_LOOP_ITERATIONS = 4
 const HISTORY_TTL_SECONDS = 60 * 15
@@ -21,7 +23,7 @@ const SYSTEM_PROMPT = `You are the admin assistant inside a fitness studio's Tel
 Admins ask you things like "cancel Tuesday's 6pm training" or "how many people signed up for the yoga group this week" instead of using the menu buttons.
 
 Rules:
-- Never invent an id, a name, or a number. If you need a trainingId or a fact you don't have, call a list_*/get_* tool first.
+- Never invent an id, a name, or a number. If you need a trainingId or a fact you don't have, call run_readonly_query first.
 - If a request is ambiguous (e.g. multiple trainings could match), ask a short clarifying question instead of guessing.
 - Keep replies short — no long preambles, no tables, no markdown headers. Telegram messages are limited to 4096 characters, so if you need to send a long list, break it into multiple messages.
 - Your reply is sent using Telegram's HTML parse mode. For highlights, use only the plain tags <b>bold</b>, <i>italic</i>, and <u>underline</u> — nothing else (no links, no code blocks, no nested tags). Write ordinary punctuation (periods, exclamation marks, hyphens, dates like 20.07.2026) exactly as normal text, with no escaping. You are allowed to combine <b>, <i>, and <u> tags, but do not use any other HTML tags or attributes.
@@ -43,27 +45,26 @@ export class AiAssistantService {
     private readonly aiRateLimiterService: AiRateLimiterService,
     private readonly redisCacheService: RedisCacheService,
     private readonly configService: TypedConfigService,
+    @Inject(DATABASE_POOL_READONLY) private readonly readonlyPool: Pool,
     groupService: GroupService,
     trainingService: TrainingService,
-    trainingSignupService: TrainingSignupService,
-    userProfileService: UserProfileService,
   ) {
     // Only the admin tool set exists today. If/when a client/guest-scoped tool set is added,
     // this is the seam: pick a tool set here based on actor.role instead of always building admin tools.
-    this.tools = buildAdminTools({ groupService, trainingService, trainingSignupService, userProfileService })
+    this.tools = buildAdminTools({ groupService, trainingService, readonlyPool: this.readonlyPool })
   }
 
   async handleMessage(actor: AiActor, text: string, conversationId: string): Promise<AiAssistantResult> {
     const allowed = await this.aiRateLimiterService.tryConsume()
     if (!allowed) {
-      return { replyText: '🚫 Досягнуто денний ліміт запитів до AI. Спробуйте завтра або скористайтесь звичайними меню.' }
+      return { replyText: '🚫 На сьогодні ліміт запитів вичерпано. Спробуй завтра або скористайся меню.' }
     }
 
     const history = await this.getHistory(conversationId)
     let currentMessages: Anthropic.MessageParam[] = [...history, { role: 'user', content: text }]
 
     const model = this.configService.get('AI_MODEL_STANDARD')
-    const anthropicTools = this.toAnthropicTools(this.tools)
+    const anthropicTools = await this.buildAnthropicToolsForRequest()
 
     try {
       for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration++) {
@@ -77,7 +78,7 @@ export class AiAssistantService {
         // The model itself can refuse to engage with a request (safety classifiers), separate
         // from any tool logic — treat it the same as an off-topic redirect, not an error.
         if (response.stop_reason === 'refusal') {
-          return { replyText: '⚠️ Я не можу допомогти з цим запитом. Будь ласка, запитайте щось повʼязане з управлінням студією.' }
+          return { replyText: '⚠️ Я не можу допомогти з цим запитом — запитай щось про студію 🙏' }
         }
 
         const toolUseBlocks = this.getToolUseBlocks(response)
@@ -112,7 +113,7 @@ export class AiAssistantService {
       return mappedReply
     }
 
-    return { replyText: '⚠️ Не вдалося обробити запит за розумну кількість кроків — спробуйте переформулювати питання.' }
+    return { replyText: '⚠️ Не вийшло обробити запит, спробуй переформулювати 🙏' }
   }
 
   // Anthropic's error.type reflects the API response body (billing_error, overloaded_error, ...),
@@ -129,21 +130,21 @@ export class AiAssistantService {
 
     switch (error.type) {
       case 'billing_error':
-        return { replyText: '💳 На AI-сервісі закінчились кредити. Зверніться до адміністратора студії, щоб поповнити рахунок.' }
+        return { replyText: '💳 Вичерпано ліміт користування' }
       case 'rate_limit_error':
-        return { replyText: '⏳ AI-сервіс зараз отримує забагато запитів. Спробуйте ще раз за хвилину.' }
+        return { replyText: '⏳ Забагато запитів одночасно, вибач 🙏' }
       case 'overloaded_error':
-        return { replyText: '🔧 AI-сервіс тимчасово перевантажений. Спробуйте ще раз трохи пізніше.' }
+        return { replyText: '🔧 Зараз трішки перевантажено, вибач 🙏' }
       case 'authentication_error':
       case 'permission_error':
-        return { replyText: '🚫 AI-сервіс налаштовано неправильно або доступ обмежено. Зверніться до адміністратора студії.' }
+        return { replyText: '🚫 Проблема з доступом — звернись до адміністратора бота.' }
       case 'timeout_error':
-        return { replyText: '⌛ AI-сервіс занадто довго відповідав. Спробуйте ще раз.' }
+        return { replyText: '⌛ Відповідь зайняла задовго, вибач.' }
       case 'not_found_error':
       case 'invalid_request_error':
       case 'api_error':
       default:
-        return { replyText: '⚠️ AI-сервіс зіткнувся з проблемою при обробці запиту. Спробуйте ще раз або скористайтесь звичайними меню.' }
+        return { replyText: '⚠️ Щось пішло не так, вибач 🙏' }
     }
   }
 
@@ -152,7 +153,7 @@ export class AiAssistantService {
     await this.clearPendingAction(conversationId, actionId)
 
     if (!pending) {
-      return { replyText: '⚠️ Ця дія вже неактуальна, була виконана раніше або замінена новішим запитом. Спробуйте запитати ще раз.' }
+      return { replyText: '⚠️ Ця дія вже неактуальна — виконана раніше або замінена новішою. Запитай ще раз.' }
     }
 
     const tool = this.getTool(pending.toolName)
@@ -181,7 +182,7 @@ export class AiAssistantService {
     const tool = this.getTool(block.name)
     if (!tool || !tool.describeConfirmation) {
       this.logger.error(`Critical tool "${block.name}" is missing describeConfirmation`)
-      return { replyText: '❌ Щось пішло не так під час підготовки дії. Спробуйте ще раз.' }
+      return { replyText: '❌ Щось пішло не так' }
     }
 
     // Each pending action gets its own id/key rather than sharing one slot per conversation —
@@ -223,6 +224,20 @@ export class AiAssistantService {
 
   private getToolUseBlocks(message: Anthropic.Message): Anthropic.ToolUseBlock[] {
     return message.content.filter((block): block is Anthropic.ToolUseBlock => block.type === 'tool_use')
+  }
+
+  // run_readonly_query's description carries a static part (baked into this.tools once, in the
+  // constructor) plus the current DB schema, fetched fresh (cache hit = one Redis GET in the
+  // common case) on every call so a same-day migration doesn't leave the model working from a
+  // stale schema for the lifetime of the process.
+  private async buildAnthropicToolsForRequest(): Promise<Anthropic.Tool[]> {
+    const schemaSummary = await getSchemaSummary(this.redisCacheService, this.readonlyPool)
+
+    const toolsForRequest = this.tools.map((tool) =>
+      tool.name === RUN_READONLY_QUERY_TOOL_NAME ? { ...tool, description: `${tool.description}\n\n${schemaSummary}` } : tool,
+    )
+
+    return this.toAnthropicTools(toolsForRequest)
   }
 
   private toAnthropicTools(tools: AiToolDefinition[]): Anthropic.Tool[] {

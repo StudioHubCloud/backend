@@ -5,6 +5,7 @@ export const environmentsSchema = z.object({
   PORT: z.coerce.number().default(3000),
   REDIS_URL: z.string(),
   DATABASE_URL: z.string(),
+  DATABASE_URL_READONLY: z.string(),
   BOT_TOKEN: z.string(),
   BOT_TOKEN_TEST: z.string().default(''),
   MAINTAINER_CHAT_ID: z.string(),

@@ -3,7 +3,7 @@ import { ENVIRONMENTS } from '@app/libs'
 import { Global, Module } from '@nestjs/common'
 import { drizzle, NodePgDatabase } from 'drizzle-orm/node-postgres'
 import { Pool } from 'pg'
-import { DATABASE_CONNECTION_DRIZZLE, DATABASE_POOL } from './database.connection'
+import { DATABASE_CONNECTION_DRIZZLE, DATABASE_POOL, DATABASE_POOL_READONLY } from './database.connection'
 import { DatabaseService } from './database.service'
 import * as schema from './schemas'
 
@@ -30,9 +30,22 @@ import * as schema from './schemas'
         return drizzle(pool, { schema }) as Database
       },
     },
+    {
+      provide: DATABASE_POOL_READONLY,
+      inject: [TypedConfigService],
+      useFactory: async (configService: TypedConfigService) => {
+        const DB_URL_READONLY = configService.get('DATABASE_URL_READONLY')
+        const sslConfig = process.env.NODE_ENV === ENVIRONMENTS.PRODUCTION ? { rejectUnauthorized: false } : false
+
+        return new Pool({
+          connectionString: DB_URL_READONLY,
+          ssl: sslConfig,
+        })
+      },
+    },
     DatabaseService,
   ],
-  exports: [DATABASE_CONNECTION_DRIZZLE, DATABASE_POOL, DatabaseService],
+  exports: [DATABASE_CONNECTION_DRIZZLE, DATABASE_POOL, DATABASE_POOL_READONLY, DatabaseService],
 })
 export class DatabaseModule {}
 
