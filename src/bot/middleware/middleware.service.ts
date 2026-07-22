@@ -113,7 +113,13 @@ export class MiddlewareService {
       return
     }
     const auditDataCopy = JSON.parse(JSON.stringify(auditData)) as IAuditLogTelegramContext
-    this.auditLogService.logAction(auditDataCopy)
+    // Not awaited on purpose — logAction runs after the user's reply is already sent, and this
+    // keeps it that way for update-processing throughput too. The .catch() is not optional though:
+    // logAction rethrows on failure, and a fire-and-forget call with no handler attached becomes an
+    // unhandled rejection that crashes the whole process (Node's default since v15).
+    this.auditLogService.logAction(auditDataCopy).catch((error) => {
+      this.logger.error('Audit logging failed for action %s [%s]: %o', auditDataCopy.action, auditDataCopy.actionId, error)
+    })
     AuditLogHelper.clearAuditData(ctx)
     return
   }
