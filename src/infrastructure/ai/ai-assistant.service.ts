@@ -254,7 +254,7 @@ export class AiAssistantService {
       ...history,
       {
         role: 'user',
-        content: `[System note, not from the person you're talking to: a reply you just tried to send failed to deliver and they never saw it. Reason: ${reason}]`,
+        content: `${this.aiSystemPrefix}, not from the person you're talking to: a reply you just tried to send failed to deliver and they never saw it. Reason: ${reason}]`,
       },
     ])
   }
