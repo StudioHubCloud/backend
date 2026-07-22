@@ -3,13 +3,13 @@ import { TrainingService } from '@app/domain/training'
 import { AuditLogEntity, AuditLogOperation } from '@app/libs'
 import { AI_RISK_TIER, AiToolDefinition } from '../ai.types'
 
-export function buildCancelTrainingTool(deps: { groupService: GroupService; trainingService: TrainingService }): AiToolDefinition {
+export function buildActivateTrainingTool(deps: { groupService: GroupService; trainingService: TrainingService }): AiToolDefinition {
   const { groupService, trainingService } = deps
 
   return {
-    name: 'cancel_training',
+    name: 'activate_training',
     description:
-      'Cancel a training by trainingId. This also cancels all active sign-ups for that training. Can be undone with activate_training if needed. Always resolve the exact trainingId (e.g. via run_readonly_query) before calling this.',
+      'Reactivate a previously cancelled training by trainingId — undoes cancel_training and also restores the sign-ups that were cancelled along with it. Only works on trainings that are currently cancelled and still upcoming. Always resolve the exact trainingId (e.g. via run_readonly_query) before calling this.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -22,22 +22,22 @@ export function buildCancelTrainingTool(deps: { groupService: GroupService; trai
     describeConfirmation: async (input: { trainingId: number }) => {
       const training = await trainingService.getTrainingById(input.trainingId)
       const group = await groupService.getGroupById(training.groupId)
-      return `⚠️ Скасувати тренування "${group.name}" ${training.date}?\nВсі активні записи на нього теж скасуються.`
+      return `⚠️ Активувати тренування "${group.name}" ${training.date}?\nЗаписи, скасовані разом із ним, теж відновляться.`
     },
-    successMessage: '✅ Тренування скасовано.',
+    successMessage: '✅ Тренування активовано.',
     execute: async (_actor, input: { trainingId: number }) => {
-      const { training } = await trainingService.cancelTrainingById(input.trainingId)
+      const { training } = await trainingService.activateTrainingById(input.trainingId)
 
       return {
-        result: { trainingId: training.id, cancelled: true },
+        result: { trainingId: training.id, activated: true },
         logOperations: [
           {
             entity: AuditLogEntity.TRAINING,
             entityId: String(training.id),
             operation: AuditLogOperation.UPDATE,
-            payload: { isCancelled: true },
+            payload: { isCancelled: false },
             timestamp: new Date().toISOString(),
-            metadata: { serviceName: TrainingService.name, methodName: 'cancelTrainingById' },
+            metadata: { serviceName: TrainingService.name, methodName: 'activateTrainingById' },
           },
         ],
       }

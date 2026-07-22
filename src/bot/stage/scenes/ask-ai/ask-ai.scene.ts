@@ -124,42 +124,50 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
   }
 
   private handleConfirm = async (ctx: BotContext) => {
-    BotHelper.safeAnswerCbQuery(ctx)
+    try {
+      BotHelper.safeAnswerCbQuery(ctx)
 
-    const [actionId] = RegexHelper.getMatchGroupValue(ctx)
-    if (!actionId) {
+      const [actionId] = RegexHelper.getMatchGroupValue(ctx)
+      if (!actionId) {
+        await BotHelper.safeDeleteMessage(ctx)
+        return ctx.reply('❗️ Помилка. Невірні дані кнопки.')
+      }
+
+      const { actor, conversationId } = AiHelper.getActorContext(ctx)
+      const result = await this.aiAssistantService.confirmPendingAction(actor, conversationId, actionId)
+
+      if (result.logOperations?.length && result.auditAction) {
+        AuditLogHelper.startAction(ctx, result.auditAction, AuditLogTrigger.ADMIN_ACTION, result.logOperations)
+      }
+
+      // Delete rather than edit-in-place — editMessageText without a reply_markup override leaves
+      // the Confirm/Cancel buttons attached and tappable, which is exactly the stale-button case
+      // the per-action id above is meant to guard against. A fresh message has no buttons to stray-tap.
       await BotHelper.safeDeleteMessage(ctx)
-      return ctx.reply('❗️ Помилка. Невірні дані кнопки.')
+      return await ctx.replyWithHTML(result.replyText)
+    } catch (error) {
+      return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
     }
-
-    const { actor, conversationId } = AiHelper.getActorContext(ctx)
-    const result = await this.aiAssistantService.confirmPendingAction(actor, conversationId, actionId)
-
-    if (result.logOperations?.length && result.auditAction) {
-      AuditLogHelper.startAction(ctx, result.auditAction, AuditLogTrigger.ADMIN_ACTION, result.logOperations)
-    }
-
-    // Delete rather than edit-in-place — editMessageText without a reply_markup override leaves
-    // the Confirm/Cancel buttons attached and tappable, which is exactly the stale-button case
-    // the per-action id above is meant to guard against. A fresh message has no buttons to stray-tap.
-    await BotHelper.safeDeleteMessage(ctx)
-    return ctx.replyWithHTML(result.replyText)
   }
 
   private handleCancel = async (ctx: BotContext) => {
-    BotHelper.safeAnswerCbQuery(ctx)
+    try {
+      BotHelper.safeAnswerCbQuery(ctx)
 
-    const [actionId] = RegexHelper.getMatchGroupValue(ctx)
-    if (!actionId) {
+      const [actionId] = RegexHelper.getMatchGroupValue(ctx)
+      if (!actionId) {
+        await BotHelper.safeDeleteMessage(ctx)
+        return ctx.reply('❗️ Помилка. Невірні дані кнопки.')
+      }
+
+      const { conversationId } = AiHelper.getActorContext(ctx)
+      await this.aiAssistantService.cancelPendingAction(conversationId, actionId)
+
       await BotHelper.safeDeleteMessage(ctx)
-      return ctx.reply('❗️ Помилка. Невірні дані кнопки.')
+      return await ctx.reply('❌ Скасовано.')
+    } catch (error) {
+      return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
     }
-
-    const { conversationId } = AiHelper.getActorContext(ctx)
-    await this.aiAssistantService.cancelPendingAction(conversationId, actionId)
-
-    await BotHelper.safeDeleteMessage(ctx)
-    return ctx.reply('❌ Скасовано.')
   }
 
   private buildConfirmationKeyboard(actionId: string): TReplyInlineKeyboard {

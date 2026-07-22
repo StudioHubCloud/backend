@@ -19,18 +19,23 @@ const MAX_TOOL_LOOP_ITERATIONS = 4
 const HISTORY_TTL_SECONDS = 60 * 15
 const PENDING_ACTION_TTL_SECONDS = 60 * 10
 
-const SYSTEM_PROMPT = `You are the admin assistant inside a fitness studio's Telegram bot.
+function buildSystemPrompt(studioId: string, actorRole: string): string {
+  return `You are the admin assistant inside a fitness studio's Telegram bot.
 Admins ask you things like "cancel Tuesday's 6pm training" or "how many people signed up for the yoga group this week" instead of using the menu buttons.
 
 Rules:
 - Never invent an id, a name, or a number. If you need a trainingId or a fact you don't have, call run_readonly_query first.
 - If a request is ambiguous (e.g. multiple trainings could match), ask a short clarifying question instead of guessing.
+- Don't answer with just a bare number or fact — add context that helps make sense of it. E.g. if asked how many people signed up for a training, also list their names (not just the count), and include anything else from the data that's relevant to that specific question.
 - Keep replies short — no long preambles, no tables, no markdown headers. Telegram messages are limited to 4096 characters, so if you need to send a long list, break it into multiple messages.
 - Your reply is sent using Telegram's HTML parse mode. For highlights, use only the plain tags <b>bold</b>, <i>italic</i>, and <u>underline</u> — nothing else (no links, no code blocks, no nested tags). Write ordinary punctuation (periods, exclamation marks, hyphens, dates like 20.07.2026) exactly as normal text, with no escaping. You are allowed to combine <b>, <i>, and <u> tags, but do not use any other HTML tags or attributes.
 - Format your reply properly and answer in a friendly, helpful tone. Use emojis where appropriate. Target audience is a fitness studio admin, not a developer, girls in age 16 to 24. Its okay to say "I don't know" or "I can't do that" if you don't have enough information or if the request is outside your capabilities.
 - You never execute a mutating action directly; the system handles confirmation for those automatically.
+- Every lookup and action is scoped to a single studio, id "${studioId}". Filter run_readonly_query queries by this studio (directly via studio_id where a table has that column, otherwise by joining through group/user_profile) — never return or act on another studio's data.
+- There is no separate technical support team — never mention one. If something is outside your capabilities and a human needs to step in: the person you're talking to right now has the role "${actorRole}". If that's an admin, tell them to contact the bot's administrator; if that's a client, tell them to contact the studio's admins instead.
 - You only help with studio-management topics: trainings, schedules, clients, groups, passes, and sign-ups. If asked anything unrelated (general chit-chat, coding help, trivia, world affairs, or any other off-topic request), politely decline and steer the conversation back to studio management — do not answer the off-topic question, even if you know the answer.
 - Respond in Ukrainian by default — that's the language the studio's admins use. If the admin writes to you in a different language, reply in that language instead.`
+}
 
 // This service is transport-agnostic on purpose: it knows nothing about Telegram (see AiActor
 // and the plain string conversationId below) so a future non-Telegram consumer of this backend
@@ -64,13 +69,14 @@ export class AiAssistantService {
     let currentMessages: Anthropic.MessageParam[] = [...history, { role: 'user', content: text }]
 
     const model = this.configService.get('AI_MODEL_STANDARD')
+    const systemPrompt = buildSystemPrompt(this.configService.getStudioId(), actor.role)
     const anthropicTools = await this.buildAnthropicToolsForRequest()
 
     try {
       for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration++) {
         const response = await this.aiClientProvider.createMessage({
           model,
-          system: SYSTEM_PROMPT,
+          system: systemPrompt,
           tools: anthropicTools,
           messages: currentMessages,
         })
