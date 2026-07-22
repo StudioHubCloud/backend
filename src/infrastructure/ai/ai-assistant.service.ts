@@ -7,6 +7,7 @@ import { TypedConfigService } from '@app/infrastructure/config'
 import { DATABASE_POOL_READONLY } from '@app/infrastructure/database'
 import { GroupService } from '@app/domain/group'
 import { TrainingService } from '@app/domain/training'
+import { TrainingSignupService } from '@app/domain/training-signup'
 import { UserProfileService } from '@app/domain/user-profile'
 import { AuditLogActions } from '@app/libs'
 import { AiClientProvider } from './ai-client.provider'
@@ -60,6 +61,7 @@ export class AiAssistantService {
     @Inject(DATABASE_POOL_READONLY) private readonly readonlyPool: Pool,
     private readonly groupService: GroupService,
     private readonly trainingService: TrainingService,
+    private readonly trainingSignupService: TrainingSignupService,
     private readonly userProfileService: UserProfileService,
   ) {
     this.botToken = this.configService.getToken()
@@ -74,6 +76,7 @@ export class AiAssistantService {
     return buildToolsForActor(actorRole, {
       groupService: this.groupService,
       trainingService: this.trainingService,
+      trainingSignupService: this.trainingSignupService,
       userProfileService: this.userProfileService,
       readonlyPool: this.readonlyPool,
       botToken: this.botToken,

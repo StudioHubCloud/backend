@@ -137,12 +137,12 @@ export class UserProfileService {
   }
 
   async rejectVerificationRequest(id: string) {
-    this.updateUserProfile(id, { status: UserProfileStatusEnum.UNVERIFIED, role: UserProfileRoleEnum.GUEST })
+    await this.updateUserProfile(id, { status: UserProfileStatusEnum.UNVERIFIED, role: UserProfileRoleEnum.GUEST })
     return true
   }
 
   async rejectVerificationRequestAndBlockUser(id: string) {
-    this.updateUserProfile(id, { status: UserProfileStatusEnum.BLOCKED, role: UserProfileRoleEnum.GUEST })
+    await this.updateUserProfile(id, { status: UserProfileStatusEnum.BLOCKED, role: UserProfileRoleEnum.GUEST })
     return true
   }
 
