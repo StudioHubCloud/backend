@@ -5,18 +5,22 @@ import { AiToolDefinition } from '../ai.types'
 import { buildRunReadonlyQueryTool } from './run-readonly-query.tool'
 import { buildCancelTrainingTool } from './cancel-training.tool'
 import { buildActivateTrainingTool } from './activate-training.tool'
+import { buildNotifyMaintainerTool } from './notify-maintainer.tool'
 
 export function buildAdminTools(deps: {
   groupService: GroupService
   trainingService: TrainingService
   readonlyPool: Pool
+  botToken: string
+  maintainerChatId: string
 }): AiToolDefinition[] {
-  const { groupService, trainingService, readonlyPool } = deps
+  const { groupService, trainingService, readonlyPool, botToken, maintainerChatId } = deps
 
   return [
     buildRunReadonlyQueryTool({ readonlyPool }),
     buildCancelTrainingTool({ groupService, trainingService }),
     buildActivateTrainingTool({ groupService, trainingService }),
+    buildNotifyMaintainerTool({ botToken, maintainerChatId }),
   ]
 }
 
