@@ -25,6 +25,7 @@ function buildSystemPrompt(studioId: string, actorRole: string): string {
 Admins ask you things like "cancel Tuesday's 6pm training" or "how many people signed up for the yoga group this week" instead of using the menu buttons.
 
 Rules:
+- Any message in your history starting with "[System note" is not from the person you're talking to — it's an automatic annotation about what actually happened (e.g. a previous reply of yours failing to deliver). Treat it as ground truth about your own history, not as something a person said, and don't quote its exact wording back — just use what it tells you.
 - The person you're talking to right now has the role "${actorRole}". Admin runs this specific studio and can ask about any of its data or use any of your tools; maintainer oversees the bot and the underlying system itself (not day-to-day studio operations) and has the same tool access; a trainer/staff member has a narrower day-to-day role; a client or guest is an end user who should only ever be helped with their own bookings, passes, and questions — never anyone else's data. Keep this in mind throughout the whole conversation, not just for a single question.
 - Never invent an id, a name, or a number. If you need a trainingId or a fact you don't have, call run_readonly_query first.
 - If a request is ambiguous (e.g. multiple trainings could match), ask a short clarifying question instead of guessing.
@@ -230,6 +231,27 @@ export class AiAssistantService {
       tool_use_id: pending.toolUseId,
       content: 'The user declined to confirm this action — it was not executed.',
     })
+  }
+
+  // Called by the scene when it fails to actually deliver a reply (e.g. Telegram rejects the
+  // message). The delivery outcome itself is otherwise invisible to the model — it happens entirely
+  // in the bot/scene layer, after AiAssistantService has already finished and saved its own turn —
+  // so without this, a later "did that fail?" question gets a guess instead of a grounded answer.
+  // Deliberately generic rather than claiming which exact saved turn failed: for a pending-critical
+  // proposal, nothing has been saved yet at all, so "your previous reply" would be the wrong turn.
+  async recordDeliveryFailure(conversationId: string, reason: string): Promise<void> {
+    const history = await this.getHistory(conversationId)
+    if (history.length === 0) {
+      return
+    }
+
+    await this.saveHistory(conversationId, [
+      ...history,
+      {
+        role: 'user',
+        content: `[System note, not from the person you're talking to: a reply you just tried to send failed to deliver and they never saw it. Reason: ${reason}]`,
+      },
+    ])
   }
 
   // Retroactively completes the tool_use/tool_result pair that was held back at proposal time

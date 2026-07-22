@@ -117,10 +117,25 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
     const result = await this.aiAssistantService.handleMessage(actor, text, conversationId)
 
     if (result.pendingConfirmation && result.pendingActionId) {
-      return ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText), this.buildConfirmationKeyboard(result.pendingActionId))
+      const pendingActionId = result.pendingActionId
+      return this.deliverReply(conversationId, () =>
+        ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText), this.buildConfirmationKeyboard(pendingActionId)),
+      )
     }
 
-    return ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText))
+    return this.deliverReply(conversationId, () => ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText)))
+  }
+
+  // The model's own history is already saved by the time this runs (AiAssistantService.handleMessage
+  // completes before the scene ever tries to deliver) — so a delivery failure here would otherwise
+  // be invisible to it. Recording it lets a later "did that fail?" question get a grounded answer.
+  private async deliverReply(conversationId: string, deliver: () => Promise<unknown>): Promise<unknown> {
+    try {
+      return await deliver()
+    } catch (error) {
+      await this.aiAssistantService.recordDeliveryFailure(conversationId, error instanceof Error ? error.message : 'Unknown error')
+      throw error
+    }
   }
 
   private handleConfirm = async (ctx: BotContext) => {
@@ -144,7 +159,7 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
       // the Confirm/Cancel buttons attached and tappable, which is exactly the stale-button case
       // the per-action id above is meant to guard against. A fresh message has no buttons to stray-tap.
       await BotHelper.safeDeleteMessage(ctx)
-      return await ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText))
+      return await this.deliverReply(conversationId, () => ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText)))
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
     }
