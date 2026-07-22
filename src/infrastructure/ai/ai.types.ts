@@ -1,3 +1,4 @@
+import Anthropic from '@anthropic-ai/sdk'
 import { AuditLogActions, AuditLogServiceOperation } from '@app/libs'
 
 export const AI_RISK_TIER = {
@@ -34,6 +35,12 @@ export interface AiToolDefinition {
 export interface AiPendingAction {
   toolName: string
   input: any
+  // Everything needed to retroactively complete the tool_use/tool_result pair in history once
+  // the outcome is known (see AiAssistantService.appendPendingActionToHistory) — saving it at
+  // proposal time would leave an unresolved tool_use that breaks every future turn.
+  toolUseId: string
+  newMessagesThisTurn: Anthropic.MessageParam[]
+  assistantContent: Anthropic.ContentBlock[]
 }
 
 export interface AiAssistantResult {

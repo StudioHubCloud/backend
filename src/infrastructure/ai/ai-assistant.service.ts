@@ -97,11 +97,11 @@ export class AiAssistantService {
 
         const criticalBlock = toolUseBlocks.find((block) => this.getTool(block.name)?.riskTier === AI_RISK_TIER.CRITICAL)
         if (criticalBlock) {
-          const result = await this.handleCriticalToolUse(conversationId, criticalBlock)
-          // Deliberately not persisted to conversation history: an unresolved tool_use with no
-          // matching tool_result would break every future turn, and the pending action itself
-          // already carries everything needed to execute on confirmation.
-          return result
+          // Not persisted yet — an unresolved tool_use with no matching tool_result would break
+          // every future turn. The pending action carries everything needed to complete the pair
+          // retroactively once confirmPendingAction/cancelPendingAction knows the outcome.
+          const newMessagesThisTurn = currentMessages.slice(history.length)
+          return await this.handleCriticalToolUse(conversationId, criticalBlock, newMessagesThisTurn, response.content)
         }
 
         const toolResults = await this.executeStandardTools(actor, toolUseBlocks)
@@ -169,22 +169,68 @@ export class AiAssistantService {
     }
 
     try {
-      const { logOperations } = await tool.execute(actor, pending.input)
+      const { logOperations, result } = await tool.execute(actor, pending.input)
+      await this.appendPendingActionToHistory(conversationId, pending, {
+        type: 'tool_result',
+        tool_use_id: pending.toolUseId,
+        content: JSON.stringify(result),
+      })
       return {
         replyText: tool.successMessage ?? '✅ Готово.',
         logOperations,
         auditAction: AuditLogActions.AI_ASSISTANT_ACTION,
       }
     } catch (error) {
-      return { replyText: `❌ Не вдалося виконати дію: ${this.getErrorMessage(error)}` }
+      const errorMessage = this.getErrorMessage(error)
+      await this.appendPendingActionToHistory(conversationId, pending, {
+        type: 'tool_result',
+        tool_use_id: pending.toolUseId,
+        content: errorMessage,
+        is_error: true,
+      })
+      return { replyText: `❌ Не вдалося виконати дію: ${errorMessage}` }
     }
   }
 
   async cancelPendingAction(conversationId: string, actionId: string): Promise<void> {
+    const pending = await this.getPendingAction(conversationId, actionId)
     await this.clearPendingAction(conversationId, actionId)
+
+    if (!pending) {
+      return
+    }
+
+    await this.appendPendingActionToHistory(conversationId, pending, {
+      type: 'tool_result',
+      tool_use_id: pending.toolUseId,
+      content: 'The user declined to confirm this action — it was not executed.',
+    })
   }
 
-  private async handleCriticalToolUse(conversationId: string, block: Anthropic.ToolUseBlock): Promise<AiAssistantResult> {
+  // Retroactively completes the tool_use/tool_result pair that was held back at proposal time
+  // (see handleCriticalToolUse), now that the outcome is known. Reads history fresh rather than
+  // trusting the snapshot taken at proposal time, in case the admin asked something else in
+  // between proposing and confirming/cancelling.
+  private async appendPendingActionToHistory(
+    conversationId: string,
+    pending: AiPendingAction,
+    toolResult: Anthropic.ToolResultBlockParam,
+  ): Promise<void> {
+    const latestHistory = await this.getHistory(conversationId)
+    await this.saveHistory(conversationId, [
+      ...latestHistory,
+      ...pending.newMessagesThisTurn,
+      { role: 'assistant', content: pending.assistantContent },
+      { role: 'user', content: [toolResult] },
+    ])
+  }
+
+  private async handleCriticalToolUse(
+    conversationId: string,
+    block: Anthropic.ToolUseBlock,
+    newMessagesThisTurn: Anthropic.MessageParam[],
+    assistantContent: Anthropic.ContentBlock[],
+  ): Promise<AiAssistantResult> {
     const tool = this.getTool(block.name)
     if (!tool || !tool.describeConfirmation) {
       this.logger.error(`Critical tool "${block.name}" is missing describeConfirmation`)
@@ -195,7 +241,13 @@ export class AiAssistantService {
     // otherwise a second question asked before the first is confirmed would silently overwrite
     // it, and tapping the older (still-visible) confirm button would act on the wrong action.
     const actionId = randomUUID()
-    await this.savePendingAction(conversationId, actionId, { toolName: tool.name, input: block.input })
+    await this.savePendingAction(conversationId, actionId, {
+      toolName: tool.name,
+      input: block.input,
+      toolUseId: block.id,
+      newMessagesThisTurn,
+      assistantContent,
+    })
     const confirmationText = await tool.describeConfirmation(block.input)
     return { replyText: confirmationText, pendingConfirmation: true, pendingActionId: actionId }
   }
