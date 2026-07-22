@@ -21,12 +21,12 @@ const MAX_TOOL_LOOP_ITERATIONS = 4
 const HISTORY_TTL_SECONDS = 60 * 60
 const PENDING_ACTION_TTL_SECONDS = 60 * 10
 
-function buildSystemPrompt(studioId: string, actorRole: string): string {
+function buildSystemPrompt(studioId: string, actorRole: string, aiSystemPrefix: string): string {
   return `You are the admin assistant inside a fitness studio's Telegram bot.
 Admins ask you things like "cancel Tuesday's 6pm training" or "how many people signed up for the yoga group this week" instead of using the menu buttons.
 
 Rules:
-- Any message in your history starting with "[System note" is not from the person you're talking to — it's an automatic annotation about what actually happened (e.g. a previous reply of yours failing to deliver). Treat it as ground truth about your own history, not as something a person said, and don't quote its exact wording back — just use what it tells you.
+- Any message in your history starting with "${aiSystemPrefix} is not from the person you're talking to — it's an automatic annotation about what actually happened (e.g. a previous reply of yours failing to deliver). Treat it as ground truth about your own history, not as something a person said, and don't quote its exact wording back — just use what it tells you.
 - The person you're talking to right now has the role "${actorRole}". Admin runs this specific studio and can ask about any of its data or use any of your tools; maintainer oversees the bot and the underlying system itself (not day-to-day studio operations) and has the same tool access; a trainer/staff member has a narrower day-to-day role; a client or guest is an end user who should only ever be helped with their own bookings, passes, and questions — never anyone else's data. Keep this in mind throughout the whole conversation, not just for a single question.
 - Never invent an id, a name, or a number. If you need a trainingId or a fact you don't have, call run_readonly_query first.
 - If a request is ambiguous (e.g. multiple trainings could match), ask a short clarifying question instead of guessing.
@@ -52,6 +52,7 @@ export class AiAssistantService {
   private readonly logger = new Logger(AiAssistantService.name)
   private readonly botToken: string
   private readonly maintainerChatId: string
+  private readonly aiSystemPrefix: string
 
   constructor(
     private readonly aiClientProvider: AiClientProvider,
@@ -66,6 +67,7 @@ export class AiAssistantService {
   ) {
     this.botToken = this.configService.getToken()
     this.maintainerChatId = this.configService.get('MAINTAINER_CHAT_ID')
+    this.aiSystemPrefix = this.configService.get('AI_SYSTEM_NOTE_PREFIX')
   }
 
   // Tools are role-gated (see tools/index.ts's buildToolsForActor) and built fresh per request
@@ -94,7 +96,7 @@ export class AiAssistantService {
     let currentMessages: Anthropic.MessageParam[] = [...history, { role: 'user', content: text }]
 
     const model = this.configService.get('AI_MODEL_STANDARD')
-    const systemPrompt = buildSystemPrompt(this.configService.getStudioId(), actor.role)
+    const systemPrompt = buildSystemPrompt(this.configService.getStudioId(), actor.role, this.aiSystemPrefix)
     const tools = this.getToolsForActor(actor.role)
     const anthropicTools = await this.buildAnthropicToolsForRequest(tools)
 
