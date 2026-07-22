@@ -13,6 +13,9 @@ export type AiRiskTier = (typeof AI_RISK_TIER)[keyof typeof AI_RISK_TIER]
 export interface AiActor {
   id: string
   role: string
+  // Human-readable, for tools that surface the actor to someone else (e.g. notify_admin/
+  // notify_maintainer) — an id alone means nothing to a person reading the alert.
+  name: string
 }
 
 export interface AiToolResult {

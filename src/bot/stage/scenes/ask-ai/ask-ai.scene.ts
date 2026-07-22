@@ -117,10 +117,10 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
     const result = await this.aiAssistantService.handleMessage(actor, text, conversationId)
 
     if (result.pendingConfirmation && result.pendingActionId) {
-      return ctx.replyWithHTML(result.replyText, this.buildConfirmationKeyboard(result.pendingActionId))
+      return ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText), this.buildConfirmationKeyboard(result.pendingActionId))
     }
 
-    return ctx.replyWithHTML(result.replyText)
+    return ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText))
   }
 
   private handleConfirm = async (ctx: BotContext) => {
@@ -144,7 +144,7 @@ export class AskAiScene extends Scenes.WizardScene<BotContext> {
       // the Confirm/Cancel buttons attached and tappable, which is exactly the stale-button case
       // the per-action id above is meant to guard against. A fresh message has no buttons to stray-tap.
       await BotHelper.safeDeleteMessage(ctx)
-      return await ctx.replyWithHTML(result.replyText)
+      return await ctx.replyWithHTML(AiHelper.sanitizeReplyHtml(result.replyText))
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
     }

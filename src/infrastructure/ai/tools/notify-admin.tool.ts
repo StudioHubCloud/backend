@@ -25,9 +25,14 @@ export function buildNotifyAdminTool(deps: { botToken: string; userProfileServic
     riskTier: AI_RISK_TIER.STANDARD,
     execute: async (actor, input: { message: string }) => {
       const admins = await userProfileService.findStudioAdmins()
-      const text = `📩 Повідомлення від клієнта (actor ${actor.id}, role: ${actor.role}) через AI-асистента:\n${input.message}`
+      const text =
+        `📩 <b>Повідомлення через AI-асистента</b>\n\n` +
+        `<b>Від:</b> ${actor.name} (${actor.role})\n` +
+        `<b>ID:</b> ${actor.id}\n` +
+        `<b>Час:</b> ${new Date().toISOString()}\n\n` +
+        input.message
 
-      await Promise.all(admins.map((admin) => telegram.sendMessage(admin.telegramId, text)))
+      await Promise.all(admins.map((admin) => telegram.sendMessage(admin.telegramId, text, { parse_mode: 'HTML' })))
 
       return { result: { notified: true, adminCount: admins.length } }
     },

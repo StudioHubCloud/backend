@@ -25,7 +25,14 @@ export function buildNotifyMaintainerTool(deps: { botToken: string; maintainerCh
     // being flagged as suspicious would simply decline to have that reported.
     riskTier: AI_RISK_TIER.STANDARD,
     execute: async (actor, input: { message: string }) => {
-      await telegram.sendMessage(maintainerChatId, `🤖 AI assistant flag (actor ${actor.id}, role: ${actor.role}):\n${input.message}`)
+      const text =
+        `🤖 <b>Повідомлення через AI-асистента</b>\n\n` +
+        `<b>Від:</b> ${actor.name} (${actor.role})\n` +
+        `<b>ID:</b> ${actor.id}\n` +
+        `<b>Час:</b> ${new Date().toISOString()}\n\n` +
+        input.message
+
+      await telegram.sendMessage(maintainerChatId, text, { parse_mode: 'HTML' })
       return { result: { notified: true } }
     },
   }
