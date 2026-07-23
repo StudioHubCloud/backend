@@ -1,4 +1,8 @@
-import { TextHelper } from '../helpers'
+// Import the leaf module directly, not the '../helpers' barrel: that barrel re-exports
+// SceneHelper before TextHelper, and SceneHelper itself imports this file — whichever module
+// happens to require '../helpers' first ends up mid-way through that cycle here, with TextHelper
+// still unassigned. Importing the leaf sidesteps the cycle entirely regardless of load order.
+import { TextHelper } from '../helpers/text.helper'
 
 export const MESSAGES_COMMON = {
   GREETING: `Щоб швидко розпочати тренування, пройди, будь ласка, легку реєстрацію. Це займе лише хвилинку 🧘‍♀️💫`,
