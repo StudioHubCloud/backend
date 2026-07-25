@@ -1,12 +1,14 @@
 import { NestFactory } from '@nestjs/core'
 import { AppModule } from './app.module'
 import { NestExpressApplication } from '@nestjs/platform-express'
+import { RequestMethod } from '@nestjs/common'
 import { API } from './libs'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { Logger } from 'nestjs-pino'
 import { BotService } from '@app/bot/bot.service'
 import { ValidationPipe } from '@nestjs/common'
 import helmet from 'helmet'
+
 
 async function bootstrap() {
   const app = await NestFactory.create<NestExpressApplication>(AppModule, {
@@ -16,6 +18,9 @@ async function bootstrap() {
   app.useLogger(logger)
   app.use(helmet())
   app.setGlobalPrefix(API.GLOBAL_API_PREFIX_V1)
+  app.setGlobalPrefix(API.GLOBAL_API_PREFIX_V1, {
+    exclude: [{ path: 'metrics', method: RequestMethod.GET }],
+  })
   app.enableShutdownHooks()
   app.useGlobalPipes(
     new ValidationPipe({

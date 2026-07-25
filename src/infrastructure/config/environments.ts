@@ -24,6 +24,7 @@ export const environmentsSchema = z.object({
   TRANSCRIPTION_SERVICE_URL: z.string(),
   INTERNAL_API_KEY: z.string(),
   AI_SYSTEM_NOTE_PREFIX: z.string(),
+  METRICS_TOKEN: z.string(),
 })
 
 export type Env = z.infer<typeof environmentsSchema>

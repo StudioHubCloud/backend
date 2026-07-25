@@ -44,6 +44,8 @@ lerna-debug.log*
 .env.production.local
 .env.local
 
+/prometheus.yml
+
 # temp directory
 .temp
 .tmp

@@ -26,6 +26,7 @@ import {
   RedisCacheModule,
   CronModule,
   HealthModule,
+  MetricsModule,
 } from '@app/infrastructure'
 import { BotModule } from '@app/bot/bot.module'
 import { ApiKeyGuard } from '@app/libs'
@@ -33,6 +34,7 @@ import { ApiKeyGuard } from '@app/libs'
 @Module({
   imports: [
     AuditLogModule,
+    MetricsModule,
     CustomerModule,
     StudioModule,
     ClientModule,

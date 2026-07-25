@@ -10,6 +10,7 @@ import { IAuditLogTelegramContext, type TNextFunction } from '@app/bot/libs'
 import { BotHelper } from '@app/bot/helpers/bot.helper'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { AuditLogService } from '@app/infrastructure/audit-log'
+import { MetricsService } from '@app/infrastructure/metrics'
 import { AuditLogHelper } from '../helpers/audit-log.helper'
 
 @Injectable()
@@ -22,9 +23,35 @@ export class MiddlewareService {
     private readonly configService: TypedConfigService,
     private readonly userProfileService: UserProfileService,
     private readonly auditLogService: AuditLogService,
+    private readonly metricsService: MetricsService,
   ) {
     this.logger.setContext(MiddlewareService.name)
     this.STUDIO_ID = this.configService.getStudioId()
+  }
+
+  // Registered first (see BotService.initMiddlewares) so it wraps the whole update
+  // lifecycle, including errors that surface via bot.catch(...) further up the chain.
+  metricsMiddleware = async (ctx: BotContext, next: TNextFunction) => {
+    const start = Date.now()
+    const updateType = this.getUpdateType(ctx)
+
+    try {
+      await next()
+      this.metricsService.observeBotUpdate(updateType, 'success', (Date.now() - start) / 1000)
+    } catch (error) {
+      this.metricsService.observeBotUpdate(updateType, 'error', (Date.now() - start) / 1000)
+      throw error
+    }
+  }
+
+  private getUpdateType(ctx: BotContext): string {
+    const { isCallbackQueryUpdate, isInlineQueryUpdate, isTextUpdate, isFileUpdate } = BotHelper.getUpdatePayload(ctx)
+
+    if (isCallbackQueryUpdate) return 'callback_query'
+    if (isInlineQueryUpdate) return 'inline_query'
+    if (isFileUpdate) return 'file'
+    if (isTextUpdate) return 'text'
+    return 'other'
   }
 
   loggingMiddleware = async (ctx: BotContext, next: TNextFunction) => {

@@ -1,5 +1,5 @@
 import { ENVIRONMENTS } from '@app/libs'
-import { Global, Module } from '@nestjs/common'
+import { Global, Module, RequestMethod } from '@nestjs/common'
 import { LoggerModule as PinoLoggerModule } from 'nestjs-pino'
 import { ConfigModule, TypedConfigService } from '../config';
 
@@ -30,11 +30,11 @@ import { ConfigModule, TypedConfigService } from '../config';
           pino: {
             level: pinoLevel,
           },
-          // Add this if use Nest default error code
-          // exclude: [
-          //   { method: RequestMethod.ALL, path: 'health' },
-          // ],
-          // for routes not requiring logger
+          // Keep 15-30s Prometheus scrapes and the Railway healthcheck out of the request log stream
+          exclude: [
+            { method: RequestMethod.GET, path: 'metrics' },
+            { method: RequestMethod.GET, path: 'health' },
+          ],
           // Redact options: https://getpino.io/#/docs/redact
           // to prevent logging sensitive information, defaults to false.
           // The redacted keys will be replaced with '[Redacted]'

@@ -3,11 +3,13 @@ import { Inject, Injectable, OnModuleDestroy } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
 import { REDIS_CACHE_CLIENT } from './redis-cache.symbol'
 import { CACHE } from '@app/libs'
+import { MetricsService } from '../metrics'
 
 @Injectable()
 export class RedisCacheService implements OnModuleDestroy {
   constructor(
     @Inject(REDIS_CACHE_CLIENT) private readonly redis: Redis,
+    private readonly metricsService: MetricsService,
     private readonly logger: PinoLogger,
   ) {}
 
@@ -20,6 +22,7 @@ export class RedisCacheService implements OnModuleDestroy {
       }
       return null
     } catch (error) {
+      this.metricsService.recordRedisCommandError('get')
       this.logger.error('Error getting value from cache with key: %s; %j', key, error)
       return null
     }
@@ -30,6 +33,7 @@ export class RedisCacheService implements OnModuleDestroy {
       await this.redis.setex(key, ttlSeconds, JSON.stringify(value))
       this.logger.debug('[SET CACHE] by key: %s, ttl: %ds', key, ttlSeconds)
     } catch (error) {
+      this.metricsService.recordRedisCommandError('setex')
       this.logger.error('Error setting value in cache with key: %s; %j', key, error)
     }
   }
@@ -39,6 +43,7 @@ export class RedisCacheService implements OnModuleDestroy {
       await this.redis.del(key)
       this.logger.debug('[DELETE CACHE] by key: %s', key)
     } catch (error) {
+      this.metricsService.recordRedisCommandError('del')
       this.logger.error('Error deleting value from cache with key: %s; %j', key, error)
     }
   }
@@ -48,6 +53,7 @@ export class RedisCacheService implements OnModuleDestroy {
       await this.redis.flushdb()
       this.logger.debug('[CLEAR CACHE] success')
     } catch (error) {
+      this.metricsService.recordRedisCommandError('flushdb')
       this.logger.error('Error clearing cache: %j', error)
     }
   }
