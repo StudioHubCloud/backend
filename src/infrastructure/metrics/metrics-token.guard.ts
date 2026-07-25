@@ -17,6 +17,10 @@ export class MetricsTokenGuard implements CanActivate {
 
   private isTokenValid(providedToken: string): boolean {
     const expectedToken = this.configService.get('METRICS_TOKEN')
+    
+    console.log('Expected Token:', expectedToken)
+    console.log('Provided Token:', providedToken)
+
     const provided = Buffer.from(providedToken)
     const expected = Buffer.from(expectedToken)
 
