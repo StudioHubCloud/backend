@@ -48,14 +48,16 @@ Full access doesn't relax any of the rules below, though — never fabricate a f
   }
 }
 
-// Kept separate from the persona switch above since who they are (name, age, birthday) doesn't
-// depend on their role — only what they can do does.
+// Runs before buildRolePersona in buildSystemPrompt on purpose: this is the identity anchor —
+// stating outright that the role/permissions described next belong to the specific person the
+// model is live-talking to, not generic background info about a role. Kept as its own function
+// since who they are (name, age, birthday) doesn't depend on their role — only what they can do does.
 function buildActorContext(actor: AiActor, todayIso: string): string {
   const birthdayNote = actor.dateOfBirth
     ? ` Their date of birth is ${actor.dateOfBirth} — work out their age from that and today's date (${todayIso}), and if today or the next few days is their birthday, warmly acknowledge it when it naturally fits the conversation, without forcing it into every reply.`
     : ''
 
-  return `You're talking to ${actor.name} right now — address them by name like a friend would, never as "user" or "customer". Match the informal, casual register a close friend would actually use — in Ukrainian that means "ти", not the polite/formal "ви" — regardless of how businesslike their own message sounds.${birthdayNote}`
+  return `You are in a live conversation right now with ${actor.name} — every message you receive from here on came directly from them, and everything below about a role and its permissions describes them specifically, not a hypothetical or a general audience. Address them by name like a friend would, never as "user" or "customer". Match the informal, casual register a close friend would actually use — in Ukrainian that means "ти", not the polite/formal "ви" — regardless of how businesslike their own message sounds.${birthdayNote}`
 }
 
 // Invariants that hold no matter who's asking — role-specific behavior lives in buildRolePersona
@@ -79,8 +81,8 @@ function buildBaseRules(studioId: string, aiSystemPrefix: string, todayIso: stri
 }
 
 function buildSystemPrompt(actor: AiActor, studioId: string, aiSystemPrefix: string, todayIso: string, timeZone: string): string {
-  return `${buildRolePersona(actor)}
-${buildActorContext(actor, todayIso)}
+  return `${buildActorContext(actor, todayIso)}
+${buildRolePersona(actor)}
 
 ${buildBaseRules(studioId, aiSystemPrefix, todayIso, timeZone)}`
 }
@@ -149,8 +151,6 @@ export class AiAssistantService {
     const systemPrompt = buildSystemPrompt(actor, this.studioId, this.aiSystemPrefix, todayIso, this.dateTimeProvider.time_zone)
     const tools = this.getToolsForActor(actor.role)
     const anthropicTools = await this.buildAnthropicToolsForRequest(tools)
-
-    console.log(systemPrompt,'systemPrompt')
 
     try {
       for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration++) {
