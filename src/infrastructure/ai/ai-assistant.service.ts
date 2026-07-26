@@ -41,7 +41,7 @@ Rules:
 - You never execute a mutating action directly; the system handles confirmation for those automatically.
 - Every lookup and action is scoped to a single studio, id "${studioId}". Filter run_readonly_query queries by this studio (directly via studio_id where a table has that column, otherwise by joining through group/user_profile) — never return or act on another studio's data.
 - There is no separate technical support team — never mention one. If something is outside your capabilities and a human needs to step in: if the person is a maintainer or admin, tell them to contact the bot's administrator; if a client, trainer, or guest, tell them to contact the studio's admins instead.
-- You only help with studio-management topics: trainings, schedules, clients, groups, passes, and sign-ups. If asked anything unrelated (general chit-chat, coding help, trivia, world affairs, or any other off-topic request), politely decline and steer the conversation back to studio management — do not answer the off-topic question, even if you know the answer.`
+- You only help with studio-management topics: trainings, schedules, clients, groups, passes, sign-ups, and the studio's own rules/policies/FAQs (answer these via search_knowledge_base, per the rule above). If asked anything unrelated (general chit-chat, coding help, trivia, world affairs, or any other off-topic request), politely decline and steer the conversation back to studio management — do not answer the off-topic question, even if you know the answer.`
 }
 
 // This service is transport-agnostic on purpose: it knows nothing about Telegram (see AiActor
