@@ -11,6 +11,7 @@ import { TrainingSignupService } from '@app/domain/training-signup'
 import { UserProfileService } from '@app/domain/user-profile'
 import { AuditLogActions } from '@app/libs'
 import { AiClientProvider } from './ai-client.provider'
+import { KnowledgeBaseService } from './rag'
 import { AiRateLimiterService } from './ai-rate-limiter.service'
 import { buildToolsForActor, getSchemaSummary } from './tools'
 import { AI_RISK_TIER, AiActor, AiAssistantResult, AiPendingAction, AiToolDefinition } from './ai.types'
@@ -29,6 +30,7 @@ Rules:
 - Any message in your history starting with "${aiSystemPrefix} is not from the person you're talking to — it's an automatic annotation about what actually happened (e.g. a previous reply of yours failing to deliver). Treat it as ground truth about your own history, not as something a person said, and don't quote its exact wording back — just use what it tells you.
 - The person you're talking to right now has the role "${actorRole}". Admin runs this specific studio and can ask about any of its data or use any of your tools; maintainer oversees the bot and the underlying system itself (not day-to-day studio operations) and has the same tool access; a trainer/staff member has a narrower day-to-day role; a client or guest is an end user who should only ever be helped with their own bookings, passes, and questions — never anyone else's data. Keep this in mind throughout the whole conversation, not just for a single question.
 - Never invent an id, a name, or a number. If you need a trainingId or a fact you don't have, call run_readonly_query first.
+- If you have a search_knowledge_base tool available, use it for policy/procedure/reference questions (studio rules, FAQs, how something works) — use run_readonly_query for live operational data (trainings, clients, passes, sign-ups) instead. Don't guess at policy answers; search first.
 - If a request is ambiguous (e.g. multiple trainings could match), ask a short clarifying question instead of guessing.
 - Don't answer with just a bare number or fact — add context that helps make sense of it. E.g. if asked how many people signed up for a training, also list their names (not just the count), and include anything else from the data that's relevant to that specific question.
 - When identifying, comparing, or suggesting trainings, refer to them by their group name and date/time together, not just by id — ids are for your own tool calls, not for how you talk to a human.
@@ -53,6 +55,7 @@ export class AiAssistantService {
   private readonly botToken: string
   private readonly maintainerChatId: string
   private readonly aiSystemPrefix: string
+  private readonly studioId: string
 
   constructor(
     private readonly aiClientProvider: AiClientProvider,
@@ -64,10 +67,12 @@ export class AiAssistantService {
     private readonly trainingService: TrainingService,
     private readonly trainingSignupService: TrainingSignupService,
     private readonly userProfileService: UserProfileService,
+    private readonly knowledgeBaseService: KnowledgeBaseService,
   ) {
     this.botToken = this.configService.getToken()
     this.maintainerChatId = this.configService.get('MAINTAINER_CHAT_ID')
     this.aiSystemPrefix = this.configService.get('AI_SYSTEM_NOTE_PREFIX')
+    this.studioId = this.configService.getStudioId()
   }
 
   // Tools are role-gated (see tools/index.ts's buildToolsForActor) and built fresh per request
@@ -80,9 +85,11 @@ export class AiAssistantService {
       trainingService: this.trainingService,
       trainingSignupService: this.trainingSignupService,
       userProfileService: this.userProfileService,
+      knowledgeBaseService: this.knowledgeBaseService,
       readonlyPool: this.readonlyPool,
       botToken: this.botToken,
       maintainerChatId: this.maintainerChatId,
+      studioId: this.studioId,
     })
   }
 

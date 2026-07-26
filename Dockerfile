@@ -18,6 +18,7 @@
   COPY --from=prune /app/node_modules /app/node_modules
   COPY --from=build /app/dist /app
   COPY package.json ./
+  COPY knowledge-base ./knowledge-base
 
   ENV NODE_ENV=production
   

@@ -4,8 +4,10 @@ import { TrainingService } from '@app/domain/training'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { UserProfileService } from '@app/domain/user-profile'
 import { UserProfileRoleEnum } from '@app/libs'
+import { KnowledgeBaseService } from '../rag'
 import { AiToolDefinition } from '../ai.types'
 import { buildRunReadonlyQueryTool } from './run-readonly-query.tool'
+import { buildSearchKnowledgeBaseTool } from './search-knowledge-base.tool'
 import { buildCancelTrainingTool } from './cancel-training.tool'
 import { buildActivateTrainingTool } from './activate-training.tool'
 import { buildNotifyMaintainerTool } from './notify-maintainer.tool'
@@ -25,9 +27,11 @@ export interface BuildToolsDeps {
   trainingService: TrainingService
   trainingSignupService: TrainingSignupService
   userProfileService: UserProfileService
+  knowledgeBaseService: KnowledgeBaseService
   readonlyPool: Pool
   botToken: string
   maintainerChatId: string
+  studioId: string
 }
 
 const CLIENT_FACING_ROLES: string[] = [UserProfileRoleEnum.CLIENT, UserProfileRoleEnum.GUEST]
@@ -37,7 +41,17 @@ const CLIENT_FACING_ROLES: string[] = [UserProfileRoleEnum.CLIENT, UserProfileRo
 // assistant to clients/guests later (see AiAssistantService's constructor comment) is just
 // wiring up their entry point, not redesigning tool access from scratch.
 export function buildToolsForActor(actorRole: string, deps: BuildToolsDeps): AiToolDefinition[] {
-  const { groupService, trainingService, trainingSignupService, userProfileService, readonlyPool, botToken, maintainerChatId } = deps
+  const {
+    groupService,
+    trainingService,
+    trainingSignupService,
+    userProfileService,
+    knowledgeBaseService,
+    readonlyPool,
+    botToken,
+    maintainerChatId,
+    studioId,
+  } = deps
 
   if (CLIENT_FACING_ROLES.includes(actorRole)) {
     return [buildNotifyAdminTool({ botToken, userProfileService })]
@@ -45,6 +59,7 @@ export function buildToolsForActor(actorRole: string, deps: BuildToolsDeps): AiT
 
   return [
     buildRunReadonlyQueryTool({ readonlyPool }),
+    buildSearchKnowledgeBaseTool({ knowledgeBaseService, studioId }),
     buildCancelTrainingTool({ groupService, trainingService }),
     buildActivateTrainingTool({ groupService, trainingService }),
     buildAssignSubstituteTrainerTool({ groupService, trainingService, userProfileService }),

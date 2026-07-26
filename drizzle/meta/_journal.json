@@ -337,6 +337,13 @@
       "when": 1772553797302,
       "tag": "0074_add-fileId-to-user",
       "breakpoints": true
+    },
+    {
+      "idx": 75,
+      "version": "7",
+      "when": 1785081740545,
+      "tag": "0075_add-knowledge-base-documents-and-embeddings",
+      "breakpoints": true
     }
   ]
 }

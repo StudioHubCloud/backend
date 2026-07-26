@@ -4,7 +4,7 @@ import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js'
 import { CallToolRequestSchema, CallToolResult, ListToolsRequestSchema, Tool } from '@modelcontextprotocol/sdk/types.js'
 import { buildRunReadonlyQueryTool } from '@app/infrastructure/ai/tools/run-readonly-query.tool'
 
-// Deliberately minimal, single-tool MCP server — a first step to learn the protocol mechanics,
+// Deliberately minimal, single-tool MCP server,
 // not the full multi-tool/JWT/confirmation-flow design. No NestJS bootstrap at all: the only tool
 // exposed (run_readonly_query) needs nothing but a read-only Postgres pool, so there's no reason
 // to spin up the app's DI container (which would also pull in PinoLogger, RedisCacheService, and

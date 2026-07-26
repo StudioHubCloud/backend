@@ -29,6 +29,8 @@ export { staffMemberPayout, staff_member_payout_relations } from './staff-member
 export { passActivationRequest, pass_activation_request_relations } from './pass-activation-request.schema'
 export { auditLog } from './audit-log.schema'
 export { userRegisterRequest, user_register_request_relations } from './user-register-request.schema'
+export { knowledgeBaseDocument } from './knowledge_base_document.schema'
+export { knowledgeBaseChunk } from './knowledge_base_chunk.schema'
 
 export {
   PassStatusPgEnum,
