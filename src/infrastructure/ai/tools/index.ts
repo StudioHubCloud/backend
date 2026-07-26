@@ -8,6 +8,7 @@ import { KnowledgeBaseService } from '../rag'
 import { AiToolDefinition } from '../ai.types'
 import { buildRunReadonlyQueryTool } from './run-readonly-query.tool'
 import { buildSearchKnowledgeBaseTool } from './search-knowledge-base.tool'
+import { buildListStudioScheduleTool } from './list-studio-schedule.tool'
 import { buildCancelTrainingTool } from './cancel-training.tool'
 import { buildActivateTrainingTool } from './activate-training.tool'
 import { buildNotifyMaintainerTool } from './notify-maintainer.tool'
@@ -36,10 +37,14 @@ export interface BuildToolsDeps {
 
 const CLIENT_FACING_ROLES: string[] = [UserProfileRoleEnum.CLIENT, UserProfileRoleEnum.GUEST]
 
-// Only admin/maintainer/trainer can reach the AI assistant today (gated at the composer level),
-// so in practice this always returns the admin set — but the split is here so opening the
-// assistant to clients/guests later (see AiAssistantService's constructor comment) is just
-// wiring up their entry point, not redesigning tool access from scratch.
+// Only admin/maintainer/trainer can reach the AI assistant today (gated at the composer level) —
+// client/guest actors get a real tool set here (KB search + basic schedule browsing), it's just
+// unreachable until their entry point is wired up (see AiAssistantService's constructor comment).
+//
+// Trainer gets the exact same run_readonly_query as admin/maintainer — the "only your own groups/
+// trainings/payments" boundary described in the trainer's system prompt persona is enforced by
+// instruction, not by this function or the tool itself. A trainer session that gets the model to
+// ignore that instruction (bug or prompt injection) could still query anything an admin could.
 export function buildToolsForActor(actorRole: string, deps: BuildToolsDeps): AiToolDefinition[] {
   const {
     groupService,
@@ -54,7 +59,11 @@ export function buildToolsForActor(actorRole: string, deps: BuildToolsDeps): AiT
   } = deps
 
   if (CLIENT_FACING_ROLES.includes(actorRole)) {
-    return [buildNotifyAdminTool({ botToken, userProfileService })]
+    return [
+      buildNotifyAdminTool({ botToken, userProfileService }),
+      buildSearchKnowledgeBaseTool({ knowledgeBaseService, studioId }),
+      buildListStudioScheduleTool({ groupService, trainingService }),
+    ]
   }
 
   return [

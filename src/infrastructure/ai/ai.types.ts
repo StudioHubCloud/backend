@@ -16,6 +16,9 @@ export interface AiActor {
   // Human-readable, for tools that surface the actor to someone else (e.g. notify_admin/
   // notify_maintainer) — an id alone means nothing to a person reading the alert.
   name: string
+  // Lets the system prompt know the person's age and notice their birthday — null/undefined
+  // when not on file, in which case the prompt just skips that part of the persona.
+  dateOfBirth?: string | null
 }
 
 export interface AiToolResult {

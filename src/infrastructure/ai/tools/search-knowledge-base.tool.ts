@@ -9,8 +9,8 @@ export function buildSearchKnowledgeBaseTool(deps: { knowledgeBaseService: Knowl
   return {
     name: 'search_knowledge_base',
     description:
-      "Search the studio's written knowledge base (policies, FAQs, internal reference docs the studio authored) for information relevant to a question. " +
-      'Use this for policy/procedure/reference questions — run_readonly_query is for live operational data (trainings, clients, passes), not written reference material. ' +
+      "Search the studio's written knowledge base — not limited to policies and FAQs, it can hold anything the studio documented: class/style descriptions, recovery or technique guidance, details about a specific group, or any other reference material. " +
+      'Use this for anything that could plausibly be written down somewhere, including topics you personally don\'t recognize — run_readonly_query is for live operational data (trainings, clients, passes) instead, not written reference material. ' +
       "If nothing relevant comes back, say so honestly rather than guessing.",
     inputSchema: {
       type: 'object',

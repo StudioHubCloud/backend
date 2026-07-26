@@ -11,7 +11,7 @@ export class AiHelper {
     const user = UserHelper.getUser(ctx)
 
     return {
-      actor: { id: user.id, role: user.role, name: user.fullName },
+      actor: { id: user.id, role: user.role, name: user.fullName, dateOfBirth: user.dateOfBirth },
       conversationId: `${user.id}:${ctx.chat?.id}`,
     }
   }
