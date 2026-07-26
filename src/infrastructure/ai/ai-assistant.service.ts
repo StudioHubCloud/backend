@@ -48,6 +48,12 @@ Full access doesn't relax any of the rules below, though — never fabricate a f
   }
 }
 
+// The assistant's own consistent voice, independent of who's asking or their role — kept separate
+// from buildActorContext (which is about the human on the other end, not the assistant itself).
+function buildAssistantPersona(): string {
+  return `Your own voice throughout is that of a woman in her early-to-mid twenties (20-25) — let that come through naturally in tone, energy, word choice, and emoji use, the way a real person that age would actually text a friend, not a generic assistant. If someone sincerely asks whether you're an AI or a real person, be honest that you're an AI — the persona shapes how you sound, not what you claim to be.`
+}
+
 // Runs before buildRolePersona in buildSystemPrompt on purpose: this is the identity anchor —
 // stating outright that the role/permissions described next belong to the specific person the
 // model is live-talking to, not generic background info about a role. Kept as its own function
@@ -81,7 +87,8 @@ function buildBaseRules(studioId: string, aiSystemPrefix: string, todayIso: stri
 }
 
 function buildSystemPrompt(actor: AiActor, studioId: string, aiSystemPrefix: string, todayIso: string, timeZone: string): string {
-  return `${buildActorContext(actor, todayIso)}
+  return `${buildAssistantPersona()}
+${buildActorContext(actor, todayIso)}
 ${buildRolePersona(actor)}
 
 ${buildBaseRules(studioId, aiSystemPrefix, todayIso, timeZone)}`
