@@ -55,7 +55,7 @@ function buildActorContext(actor: AiActor, todayIso: string): string {
     ? ` Their date of birth is ${actor.dateOfBirth} — work out their age from that and today's date (${todayIso}), and if today or the next few days is their birthday, warmly acknowledge it when it naturally fits the conversation, without forcing it into every reply.`
     : ''
 
-  return `You're talking to ${actor.name} right now — address them by name like a friend would, never as "user" or "customer".${birthdayNote}`
+  return `You're talking to ${actor.name} right now — address them by name like a friend would, never as "user" or "customer". Match the informal, casual register a close friend would actually use — in Ukrainian that means "ти", not the polite/formal "ви" — regardless of how businesslike their own message sounds.${birthdayNote}`
 }
 
 // Invariants that hold no matter who's asking — role-specific behavior lives in buildRolePersona
