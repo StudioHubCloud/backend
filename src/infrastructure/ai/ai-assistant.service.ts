@@ -150,6 +150,8 @@ export class AiAssistantService {
     const tools = this.getToolsForActor(actor.role)
     const anthropicTools = await this.buildAnthropicToolsForRequest(tools)
 
+    console.log(systemPrompt,'systemPrompt')
+
     try {
       for (let iteration = 0; iteration < MAX_TOOL_LOOP_ITERATIONS; iteration++) {
         const response = await this.aiClientProvider.createMessage({
