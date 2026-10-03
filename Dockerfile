@@ -1,4 +1,4 @@
-  FROM node:22.23.1-alpine3.24 AS base
+  FROM node:24.21.0-alpine3.24 AS base
   WORKDIR /app
   COPY package.json package-lock.json ./
   RUN npm ci
@@ -12,7 +12,7 @@
   WORKDIR /app
   RUN npm ci --omit=dev
   
-  FROM node:22.23.1-alpine3.24 AS runtime
+  FROM node:24.21.0-alpine3.24 AS runtime
   WORKDIR /app
   
   COPY --from=prune /app/node_modules /app/node_modules

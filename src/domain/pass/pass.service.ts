@@ -139,6 +139,7 @@ export class PassService {
     const passesToActivate = await this.databaseService.drizzle.query.pass.findMany({
       where: (pass, { and, lte, isNull, eq, or }) =>
         and(
+          eq(pass.studioId, this.studioId),
           eq(pass.status, PassStatusEnum.ACTIVE),
           or(isNull(pass.startDate), isNull(pass.endDate)),
           lte(pass.saleDate, sevenDaysAgoString),
@@ -280,6 +281,7 @@ export class PassService {
     return this.databaseService.drizzle.query.pass.findMany({
       where: (pass, { and, gte, lte, eq, exists }) =>
         and(
+          eq(pass.studioId, this.studioId),
           gte(pass.endDate, todayDateString),
           lte(pass.endDate, checkDateString),
           eq(pass.status, PassStatusEnum.ACTIVE),

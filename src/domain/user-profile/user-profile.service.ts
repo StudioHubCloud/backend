@@ -311,7 +311,8 @@ export class UserProfileService {
     const logOperations: AuditLogServiceOperation[] = []
 
     const expiredPasses = await this.databaseService.drizzle.query.pass.findMany({
-      where: (pass, { and, lt }) => and(eq(pass.status, PassStatusEnum.ACTIVE), lt(pass.endDate, todayDateString)),
+      where: (pass, { and, lt }) =>
+        and(eq(pass.studioId, this.studioId), eq(pass.status, PassStatusEnum.ACTIVE), lt(pass.endDate, todayDateString)),
     })
     if (expiredPasses.length) {
       await this.databaseService.drizzle.transaction(async (tx) => {

@@ -30,6 +30,8 @@ import { ConfigModule, TypedConfigService } from '../config';
           pino: {
             level: pinoLevel,
           },
+          // Express 5 wildcard syntax; nestjs-pino's default '*' triggers a path-to-regexp warning on Nest 11
+          forRoutes: [{ path: '{*splat}', method: RequestMethod.ALL }],
           // Keep 15-30s Prometheus scrapes and the Railway healthcheck out of the request log stream
           exclude: [
             { method: RequestMethod.GET, path: 'metrics' },
