@@ -1,4 +1,4 @@
-import { DOB_REGEXP, NUMBERS_REGEXP, PHONE_REGEXP } from '@app/libs/constants/regexp'
+import { DOB_REGEXP, NUMBERS_REGEXP, PHONE_REGEXP, TIME_REGEXP } from '@app/libs/constants/regexp'
 
 export class TextHelper {
   static capitalizeWord(word: string): string {
@@ -21,6 +21,14 @@ export class TextHelper {
 
   static validatePhone(text: string): string | null {
     const isValid = PHONE_REGEXP.test(text)
+    if (!isValid) {
+      return null
+    }
+    return text
+  }
+
+  static validateTimeInput(text: string): string | null {
+    const isValid = TIME_REGEXP.test(text)
     if (!isValid) {
       return null
     }

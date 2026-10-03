@@ -28,3 +28,7 @@ export const AuditLogOperationPgEnum = pgEnum('audit_log_operation_enum', enumTo
 export const AuditLogTriggerPgEnum = pgEnum('audit_log_trigger_enum', enumToPgEnum(ENUMS.AuditLogTrigger))
 export const AuditLogActionsPgEnum = pgEnum('audit_log_actions_enum', enumToPgEnum(ENUMS.AuditLogActions))
 export const AuditLogEntityPgEnum = pgEnum('audit_log_entity_enum', enumToPgEnum(ENUMS.AuditLogEntity))
+export const PersonalTrainingSignupStatusPgEnum = pgEnum(
+  'personal_training_signup_status_enum',
+  enumToPgEnum(ENUMS.PersonalTrainingSignupStatusEnum),
+)

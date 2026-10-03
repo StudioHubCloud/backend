@@ -88,6 +88,12 @@ export enum StudioPayoutRuleTypeEnum {
   FIXED = 'fixed',
   PERCENTAGE = 'percentage',
   PER_SIGNUP = 'per_signup',
+  PERSONAL_TRAINING = 'personal_training',
+}
+
+export enum PersonalTrainingSignupStatusEnum {
+  SCHEDULED = 'scheduled',
+  CANCELED = 'canceled',
 }
 
 export enum FileTypeEnum {
@@ -120,6 +126,8 @@ export enum AuditLogActions {
   EXPIRE_PAST_PASSES = 'expire_past_passes',
   ACTIVATE_PASSES_AFTER_GRACE_PERIOD = 'activate_passes_after_grace_period',
   AI_ASSISTANT_ACTION = 'ai_assistant_action',
+  PERSONAL_TRAINING_REGISTER = 'personal_training_register',
+  PERSONAL_TRAINING_CANCEL = 'personal_training_cancel',
 }
 
 export enum AuditLogTrigger {
@@ -138,4 +146,5 @@ export enum AuditLogEntity {
   PASS_ACTIVATION_REQUEST = 'pass_activation_request',
   CLIENT = 'client',
   USER_PROFILE = 'user_profile',
+  PERSONAL_TRAINING_SIGNUP = 'personal_training_signup',
 }

@@ -25,6 +25,7 @@ export const SCENES = {
   PASS_PAYMENT: 'pass_payment',
   PASS_OPEN: 'pass_open',
   ASK_AI: 'ask_ai',
+  PERSONAL_TRAINING_REGISTER: 'personal_training_register',
 } as const
 
 export const CALLBACK_DATA = {
@@ -81,6 +82,11 @@ export const CALLBACK_PREFIX = {
       BACK_TO_STAFF_MANAGE: 'p.b.s.st.m',
       BACK_TO_STAFF_LIST: 'p.b.s.st.l',
     },
+    PERSONAL_TRAINING: {
+      REGISTER: 'pt.reg.st',
+      CANCEL_LIST: 'pt.cl.st',
+      CANCEL_SELECT: 'pt.cxl.st',
+    },
     MANAGE: {
       LIST: 'm.l.st',
       GROUPS_LIST: 'm.s.g.l.st',
@@ -93,6 +99,7 @@ export const CALLBACK_PREFIX = {
     },
   },
   CLIENT: {
+    PASS_RULES: 'p.rules.cl',
     TRAINING: {
       SELECT: 'tr.s.cl',
       SIGN_OUT: 'tr.so.cl',
@@ -139,6 +146,9 @@ export const CALLBACK_PREFIX = {
       BACK: 'sc.file.b',
       CONFIRM: 'sc.file.c',
       RESET: 'sc.file.d',
+    },
+    PERSONAL_TRAINING: {
+      TRAINER_SELECT: 'sc.pt.tr.sel',
     },
   },
   COMMON: {

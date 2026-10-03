@@ -22,3 +22,4 @@ export type GroupAgeRestrictionInsertModel = InferInsertModel<typeof schemas.gro
 export type GroupAgeRestrictionExeptionInsertModel = InferInsertModel<typeof schemas.groupAgeRestrictionException>
 export type FeedbackNotificationInsertModel = InferInsertModel<typeof schemas.feedbackNotification>
 export type PassActivationRequestInsertModel = InferInsertModel<typeof schemas.passActivationRequest>
+export type PersonalTrainingSignupInsertModel = InferInsertModel<typeof schemas.personalTrainingSignup>

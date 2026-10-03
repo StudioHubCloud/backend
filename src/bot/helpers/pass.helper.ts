@@ -104,26 +104,35 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
       clientUserId: string
       shouldEdit?: boolean
       editMessageId?: number
-      trainingSignups: GetTrainingSignupsByPassIdResponse[]
+      trainingSignups?: GetTrainingSignupsByPassIdResponse[]
+      /** Pre-rendered individual-training history; supplied instead of trainingSignups for individual passes. */
+      personalTrainingsBlock?: string
     },
   ) {
-    const { pass, fullName, clientUserId, shouldEdit = true, trainingSignups = [] } = data
+    const { pass, fullName, clientUserId, shouldEdit = true, trainingSignups = [], personalTrainingsBlock } = data
     try {
-      const message = PassHelper.getPassWithSignupsInfoMessage(pass, dateTimeProvider, fullName, trainingSignups)
+      const isIndividualPass = pass.passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL
+
+      const message = isIndividualPass
+        ? `${PassHelper.getPassInfoMessage(pass, dateTimeProvider, fullName)}${personalTrainingsBlock ? `\n\n${personalTrainingsBlock}` : ''}`
+        : PassHelper.getPassWithSignupsInfoMessage(pass, dateTimeProvider, fullName, trainingSignups)
+
       const isPassActivated = PassHelper.isPassActivated(pass)
+      const keyboard = AdminKeyboards.passManageMenu(clientUserId, isPassActivated, isIndividualPass)
+
       if (!shouldEdit) {
         if (data.editMessageId) {
           return await ctx.telegram.editMessageText(ctx.chat!.id, data.editMessageId, undefined, message, {
             parse_mode: 'HTML',
-            ...AdminKeyboards.passManageMenu(clientUserId, isPassActivated),
+            ...keyboard,
           })
         }
 
-        return await ctx.replyWithHTML(message, AdminKeyboards.passManageMenu(clientUserId, isPassActivated))
+        return await ctx.replyWithHTML(message, keyboard)
       }
 
       return await ctx.editMessageText(message, {
-        ...AdminKeyboards.passManageMenu(clientUserId, isPassActivated),
+        ...keyboard,
         parse_mode: 'HTML',
       })
     } catch (error) {

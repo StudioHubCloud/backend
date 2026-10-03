@@ -8,6 +8,7 @@ import {
   UserProfileModule,
   StaffMemberPayoutModule,
   PassActivationRequestModule,
+  PersonalTrainingSignupModule,
 } from '@app/domain'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { APP } from '@app/libs'
@@ -31,6 +32,7 @@ import { MenuModule } from '@app/bot/menus/menu.module'
     UserProfileModule,
     StaffMemberPayoutModule,
     PassActivationRequestModule,
+    PersonalTrainingSignupModule,
   ],
   providers: [
     ComposerService,

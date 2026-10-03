@@ -23,8 +23,14 @@ export interface TSalaryPayoutResult {
       trainingCount: number
     }
   >
+  personalTrainings: {
+    items: Array<{ date: string; clientName: string; payout: number }>
+    count: number
+    totalPayout: number
+  }
   statistics: TPayoutStatistics
   trainingIds: number[]
+  personalTrainingIds: string[]
 }
 
 export type TPayoutStatistics = {

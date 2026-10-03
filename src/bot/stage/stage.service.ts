@@ -17,6 +17,7 @@ export class StageService {
     public readonly specialScheduleScene: Stage.SpecialScheduleScene,
     public readonly passOpenScene: Stage.PassOpenScene,
     public readonly askAiScene: Stage.AskAiScene,
+    public readonly personalTrainingRegisterScene: Stage.PersonalTrainingRegisterScene,
   ) {
     this.stage = new Scenes.Stage<BotContext>([
       registerScene,
@@ -28,6 +29,7 @@ export class StageService {
       specialScheduleScene,
       passOpenScene,
       askAiScene,
+      personalTrainingRegisterScene,
     ])
   }
 }

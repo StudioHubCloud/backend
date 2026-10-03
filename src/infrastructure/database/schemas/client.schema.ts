@@ -4,6 +4,7 @@ import { userProfile } from './user-profile.schema'
 import { pass } from './pass.schema'
 import { payment } from './payment.schema'
 import { passActivationRequest } from './pass-activation-request.schema'
+import { personalTrainingSignup } from './personal-training-signup.schema'
 
 export const client = table('client', {
   id: uuid('id').primaryKey().defaultRandom(),
@@ -18,4 +19,5 @@ export const client_relations = relations(client, ({ one, many }) => ({
   pass: many(pass),
   payments: many(payment),
   passActivationRequests: many(passActivationRequest),
+  personalTrainingSignups: many(personalTrainingSignup),
 }))

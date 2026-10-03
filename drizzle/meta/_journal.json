@@ -344,6 +344,20 @@
       "when": 1785081740545,
       "tag": "0075_add-knowledge-base-documents-and-embeddings",
       "breakpoints": true
+    },
+    {
+      "idx": 76,
+      "version": "7",
+      "when": 1785189197185,
+      "tag": "0076_personal-training-signup",
+      "breakpoints": true
+    },
+    {
+      "idx": 77,
+      "version": "7",
+      "when": 1785200823645,
+      "tag": "0077_remove-not-null",
+      "breakpoints": true
     }
   ]
 }

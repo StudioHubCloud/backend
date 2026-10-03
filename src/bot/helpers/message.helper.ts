@@ -282,7 +282,29 @@ export class MessageHelper {
 ${trainingLines}`
     })
 
-    return `${groupMessages.join('\n\n')}`
+    const blocks = [...groupMessages]
+
+    if (result.personalTrainings.count > 0) {
+      blocks.push(this.getPersonalTrainingsPayoutBlock(result.personalTrainings, dateTimeProvider))
+    }
+
+    return blocks.join('\n\n')
+  }
+
+  private static getPersonalTrainingsPayoutBlock(
+    personalTrainings: TSalaryPayoutResult['personalTrainings'],
+    dateTimeProvider: DateTimeProvider,
+  ): string {
+    const trainingLines = personalTrainings.items
+      .map((item) => {
+        const date = dateTimeProvider.formatDateStringInTz(item.date, 'dd MMMM yyyy')
+        return `• ${date} | ${item.clientName} | ${PassHelper.toDisplayPrice(item.payout)}`
+      })
+      .join('\n')
+
+    return `🔹 <b><i><u>🤝 Індивідуальні тренування</u></i></b>
+🔸 ${personalTrainings.count} тренува${personalTrainings.count > 4 ? 'нь' : 'ння'} • ${PassHelper.toDisplayPrice(personalTrainings.totalPayout)}
+${trainingLines}`
   }
 
   static getStaffPayoutInfoMessage({ averagePayoutPerTraining, totalSignups, totalTrainings, totalPayout }: TPayoutStatistics) {
@@ -317,7 +339,21 @@ ${clientList}`
 ${trainingLines}`
     })
 
-    return `${groupMessages.join('\n\n')}`
+    const blocks = [...groupMessages]
+
+    if (result.personalTrainings.count > 0) {
+      const personalTrainingLines = result.personalTrainings.items
+        .map((item) => {
+          const date = dateTimeProvider.formatDateStringInTz(item.date, 'dd MMMM yyyy')
+          return `• <b>${date}</b>\n    <i>1. ${item.clientName}</i>`
+        })
+        .join('\n')
+
+      blocks.push(`🔹 <b><i><u>🤝 Індивідуальні тренування</u></i></b>
+${personalTrainingLines}`)
+    }
+
+    return blocks.join('\n\n')
   }
 
   static constructSubstituteTrainerMessage(

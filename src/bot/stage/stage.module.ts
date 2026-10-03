@@ -5,6 +5,7 @@ import {
   GroupModule,
   PassModule,
   PassTemplateModule,
+  PersonalTrainingSignupModule,
   StaffMemberPayoutModule,
   TrainingModule,
   TrainingSignupModule,
@@ -24,6 +25,7 @@ import { APP } from '@app/libs'
     StaffMemberPayoutModule,
     PassModule,
     TrainingModule,
+    PersonalTrainingSignupModule,
     AiModule,
     AudioTranscribeModule,
   ],
@@ -38,6 +40,7 @@ import { APP } from '@app/libs'
     Stage.SpecialScheduleScene,
     Stage.PassOpenScene,
     Stage.AskAiScene,
+    Stage.PersonalTrainingRegisterScene,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,

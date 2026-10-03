@@ -18,6 +18,7 @@ import {
   DATE_FORMAT,
   GroupStatusEnum,
   PassStatusEnum,
+  PassTemplateTypeEnum,
   TrainingSignupStatusEnum,
   TrainingSignupTypeEnum,
 } from '@app/libs/constants'
@@ -182,6 +183,14 @@ export class TrainingSignupService {
         return {
           status: API.RESPONSE.ERROR_STRING,
           message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент ❤️‍🔥`,
+        }
+      }
+
+      if (pass.passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL) {
+        this.logger.warn('User %s tried to sign up for a group training with an individual pass %s', userProfileId, passId)
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `Це індивідуальний абонемент — ним не можна записатись на групове тренування 😔\nСкористайся кнопкою "🤝 Індивідуальне тренування"`,
         }
       }
       if (training.isCancelled) {

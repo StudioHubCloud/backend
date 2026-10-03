@@ -2,7 +2,7 @@ import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { KEYBOARDS_SCENE } from '@app/bot/static/keyboards'
 import { TReplyMarkupKeyboard, TReplyInlineKeyboard, CALLBACK_PREFIX } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
-import { GroupSelectModel, PassTemplateSelectModel } from '@app/infrastructure/database'
+import { GroupSelectModel, PassTemplateSelectModel, StaffMemberSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 import { PassTemplateTypeEnum } from '@app/libs'
 import { InlineKeyboardButton } from '@telegraf/types'
 
@@ -57,15 +57,15 @@ export class PassRelatedKeyboards {
           ),
         },
       ],
-      // [
-      //   {
-      //     text: BUTTON_PATTERNS.INDIVIDUAL_PASS_TYPE,
-      //     callback_data: RegexHelper.createButtonActionCallbackData(
-      //       CALLBACK_PREFIX.SCENES.PASS.TYPE_SELECT,
-      //       PassTemplateTypeEnum.INDIVIDUAL,
-      //     ),
-      //   },
-      // ],
+      [
+        {
+          text: BUTTON_PATTERNS.INDIVIDUAL_PASS_TYPE,
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.SCENES.PASS.TYPE_SELECT,
+            PassTemplateTypeEnum.INDIVIDUAL,
+          ),
+        },
+      ],
     ])
   }
 
@@ -151,6 +151,30 @@ export class InitiatePayoutSceneKeyboards {
 
   static confirmPayoutKeyboard(): TReplyMarkupKeyboard {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.INITIATE_PAYOUT.CONFIRM)
+  }
+}
+
+export class PersonalTrainingRegisterSceneKeyboards {
+  static trainerSelectInlineKeyboard(
+    trainers: (UserProfileSelectModel & { staffMember: StaffMemberSelectModel | null })[],
+  ): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard(
+      trainers
+        .filter((trainer) => trainer.staffMember)
+        .map((trainer) => [
+          {
+            text: trainer.fullName,
+            callback_data: RegexHelper.createButtonActionCallbackData(
+              CALLBACK_PREFIX.SCENES.PERSONAL_TRAINING.TRAINER_SELECT,
+              trainer.staffMember!.id,
+            ),
+          },
+        ]),
+    )
+  }
+
+  static dateWithSuggestion(date: string): TReplyMarkupKeyboard {
+    return KeyboardHelper.createReplyMarkupKeyboard([[date], [BUTTON_PATTERNS.EXIT]])
   }
 }
 

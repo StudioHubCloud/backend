@@ -1,0 +1,1 @@
+ALTER TABLE "personal_training_signup" ALTER COLUMN "staff_member_id" DROP NOT NULL;

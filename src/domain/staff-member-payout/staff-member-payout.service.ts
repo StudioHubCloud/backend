@@ -9,7 +9,9 @@ import { StudioPayoutRuleService } from '../studio-payout-rule'
 import { StaffMemberService } from '../staff-member/staff-member.service'
 import { API, DATE_FORMAT, TSalaryPayoutResult } from '@app/libs'
 import { staffMemberPayout } from '@app/infrastructure/database/schemas/staff-member-payout.schema'
+import { personalTrainingSignup } from '@app/infrastructure/database/schemas/personal-training-signup.schema'
 import { inArray } from 'drizzle-orm'
+import { PersonalTrainingSignupService } from '../personal-training-signup'
 
 @Injectable()
 export class StaffMemberPayoutService {
@@ -22,6 +24,7 @@ export class StaffMemberPayoutService {
     private readonly redisCacheService: RedisCacheService,
     private readonly studioPayoutRuleService: StudioPayoutRuleService,
     private readonly staffMemberService: StaffMemberService,
+    private readonly personalTrainingSignupService: PersonalTrainingSignupService,
   ) {}
 
   async calculateStaffPayoutSalary(staffUserId: string, payoutDate?: string) {
@@ -41,9 +44,11 @@ export class StaffMemberPayoutService {
       return cachedSalaryResults
     }
 
-    const [allTrainings, staffMemberRules] = await Promise.all([
+    const [allTrainings, staffMemberRules, personalTrainingRule, unpaidPersonalTrainings] = await Promise.all([
       this.trainingService.getAllTrainingsForStaffMemberSalary(staffMember.id, startPeriodDate, endPeriodDate),
       this.studioPayoutRuleService.getStaffmemberApplicablePayoutRules(staffMember.id),
+      this.studioPayoutRuleService.getPersonalTrainingRule(staffMember.id),
+      this.personalTrainingSignupService.getUnpaidForPayout(staffMember.id, startPeriodDate, endPeriodDate),
     ])
 
     const { fixedRule: FIXED_RULE, perSignUpRule: PER_SIGNUP_RULE } = staffMemberRules
@@ -88,12 +93,53 @@ export class StaffMemberPayoutService {
       group.trainings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     })
 
-    const statistics = this.calculatePayoutStatistics(groups, totalPayout)
+    const personalTrainingIds: string[] = []
+    const personalTrainingItems: TSalaryPayoutResult['personalTrainings']['items'] = []
+    let personalTrainingsTotalPayout = 0
+
+    if (personalTrainingRule) {
+      const personalTrainingAmount = Number(personalTrainingRule.amount)
+
+      for (const signup of unpaidPersonalTrainings) {
+        personalTrainingItems.push({
+          date: signup.scheduledAt,
+          clientName: signup.client?.userProfile?.fullName ?? 'Невідомий клієнт',
+          payout: personalTrainingAmount,
+        })
+        personalTrainingsTotalPayout += personalTrainingAmount
+        personalTrainingIds.push(signup.id)
+      }
+    } else if (unpaidPersonalTrainings.length) {
+      this.logger.warn(
+        'Staff member %s has %d completed personal trainings but no personal_training payout rule configured',
+        staffMember.id,
+        unpaidPersonalTrainings.length,
+      )
+    }
+
+    const personalTrainings: TSalaryPayoutResult['personalTrainings'] = {
+      items: personalTrainingItems,
+      count: personalTrainingItems.length,
+      totalPayout: personalTrainingsTotalPayout,
+    }
+
+    const groupStatistics = this.calculatePayoutStatistics(groups, totalPayout)
+    const combinedTotalTrainings = groupStatistics.totalTrainings + personalTrainings.count
+    const combinedTotalPayout = totalPayout + personalTrainings.totalPayout
+
+    const statistics: TSalaryPayoutResult['statistics'] = {
+      totalSignups: groupStatistics.totalSignups,
+      totalTrainings: combinedTotalTrainings,
+      totalPayout: combinedTotalPayout,
+      averagePayoutPerTraining: combinedTotalTrainings > 0 ? combinedTotalPayout / combinedTotalTrainings : 0,
+    }
 
     const salaryResults: TSalaryPayoutResult = {
       groups,
+      personalTrainings,
       statistics,
       trainingIds,
+      personalTrainingIds,
     }
 
     await this.redisCacheService.set(cacheKey, salaryResults)
@@ -133,7 +179,15 @@ export class StaffMemberPayoutService {
       paidAt,
       description,
       trainingIds = [],
-    }: { staffUserId: string; amount: string; paidAt: string; description: string; trainingIds: number[] },
+      personalTrainingIds = [],
+    }: {
+      staffUserId: string
+      amount: string
+      paidAt: string
+      description: string
+      trainingIds: number[]
+      personalTrainingIds?: string[]
+    },
     tx?: Transaction,
   ) {
     const dbProvider = tx || this.databaseService.drizzle
@@ -168,6 +222,14 @@ export class StaffMemberPayoutService {
       if (trainingIds.length > 0) {
         await transaction.update(training).set({ staffMemberPayoutId: payout.id }).where(inArray(training.id, trainingIds))
         this.logger.info(`Linked ${trainingIds.length} trainings to payout ${payout.id}`)
+      }
+
+      if (personalTrainingIds.length > 0) {
+        await transaction
+          .update(personalTrainingSignup)
+          .set({ staffMemberPayoutId: payout.id })
+          .where(inArray(personalTrainingSignup.id, personalTrainingIds))
+        this.logger.info(`Linked ${personalTrainingIds.length} personal trainings to payout ${payout.id}`)
       }
 
       await this.redisCacheService.delete(StaffMemberPayoutCacheKey.lastStaffPayoutDate(staffMember.id))

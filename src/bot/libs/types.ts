@@ -12,6 +12,7 @@ import {
   StaffMemberSelectModel,
   PassTemplateSelectModel,
   PassTemplateAgeRestrictionSelectModel,
+  PersonalTrainingSignupSelectModel,
 } from '@app/infrastructure/database/models'
 import {
   AuditLogActions,
@@ -128,6 +129,10 @@ export interface GetTrainingByIdResponse extends TrainingSelectModel {
 export interface GetTrainingSignupsByPassIdResponse extends TrainingSignupSelectModel {
   training: TrainingSelectModel | null
   group: GroupSelectModel | null
+}
+
+export interface GetPersonalTrainingSignupListItem extends PersonalTrainingSignupSelectModel {
+  staffMember: (StaffMemberSelectModel & { userProfile: UserProfileSelectModel | null }) | null
 }
 
 export interface TEditEntitySceneMetaData {

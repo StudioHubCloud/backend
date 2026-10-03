@@ -236,6 +236,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
           saleDate,
           clientId: userProfile.client.id,
           status: PassStatusEnum.ACTIVE,
+          availableSlots: passTemplate.length,
         },
         passTemplate.durationDays,
       )

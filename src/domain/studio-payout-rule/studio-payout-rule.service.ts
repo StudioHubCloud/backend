@@ -40,6 +40,24 @@ export class StudioPayoutRuleService {
     return this.getApplicableRules(allRules || [], staffMemberId)
   }
 
+  async getPersonalTrainingRule(staffMemberId: string): Promise<StudioPayoutRuleSelectModel | null> {
+    const allRules = await this.getStudioPayoutRules()
+
+    if (!allRules?.length) {
+      return null
+    }
+
+    const staffSpecificRule = allRules.find(
+      (rule) => rule.type === StudioPayoutRuleTypeEnum.PERSONAL_TRAINING && rule.staffMemberId === staffMemberId,
+    )
+
+    if (staffSpecificRule) {
+      return staffSpecificRule
+    }
+
+    return allRules.find((rule) => rule.type === StudioPayoutRuleTypeEnum.PERSONAL_TRAINING && rule.staffMemberId === null) ?? null
+  }
+
   private getApplicableRules(studioPayoutRules: StudioPayoutRuleSelectModel[], staffMemberId: string) {
     if (!studioPayoutRules?.length) {
       this.logger.warn('No studio payout rules found')

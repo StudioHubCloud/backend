@@ -364,7 +364,11 @@ export class AdminKeyboards {
     ])
   }
 
-  static passManageMenu(clientUserId: string, isPassActivated: boolean): TReplyInlineKeyboard {
+  static passManageMenu(
+    clientUserId: string,
+    isPassActivated: boolean,
+    isIndividualPass: boolean = false,
+  ): TReplyInlineKeyboard {
     const activateButton = !isPassActivated
       ? [
           {
@@ -374,8 +378,33 @@ export class AdminKeyboards {
         ]
       : []
 
+    // Individual passes are spent on 1:1 sessions the admin records, not on group signups.
+    const individualTrainingButtons = isIndividualPass
+      ? [
+          [
+            {
+              text: BUTTON_PATTERNS.REGISTER_PERSONAL_TRAINING,
+              callback_data: RegexHelper.createButtonActionCallbackData(
+                CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.REGISTER,
+                clientUserId,
+              ),
+            },
+          ],
+          [
+            {
+              text: BUTTON_PATTERNS.CANCEL_PERSONAL_TRAINING,
+              callback_data: RegexHelper.createButtonActionCallbackData(
+                CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.CANCEL_LIST,
+                clientUserId,
+              ),
+            },
+          ],
+        ]
+      : []
+
     return KeyboardHelper.createInlineKeyboard([
       [...activateButton],
+      ...individualTrainingButtons,
       [
         {
           text: BUTTON_PATTERNS.PASS_ADD_NEW,

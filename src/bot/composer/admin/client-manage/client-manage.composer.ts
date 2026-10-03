@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { PassService } from '@app/domain/pass'
-import { BotHelper, PassHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, PassHelper, PersonalTrainingHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { UserProfileService } from '@app/domain/user-profile'
 import {
@@ -22,9 +22,19 @@ import {
 import { ClientSelectPaginatedMenu } from '@app/bot/menus'
 import { AdminKeyboards } from '@app/bot/keyboard/storage/admin-keyboards'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { AuditLogActions, AuditLogTrigger, PassStatusEnum, UserProfileStatusEnum } from '@app/libs'
+import {
+  AuditLogActions,
+  AuditLogTrigger,
+  PassStatusEnum,
+  PassTemplateTypeEnum,
+  PersonalTrainingSignupStatusEnum,
+  UserProfileStatusEnum,
+} from '@app/libs'
 import { ClientHelper } from '@app/bot/helpers/client.helper'
 import { TrainingSignupService } from '@app/domain/training-signup'
+import { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
+import { PersonalTrainingKeyboards } from '@app/bot/keyboard/storage'
+import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 @Injectable()
@@ -37,6 +47,7 @@ export class ClientManageComposer {
     private readonly userProfileService: UserProfileService,
     private readonly trainingSignupService: TrainingSignupService,
     private readonly passService: PassService,
+    private readonly personalTrainingSignupService: PersonalTrainingSignupService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -77,6 +88,19 @@ export class ClientManageComposer {
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) => this.handleActivatePassAction(ctx, clientUserProfile))
     })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.REGISTER), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) => this.handleRegisterPersonalTrainingAction(ctx, clientUserProfile))
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.CANCEL_LIST), (ctx) => {
+      this.withClientIdAction(ctx, (clientUserProfile) => this.renderPersonalTrainingCancelList(ctx, clientUserProfile))
+    })
+
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.CANCEL_SELECT),
+      this.handleCancelPersonalTrainingAction,
+    )
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_LENGTH), (ctx) => {
       this.withClientIdAction(ctx, (clientUserProfile) =>
@@ -179,6 +203,20 @@ export class ClientManageComposer {
 
     BotHelper.safeAnswerCbQuery(ctx)
 
+    const isIndividualPass = clientPass.passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL
+
+    // An individual pass is spent on 1:1 sessions, so it shows those instead of group signups.
+    if (isIndividualPass) {
+      const personalTrainings = await this.personalTrainingSignupService.getClientSignups(clientUserProfile.client.id)
+
+      return PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
+        pass: clientPass,
+        fullName: UserHelper.getDisplayName(clientUserProfile),
+        clientUserId: clientUserProfile.id,
+        personalTrainingsBlock: PersonalTrainingHelper.getAdminHistoryBlock(personalTrainings, this.dateTimeProvider),
+      })
+    }
+
     const trainingSignups = await this.trainingSignupService.getTrainingSignupByPassId(clientPass.id)
 
     return PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
@@ -187,6 +225,65 @@ export class ClientManageComposer {
       clientUserId: clientUserProfile.id,
       trainingSignups,
     })
+  }
+
+  private handleRegisterPersonalTrainingAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
+    BotHelper.safeAnswerCbQuery(ctx)
+    ctx.deleteMessage()
+    return ctx.scene.enter(SCENES.PERSONAL_TRAINING_REGISTER, { clientUserProfile })
+  }
+
+  private renderPersonalTrainingCancelList = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
+    const scheduled = await this.personalTrainingSignupService.getScheduledForClient(clientUserProfile.client.id)
+
+    if (!scheduled.length) {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_TRAININGS_TO_CANCEL, {
+        show_alert: true,
+      })
+    }
+
+    BotHelper.safeAnswerCbQuery(ctx)
+
+    return BotHelper.safeEditMessageText(
+      ctx,
+      '🗑️ Оберіть індивідуальне тренування, яке потрібно скасувати:',
+      PersonalTrainingKeyboards.cancelList(scheduled, clientUserProfile.id, this.dateTimeProvider),
+    )
+  }
+
+  private handleCancelPersonalTrainingAction = async (ctx: BotContext) => {
+    const [signupId] = RegexHelper.getMatchGroupValue(ctx)
+
+    if (!signupId) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Невірні дані кнопки.', { show_alert: true })
+      return ctx.deleteMessage()
+    }
+
+    const signup = await this.personalTrainingSignupService.findById(signupId)
+
+    if (!signup || signup.status !== PersonalTrainingSignupStatusEnum.SCHEDULED) {
+      BotHelper.safeAnswerCbQuery(ctx, '⚠️ Це тренування більше недоступне або вже було скасоване', { show_alert: true })
+      return ctx.deleteMessage()
+    }
+
+    const [canceled, logOperations] = await this.personalTrainingSignupService.cancelTraining(signupId)
+    AuditLogHelper.startAction(ctx, AuditLogActions.PERSONAL_TRAINING_CANCEL, AuditLogTrigger.ADMIN_ACTION, logOperations)
+
+    const updatedPass = canceled.passId ? await this.passService.getPassById(canceled.passId) : null
+    const remainingSlots = updatedPass?.availableSlots ?? 0
+
+    BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.CANCEL_SUCCESS, { show_alert: true })
+
+    if (signup.client?.userProfile) {
+      await BotHelper.safeSendMessage(
+        ctx.telegram,
+        signup.client.userProfile.telegramId,
+        PersonalTrainingHelper.getClientCanceledMessage(canceled.scheduledAt, remainingSlots, this.dateTimeProvider),
+      )
+    }
+
+    const clientUserProfile = await this.userProfileService.getUserProfileById(signup.client!.userProfileId)
+    return this.renderPassManageMenu(ctx, clientUserProfile as UserProfileWithClient)
   }
 
   private handlePassEditAction = async (

@@ -75,4 +75,7 @@ export const BUTTON_PATTERNS = {
   CONFIGURE_BOT: '⚙️ Налаштування бота',
   PAY_CASH: '💵 Оплатити готівкою',
   ASK_AI: '🤖 Запитати AI',
+  REGISTER_PERSONAL_TRAINING: '🤝 Записати індивідуальне',
+  CANCEL_PERSONAL_TRAINING: '🗑️ Скасувати індивідуальне',
+  INDIVIDUAL_PASS_RULES: "📋 Пам'ятка",
 } as const
