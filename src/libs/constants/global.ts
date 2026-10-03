@@ -25,3 +25,7 @@ export const CACHE = {
   DEFAULT_TTL: 5 * 60, // 5 minutes
   ENTITY_KEY_PREFIX: 'cache:', // reset() clears only keys under this prefix
 } as const
+export const BOT_SESSION = {
+  KEY_PREFIX: 'session:', // outside CACHE.ENTITY_KEY_PREFIX, so cache reset() never clears sessions
+  TTL: 7 * 24 * 60 * 60, // 7 days, refreshed on every update the user sends
+} as const
