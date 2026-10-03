@@ -65,6 +65,24 @@ export class PersonalTrainingHelper {
     return `${header}\n\n${history}`
   }
 
+  /** "✅ Мої активні записи" for an individual pass: planned (future, not cancelled) sessions, or null when none. */
+  static getClientUpcomingMessage(signups: GetPersonalTrainingSignupListItem[], dateTimeProvider: DateTimeProvider): string | null {
+    const now = Date.now()
+    const upcoming = signups
+      .filter((s) => s.status !== PersonalTrainingSignupStatusEnum.CANCELED && new Date(s.scheduledAt).getTime() >= now)
+      .sort((a, b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime())
+
+    if (!upcoming.length) {
+      return null
+    }
+
+    const lines = upcoming.map((s) => this.formatLine(s, dateTimeProvider)).join('\n')
+    return (
+      `🤝 ${TextHelper.bold('Твої заплановані індивідуальні тренування:')}\n${lines}\n\n` +
+      `<i>Змінити чи скасувати тренування можна через адміністратора</i> 🙏`
+    )
+  }
+
   /** Same history block, appended to the admin's pass-manage screen. */
   static getAdminHistoryBlock(signups: GetPersonalTrainingSignupListItem[], dateTimeProvider: DateTimeProvider): string {
     const history = this.buildHistoryBlock(signups, dateTimeProvider)

@@ -53,6 +53,7 @@ export class PassHelper {
     const { icon, label } = PassHelper.getPassDisplayStatus(pass.status, isPassInactive)
 
     const text = `${headerText}\n
+🏷️ ${TextHelper.bold('Тип:')} ${PassHelper.getPassTemplateTypeLabel(pass.passTemplate.type)} «${pass.passTemplate.name}»
 ${icon} ${TextHelper.bold('Статус:')} ${label}
 📌 ${TextHelper.bold('Доступно тренувань:')} ${pass.availableSlots}/${pass.lengthOverride ?? pass.passTemplate.length}\n
 ${!isPassInactive ? `📅 ${TextHelper.bold('Активований:')} ${dateTimeProvider.formatDateStringInTz(pass.startDate!, 'd MMMM')}` : ''}

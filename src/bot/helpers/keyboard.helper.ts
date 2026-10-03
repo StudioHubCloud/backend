@@ -6,7 +6,7 @@ import {
   ReplyKeyboardRemove,
 } from '@telegraf/types'
 import { AutocompletableString, UserProfileRoleEnum } from '@app/libs'
-import { CALLBACK_DATA, TNormalizedOption, TPaginatedMenuOptions, TReplyInlineKeyboard } from '@app/bot/libs'
+import { CALLBACK_DATA, TButtonStyle, TNormalizedOption, TPaginatedMenuOptions, TReplyInlineKeyboard } from '@app/bot/libs'
 import { AdminKeyboards, ClientKeyboards, GuestKeyboards, MaintainerKeyboards, TrainerKeyboards } from '../keyboard/storage'
 import { BUTTON_PATTERNS } from '../static/button-patterns'
 
@@ -19,6 +19,14 @@ export class KeyboardHelper {
         remove_keyboard: true,
       },
     }
+  }
+
+  /**
+   * Colours a button via the Bot API `style` field. @telegraf/types 7.1 doesn't know this field yet,
+   * so it is added here, in one place; Telegram clients that don't support it show the default style.
+   */
+  static withStyle(button: InlineKeyboardButton, style: TButtonStyle): InlineKeyboardButton {
+    return Object.assign({}, button, { style })
   }
 
   static createInlineKeyboard(buttons: InlineKeyboardButton[][]): TReplyInlineKeyboard {

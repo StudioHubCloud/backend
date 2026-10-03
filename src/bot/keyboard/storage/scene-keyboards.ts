@@ -176,10 +176,6 @@ export class PersonalTrainingRegisterSceneKeyboards {
         ]),
     )
   }
-
-  static dateWithSuggestion(date: string): TReplyMarkupKeyboard {
-    return KeyboardHelper.createReplyMarkupKeyboard([[date], [BUTTON_PATTERNS.EXIT]])
-  }
 }
 
 export class OpenPassSceneKeyboards {

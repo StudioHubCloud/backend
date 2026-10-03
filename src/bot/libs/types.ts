@@ -98,6 +98,8 @@ export interface ISceneNavigationMap<T> {
 
 export type TReplyMarkupKeyboard = { reply_markup: ReplyKeyboardMarkup }
 export type TReplyInlineKeyboard = { reply_markup: InlineKeyboardMarkup }
+/** Bot API button `style`: primary (blue), success (green), danger (red). Older clients ignore it. */
+export type TButtonStyle = 'primary' | 'success' | 'danger'
 
 export interface ISelectInlineMenuConfig<T> {
   callbackPrefix: string

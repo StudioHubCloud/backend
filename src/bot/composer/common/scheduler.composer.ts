@@ -5,10 +5,12 @@ import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { API, AuditLogActions, AuditLogTrigger, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
 import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { TrainingSelectPaginatedMenu, GroupSelectPaginatedMenu, ActiveSchedulesPaginatedMenu } from '@app/bot/menus'
-import { BotHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, PersonalTrainingHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
 import { PassService } from '@app/domain/pass'
+import { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { MESSAGES_CLIENT } from '@app/bot/static/messages'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
@@ -23,6 +25,8 @@ export class SchedulerComposer {
     private readonly trainingSignupService: TrainingSignupService,
     private readonly groupService: GroupService,
     private readonly passService: PassService,
+    private readonly personalTrainingSignupService: PersonalTrainingSignupService,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -177,9 +181,9 @@ export class SchedulerComposer {
     const activeSignups = await this.trainingSignupService.getClientSignups(id)
 
     if (!activeSignups?.length) {
-      // "No signups — pick and sign up!" doesn't apply to an individual pass, which can't sign up for groups
+      // An individual pass can't sign up for groups: its "active signups" are the planned individual sessions
       const emptyMessage = (await this.hasActiveIndividualPass(ctx))
-        ? MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS_INDIVIDUAL
+        ? await this.getIndividualSessionsMessage(ctx)
         : MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS
 
       return renderOptions?.shouldEdit
@@ -188,6 +192,20 @@ export class SchedulerComposer {
     }
 
     return this.activeSchedulesPaginatedMenu.initMenu(ctx, { data: activeSignups }, renderOptions)
+  }
+
+  private getIndividualSessionsMessage = async (ctx: BotContext): Promise<string> => {
+    const { client } = UserHelper.getUser(ctx)
+
+    if (!client) {
+      return MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS_INDIVIDUAL
+    }
+
+    const signups = await this.personalTrainingSignupService.getClientSignups(client.id)
+    return (
+      PersonalTrainingHelper.getClientUpcomingMessage(signups, this.dateTimeProvider) ??
+      MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS_INDIVIDUAL
+    )
   }
 
   private hasActiveIndividualPass = async (ctx: BotContext): Promise<boolean> => {

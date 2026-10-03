@@ -22,6 +22,7 @@ import { StaffMemberSelectModel, UserProfileSelectModel } from '@app/infrastruct
 import { PassService } from '@app/domain/pass'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
+import { CalendarPicker, TimePicker } from '@app/bot/menus'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 export interface IPersonalTrainingRegisterSceneState {
@@ -41,6 +42,9 @@ export interface IPersonalTrainingRegisterSceneState {
 @Injectable()
 export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext> {
   private readonly scene = new SceneHelper<IPersonalTrainingRegisterSceneState>()
+  // "⬅️ Назад" in the pickers returns to the previous step (calendar → trainer list, hours → calendar)
+  private readonly calendarOptions = { withBackButton: true }
+  private readonly timeOptions = { withBackButton: true }
   private mainTainerChatId: string
 
   constructor(
@@ -89,21 +93,45 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
   private enterSceneHandler = async (ctx: BotContext) => {
     try {
-      const trainers = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
+      const { clientUserProfile } = this.scene.getState(ctx, ['clientUserProfile'])
+      // Carries the "🚪 Вийти" reply keyboard for the whole scene; the following steps use inline pickers
+      await ctx.replyWithHTML(
+        `${MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.START} ${TextHelper.bold(UserHelper.getDisplayName(clientUserProfile))}`,
+        CommonSceneKeyboards.exit(),
+      )
 
-      if (!trainers.length) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_TRAINERS)
+      if (!(await this.renderTrainerSelect(ctx, false))) {
         return ctx.scene.leave()
       }
-
-      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.SELECT_TRAINER, {
-        ...PersonalTrainingRegisterSceneKeyboards.trainerSelectInlineKeyboard(trainers),
-      })
 
       return ctx.wizard.next()
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
     }
+  }
+
+  /** Sends the trainer list, or (going back from the calendar) edits the current message into it. False when there are no trainers. */
+  private async renderTrainerSelect(ctx: BotContext, shouldEdit: boolean): Promise<boolean> {
+    const trainers = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
+
+    if (!trainers.length) {
+      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_TRAINERS)
+      return false
+    }
+
+    const keyboard = PersonalTrainingRegisterSceneKeyboards.trainerSelectInlineKeyboard(trainers)
+
+    if (shouldEdit) {
+      await BotHelper.safeEditMessageText(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.SELECT_TRAINER, keyboard)
+    } else {
+      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.SELECT_TRAINER, keyboard)
+    }
+    return true
+  }
+
+  /** Studio-local today in DATE_FORMAT.DATE_MAIN, as CalendarPicker expects. */
+  private getToday() {
+    return this.dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_MAIN)
   }
 
   /** Returns a message when the client cannot receive an individual training, or null when they can. */
@@ -151,11 +179,11 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
         staffMember: { ...selectedTrainer.staffMember, userProfile: selectedTrainer },
       })
 
-      const todayDateString = this.dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_INPUT)
-      await ctx.replyWithHTML(
-        MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_DATE,
-        PersonalTrainingRegisterSceneKeyboards.dateWithSuggestion(todayDateString),
+      await BotHelper.safeEditMessageText(
+        ctx,
+        `${MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.TRAINER_LABEL} ${TextHelper.bold(UserHelper.getDisplayName(selectedTrainer))}`,
       )
+      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_DATE, CalendarPicker.keyboard(this.getToday(), this.calendarOptions))
 
       return ctx.wizard.next()
     } catch (error) {
@@ -165,25 +193,41 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
   private dateHandler = async (ctx: BotContext) => {
     try {
-      const { textPayload, isTextUpdate } = BotHelper.getUpdatePayload(ctx)
+      const { textPayload, isTextUpdate, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
+      let scheduledDate: string | null = null
 
-      if (!isTextUpdate) {
+      if (isCallbackQueryUpdate) {
+        const picked = await CalendarPicker.handle(ctx, this.getToday(), this.calendarOptions)
+        if (!picked) {
+          return BotHelper.safeAnswerCbQuery(ctx) // a button from another message
+        }
+        if (picked.type === 'back') {
+          // The calendar message turns back into the trainer list
+          if (!(await this.renderTrainerSelect(ctx, true))) {
+            return ctx.scene.leave()
+          }
+          return ctx.wizard.back()
+        }
+        if (picked.type !== 'selected') {
+          return
+        }
+        scheduledDate = picked.date
+        await BotHelper.safeEditMessageText(ctx, `${MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.DATE_LABEL} ${TextHelper.bold(scheduledDate)}`)
+      } else if (isTextUpdate) {
+        scheduledDate = TextHelper.validateDateInput(textPayload)
+        if (!scheduledDate) {
+          await ctx.replyWithHTML(
+            MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_DATE_ERROR,
+            CalendarPicker.keyboard(this.getToday(), this.calendarOptions),
+          )
+          return
+        }
+      } else {
         return
       }
 
-      const validatedDate = TextHelper.validateDateInput(textPayload)
-
-      if (!validatedDate) {
-        const todayDateString = this.dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_INPUT)
-        await ctx.replyWithHTML(
-          MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_DATE_ERROR,
-          PersonalTrainingRegisterSceneKeyboards.dateWithSuggestion(todayDateString),
-        )
-        return
-      }
-
-      this.scene.setState(ctx, { scheduledDate: validatedDate })
-      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_TIME, CommonSceneKeyboards.exit())
+      this.scene.setState(ctx, { scheduledDate })
+      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_TIME, TimePicker.keyboard(this.timeOptions))
 
       return ctx.wizard.next()
     } catch (error) {
@@ -193,16 +237,35 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
   private timeHandler = async (ctx: BotContext) => {
     try {
-      const { textPayload, isTextUpdate } = BotHelper.getUpdatePayload(ctx)
+      const { textPayload, isTextUpdate, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
+      let validatedTime: string | null = null
 
-      if (!isTextUpdate) {
-        return
-      }
-
-      const validatedTime = TextHelper.validateTimeInput(textPayload)
-
-      if (!validatedTime) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_TIME_ERROR, CommonSceneKeyboards.exit())
+      if (isCallbackQueryUpdate) {
+        const picked = await TimePicker.handle(ctx, this.timeOptions)
+        if (!picked) {
+          return BotHelper.safeAnswerCbQuery(ctx) // e.g. a calendar button from the previous step
+        }
+        if (picked.type === 'back') {
+          // The hours message turns back into the calendar
+          await BotHelper.safeEditMessageText(
+            ctx,
+            MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_DATE,
+            CalendarPicker.keyboard(this.getToday(), this.calendarOptions),
+          )
+          return ctx.wizard.back()
+        }
+        if (picked.type !== 'selected') {
+          return
+        }
+        validatedTime = picked.time
+        await BotHelper.safeEditMessageText(ctx, `${MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.TIME_LABEL} ${TextHelper.bold(validatedTime)}`)
+      } else if (isTextUpdate) {
+        validatedTime = TextHelper.validateTimeInput(textPayload)
+        if (!validatedTime) {
+          await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_TIME_ERROR, TimePicker.keyboard(this.timeOptions))
+          return
+        }
+      } else {
         return
       }
 
@@ -230,14 +293,16 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
   private confirmHandler = async (ctx: BotContext) => {
     try {
-      const { textPayload, isTextUpdate } = BotHelper.getUpdatePayload(ctx)
+      const { textPayload, isTextUpdate, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
 
       if (!isTextUpdate) {
-        return
+        return isCallbackQueryUpdate ? BotHelper.safeAnswerCbQuery(ctx) : undefined // stale picker button
       }
 
       if (textPayload === BUTTON_PATTERNS.BACK) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_TIME, CommonSceneKeyboards.exit())
+        // Restore the exit-only reply keyboard, then show the time picker again
+        await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.BACK_TO_TIME, CommonSceneKeyboards.exit())
+        await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_TIME, TimePicker.keyboard(this.timeOptions))
         return ctx.wizard.back()
       }
 

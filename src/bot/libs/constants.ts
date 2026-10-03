@@ -37,6 +37,11 @@ export const CALLBACK_DATA = {
 } as const
 
 export const CALLBACK_PREFIX = {
+  PICKER: {
+    // PREVIOUS_STEP: the optional "⬅️ Назад" that leaves the picker (handle() returns { type: 'back' })
+    CALENDAR: { NAV: 'pk.cal.n', DAY: 'pk.cal.d', NOOP: 'pk.cal.x', PREVIOUS_STEP: 'pk.cal.p' },
+    TIME: { HOUR: 'pk.tm.h', MINUTE: 'pk.tm.m', BACK: 'pk.tm.b', PREVIOUS_STEP: 'pk.tm.p' },
+  },
   STAFF: {
     GROUP: {
       MENU: 'g.m.st',

@@ -1,6 +1,6 @@
 import { deunionize, Telegram } from 'telegraf'
 import { BotContext } from '../bot.context'
-import { User } from '@telegraf/types'
+import { InlineKeyboardMarkup, User } from '@telegraf/types'
 import { FmtString } from 'telegraf/typings/format'
 import { ExtraAnswerCbQuery, ExtraEditMessageText, ExtraReplyMessage } from 'telegraf/typings/telegram-types'
 import { FileTypeEnum } from '@app/libs'
@@ -114,6 +114,15 @@ export class BotHelper {
       await telegram.sendMessage(chatId, text, { parse_mode: 'HTML', ...options })
     } catch (error: any) {
       console.error('Error sending message:', error?.message, chatId, text)
+    }
+  }
+
+  static async safeEditMessageReplyMarkup(ctx: BotContext, markup: InlineKeyboardMarkup | undefined) {
+    try {
+      return await ctx.editMessageReplyMarkup(markup)
+    } catch (error: any) {
+      console.error('Error editing message reply markup:', error.message)
+      return false
     }
   }
 
