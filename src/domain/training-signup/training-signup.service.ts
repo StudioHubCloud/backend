@@ -190,7 +190,7 @@ export class TrainingSignupService {
         this.logger.warn('User %s tried to sign up for a group training with an individual pass %s', userProfileId, passId)
         return {
           status: API.RESPONSE.ERROR_STRING,
-          message: `Це індивідуальний абонемент — ним не можна записатись на групове тренування 😔\nСкористайся кнопкою "🤝 Індивідуальне тренування"`,
+          message: `Це індивідуальний абонемент — ним не можна записатись на групове тренування 😔\nДату індивідуального тренування узгодь зі своїм тренером 🤝`,
         }
       }
       if (training.isCancelled) {

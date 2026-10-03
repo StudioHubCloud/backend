@@ -91,7 +91,6 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       this.initiatePayoutScene.setState(ctx, {
         payoutAmount: salaryResult.statistics.totalPayout,
         trainingIds: salaryResult.trainingIds,
-        personalTrainingIds: salaryResult.personalTrainingIds,
       })
 
       await ctx.replyWithHTML(
@@ -126,7 +125,7 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       }
 
       const state = this.initiatePayoutScene.getState(ctx)
-      const { payoutAmount, payoutDate, staffUserId, trainingIds, personalTrainingIds } = state
+      const { payoutAmount, payoutDate, staffUserId, trainingIds } = state
       const payoutDescription = InitiatePayoutSceneHelper.getPayoutDescriptionMessage(state)
 
       const result = await this.staffMemberPayoutService.initiateStaffPayout({
@@ -135,7 +134,6 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
         paidAt: payoutDate,
         description: payoutDescription,
         trainingIds,
-        personalTrainingIds,
       })
 
       if (!result) {

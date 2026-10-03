@@ -3,7 +3,6 @@ import { relations } from 'drizzle-orm'
 import { studio } from './studio.schema'
 import { staffMember } from './staff-member.schema'
 import { training } from './training.schema'
-import { personalTrainingSignup } from './personal-training-signup.schema'
 
 export const staffMemberPayout = table(
   'staff_member_payout',
@@ -28,5 +27,4 @@ export const staff_member_payout_relations = relations(staffMemberPayout, ({ one
   studio: one(studio, { fields: [staffMemberPayout.studioId], references: [studio.id] }),
   staffMember: one(staffMember, { fields: [staffMemberPayout.staffMemberId], references: [staffMember.id] }),
   trainings: many(training),
-  personalTrainingSignups: many(personalTrainingSignup),
 }))

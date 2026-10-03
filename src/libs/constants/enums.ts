@@ -88,7 +88,6 @@ export enum StudioPayoutRuleTypeEnum {
   FIXED = 'fixed',
   PERCENTAGE = 'percentage',
   PER_SIGNUP = 'per_signup',
-  PERSONAL_TRAINING = 'personal_training',
 }
 
 export enum PersonalTrainingSignupStatusEnum {

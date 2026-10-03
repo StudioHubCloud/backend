@@ -1,6 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
 import { and, eq, gt, sql } from 'drizzle-orm'
-import { endOfDay } from 'date-fns'
 import { PinoLogger } from 'nestjs-pino'
 import { TypedConfigService } from '@app/infrastructure/config'
 import {
@@ -175,7 +174,7 @@ export class PersonalTrainingSignupService {
 
   async findById(id: string) {
     return this.databaseService.drizzle.query.personalTrainingSignup.findFirst({
-      where: (row, { eq }) => eq(row.id, id),
+      where: (row, { eq, and }) => and(eq(row.id, id), eq(row.studioId, this.studioId)),
       with: {
         client: { with: { userProfile: true } },
         staffMember: { with: { userProfile: true } },
@@ -187,7 +186,7 @@ export class PersonalTrainingSignupService {
   /** Full history for the client cabinet — every status, newest first. */
   async getClientSignups(clientId: string) {
     return this.databaseService.drizzle.query.personalTrainingSignup.findMany({
-      where: (row, { eq }) => eq(row.clientId, clientId),
+      where: (row, { eq, and }) => and(eq(row.clientId, clientId), eq(row.studioId, this.studioId)),
       with: {
         staffMember: { with: { userProfile: true } },
       },
@@ -198,34 +197,16 @@ export class PersonalTrainingSignupService {
   /** Scheduled (i.e. cancellable) trainings for one client — powers the admin cancel list. */
   async getScheduledForClient(clientId: string) {
     return this.databaseService.drizzle.query.personalTrainingSignup.findMany({
-      where: (row, { eq, and }) => and(eq(row.clientId, clientId), eq(row.status, PersonalTrainingSignupStatusEnum.SCHEDULED)),
+      where: (row, { eq, and }) =>
+        and(
+          eq(row.clientId, clientId),
+          eq(row.studioId, this.studioId),
+          eq(row.status, PersonalTrainingSignupStatusEnum.SCHEDULED),
+        ),
       with: {
         staffMember: { with: { userProfile: true } },
       },
       orderBy: (row, { desc }) => desc(row.scheduledAt),
-    })
-  }
-
-  /**
-   * Trainings a staff member has earned but not been paid for.
-   * Only trainings whose datetime has already passed count — a future booking is not yet work done.
-   */
-  async getUnpaidForPayout(staffMemberId: string, startDate: string, endDate: string) {
-    const now = new Date().toISOString()
-    const endDateBoundary = endOfDay(new Date(endDate)).toISOString()
-
-    return this.databaseService.drizzle.query.personalTrainingSignup.findMany({
-      where: (row, { eq, and, isNull, gte, lte }) =>
-        and(
-          eq(row.staffMemberId, staffMemberId),
-          eq(row.status, PersonalTrainingSignupStatusEnum.SCHEDULED),
-          isNull(row.staffMemberPayoutId),
-          lte(row.scheduledAt, now),
-          gte(row.scheduledAt, startDate),
-          lte(row.scheduledAt, endDateBoundary),
-        ),
-      with: { client: { with: { userProfile: true } } },
-      orderBy: (row, { asc }) => asc(row.scheduledAt),
     })
   }
 
@@ -240,7 +221,13 @@ export class PersonalTrainingSignupService {
     const [updated] = await dbProvider
       .update(personalTrainingSignup)
       .set({ status: to, ...extra })
-      .where(and(eq(personalTrainingSignup.id, id), eq(personalTrainingSignup.status, from)))
+      .where(
+        and(
+          eq(personalTrainingSignup.id, id),
+          eq(personalTrainingSignup.studioId, this.studioId),
+          eq(personalTrainingSignup.status, from),
+        ),
+      )
       .returning()
 
     if (!updated) {

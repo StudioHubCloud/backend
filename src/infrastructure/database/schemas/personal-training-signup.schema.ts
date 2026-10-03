@@ -4,7 +4,6 @@ import { pass } from './pass.schema'
 import { client } from './client.schema'
 import { staffMember } from './staff-member.schema'
 import { studio } from './studio.schema'
-import { staffMemberPayout } from './staff-member-payout.schema'
 import { PersonalTrainingSignupStatusPgEnum } from '../database.enums'
 import { PersonalTrainingSignupStatusEnum } from '@app/libs/constants/enums'
 
@@ -22,7 +21,6 @@ export const personalTrainingSignup = table(
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
-    staffMemberPayoutId: uuid('staff_member_payout_id').references(() => staffMemberPayout.id, { onDelete: 'set null' }),
     cancelledAt: timestamp('cancelled_at', { mode: 'string', withTimezone: true }),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
@@ -42,8 +40,4 @@ export const personal_training_signup_relations = relations(personalTrainingSign
   client: one(client, { fields: [personalTrainingSignup.clientId], references: [client.id] }),
   staffMember: one(staffMember, { fields: [personalTrainingSignup.staffMemberId], references: [staffMember.id] }),
   studio: one(studio, { fields: [personalTrainingSignup.studioId], references: [studio.id] }),
-  staffMemberPayout: one(staffMemberPayout, {
-    fields: [personalTrainingSignup.staffMemberPayoutId],
-    references: [staffMemberPayout.id],
-  }),
 }))

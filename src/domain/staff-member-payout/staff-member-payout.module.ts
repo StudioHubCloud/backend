@@ -5,11 +5,10 @@ import { GroupModule } from '../group'
 import { StudioPayoutRuleModule } from '../studio-payout-rule'
 import { TrainingModule } from '../training'
 import { StaffMemberModule } from '../staff-member'
-import { PersonalTrainingSignupModule } from '../personal-training-signup'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 
 @Module({
-  imports: [GroupModule, StudioPayoutRuleModule, TrainingModule, StaffMemberModule, PersonalTrainingSignupModule],
+  imports: [GroupModule, StudioPayoutRuleModule, TrainingModule, StaffMemberModule],
   providers: [
     StaffMemberPayoutService,
     {
