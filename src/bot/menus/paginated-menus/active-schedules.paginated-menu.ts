@@ -6,16 +6,18 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { TrainingSelectModel, TrainingSignupSelectModel } from '@app/infrastructure/database'
 
 
-@Injectable({ scope: Scope.TRANSIENT })
-export class ActiveSchedulesPaginatedMenu extends BasePaginatedSelectInlineMenu<{
+type TActiveSchedulesMenuParams = {
   data: (TrainingSignupSelectModel & { training: TrainingSelectModel; group: { groupStyle: { title: string } } })[]
-}> {
+}
+
+@Injectable({ scope: Scope.TRANSIENT })
+export class ActiveSchedulesPaginatedMenu extends BasePaginatedSelectInlineMenu<TActiveSchedulesMenuParams> {
   constructor(@DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider) {
     super()
   }
 
-  protected async loadOptions(): Promise<TNormalizedOption[]> {
-    const { data } = this.sessionParams
+  protected async loadOptions(params: TActiveSchedulesMenuParams): Promise<TNormalizedOption[]> {
+    const { data } = params
 
     const normallizedSignups = data.map((signup) => ({
       text: `${signup.group.groupStyle.title} (${this.dateTimeProvider.formatDateStringInTz(signup.training.date, 'dd.MM.yyyy HH:mm')})`,

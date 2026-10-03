@@ -129,7 +129,7 @@ export class GroupManageStaffComposer {
       const [userId, isAdmin] = RegexHelper.getMatchGroupValue(ctx)
       if (!userId) {
         BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка при виборі тренера. Спробуйте ще раз.')
-        ctx.deleteMessage()
+        BotHelper.safeDeleteMessage(ctx)
         return
       }
 
@@ -156,7 +156,7 @@ export class GroupManageStaffComposer {
 
         if (!groupId) {
           BotHelper.safeAnswerCbQuery(ctx, 'Не вдалося повернутися до групи.', { show_alert: true })
-          ctx.deleteMessage()
+          BotHelper.safeDeleteMessage(ctx)
           return
         }
 
@@ -334,7 +334,7 @@ export class GroupManageStaffComposer {
           const training = await this.trainingService.getTrainingById(+trainingId)
           if (!training) {
             BotHelper.safeAnswerCbQuery(ctx, '❗️ Не вдалося завантажити тренування. Спробуйте ще раз.', { show_alert: true })
-            ctx.deleteMessage()
+            BotHelper.safeDeleteMessage(ctx)
             return
           }
           const group = await this.groupService.getGroupById(training.groupId)
@@ -423,7 +423,7 @@ export class GroupManageStaffComposer {
     const [groupId, staffUserId] = RegexHelper.getMatchGroupValue(ctx)
     if (!groupId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Не вдалося завантажити тренування. Спробуйте ще раз.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
     const group = await this.groupService.getGroupById(+groupId)
@@ -486,7 +486,7 @@ export class GroupManageStaffComposer {
 
       if (!training) {
         BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
-        ctx.deleteMessage()
+        BotHelper.safeDeleteMessage(ctx)
         return
       }
 
@@ -540,7 +540,7 @@ export class GroupManageStaffComposer {
 
     if (!trainingId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -581,7 +581,7 @@ export class GroupManageStaffComposer {
   private handleStaffSelectPaginatedSelect = async (ctx: BotContext, staffUserId: string, context: Record<string, any> = {}) => {
     if (!context.trainingId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -609,7 +609,7 @@ export class GroupManageStaffComposer {
 
     if (!trainingId) {
       BotHelper.safeAnswerCbQuery(ctx, '⚠️ Не вдалося повернутися до тренування.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 

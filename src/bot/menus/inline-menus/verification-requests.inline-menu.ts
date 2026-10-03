@@ -3,7 +3,7 @@ import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { UserProfileService } from '@app/domain/user-profile'
 import { FileTypeEnum, UserProfileRoleEnum } from '@app/libs'
-import { KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { InlineKeyboardButton } from '@telegraf/types'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
@@ -69,7 +69,7 @@ export class VerificationInlineMenu {
         const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id, fileId, fileType } =
           await this.userProfileService.getUserProfileById(userId)
 
-        await ctx.deleteMessage()
+        await BotHelper.safeDeleteMessage(ctx)
 
         const caption = MessageHelper.getVerifyRequestMessage(
           {

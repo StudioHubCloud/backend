@@ -1,4 +1,5 @@
 import { TypedConfigService } from '@app/infrastructure/config'
+import { RedisSessionStore } from '@app/infrastructure/redis'
 import { Injectable, OnModuleDestroy } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
 import { session, Telegraf } from 'telegraf'
@@ -21,6 +22,7 @@ export class BotService implements OnModuleDestroy {
     private readonly stageService: StageService,
     private readonly composerService: ComposerService,
     private readonly botCommands: BotCommands,
+    private readonly redisSessionStore: RedisSessionStore,
   ) {
     this.logger.setContext(BotService.name)
 
@@ -28,7 +30,7 @@ export class BotService implements OnModuleDestroy {
       contextType: BotContext,
     })
 
-    this.bot.use(session())
+    this.bot.use(session({ store: this.redisSessionStore }))
 
     this.initMiddlewares()
 
@@ -65,7 +67,7 @@ export class BotService implements OnModuleDestroy {
   private initExitGuard() {
     this.bot.action(RegexHelper.createSimpleRegex(CALLBACK_DATA.CLOSE_MENU), (ctx) => {
       BotHelper.safeAnswerCbQuery(ctx)
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     })
 

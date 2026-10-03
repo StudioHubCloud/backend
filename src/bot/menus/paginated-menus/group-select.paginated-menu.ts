@@ -8,19 +8,21 @@ import { UserProfileRoleEnum } from '@app/libs'
 export const ASSIGN_GROUP_TO_STAFF_MENU = Symbol('assign-group-to-staff-menu')
 export const REMOVE_GROUP_FROM_STAFF_MENU = Symbol('remove-group-from-staff-menu')
 
-@Injectable({ scope: Scope.TRANSIENT })
-export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
+type TGroupSelectMenuParams = {
   userId: string
   role: UserProfileRoleEnum
   staffUserId?: string
   data?: any[]
-}> {
+}
+
+@Injectable({ scope: Scope.TRANSIENT })
+export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<TGroupSelectMenuParams> {
   constructor(private readonly groupService: GroupService) {
     super()
   }
 
-  protected async loadOptions(): Promise<TNormalizedOption[]> {
-    const { userId, role, staffUserId, data } = this.sessionParams
+  protected async loadOptions(params: TGroupSelectMenuParams): Promise<TNormalizedOption[]> {
+    const { userId, role, staffUserId, data } = params
 
     let groups
 

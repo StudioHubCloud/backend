@@ -243,7 +243,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
           `😔 Цей абонемент призначений для іншої вікової групи.\n\n👤 Твій вік: ${age} років\n📋 Потрібний вік: ${ageRangeText}\n\n💡 Спробуй обрати інший абонемент!`,
           { show_alert: true },
         )
-        return ctx.deleteMessage()
+        return BotHelper.safeDeleteMessage(ctx)
       }
     }
 

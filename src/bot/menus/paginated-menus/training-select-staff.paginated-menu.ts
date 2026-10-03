@@ -7,11 +7,13 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { GroupSelectModel, TrainingSelectModel, TrainingSignupSelectModel } from '@app/infrastructure/database'
 import { TextHelper } from '@app/bot/helpers'
 
-@Injectable({ scope: Scope.TRANSIENT })
-export class TrainingSelectStaffPaginatedMenu extends BasePaginatedSelectInlineMenu<{
+type TTrainingSelectStaffMenuParams = {
   group?: GroupSelectModel
   trainings?: (TrainingSelectModel & { trainingSignups: TrainingSignupSelectModel[] })[]
-}> {
+}
+
+@Injectable({ scope: Scope.TRANSIENT })
+export class TrainingSelectStaffPaginatedMenu extends BasePaginatedSelectInlineMenu<TTrainingSelectStaffMenuParams> {
   constructor(
     private readonly trainingService: TrainingService,
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
@@ -19,27 +21,30 @@ export class TrainingSelectStaffPaginatedMenu extends BasePaginatedSelectInlineM
     super()
   }
 
-  protected async loadOptions(): Promise<TNormalizedOption[] | { message: string }> {
-    if (!this.sessionParams) {
-      return { message: '⚠️ Меню застаріле, ініціюйте його знову.' }
+  protected getPromptMessage({ trainings, group }: TTrainingSelectStaffMenuParams): string | undefined {
+    if (trainings) return `📅 Мої тренування на найближчі ${COMMON.INCOMING_TRAININGS_DAYS_RANGE} днів:`
+    if (group) return `🗓 Тренування групи:\n\n <i><b>${group.name}</b></i>`
+    return undefined
+  }
+
+  protected getNoOptionsMessage({ trainings, group }: TTrainingSelectStaffMenuParams): string | undefined {
+    if (trainings) return `😔 У найближчі ${COMMON.INCOMING_TRAININGS_DAYS_RANGE} днів тренувань не знайдено`
+    if (group) return '📅 В цій групі немає доступних тренувань'
+    return undefined
+  }
+
+  protected async loadOptions(params: TTrainingSelectStaffMenuParams): Promise<TNormalizedOption[]> {
+    if (params.trainings) {
+      return this.renderTrainingsMenu(params.trainings)
     }
 
-    if (this.sessionParams.trainings) {
-      this.config.promptMessage = `📅 Мої тренування на найближчі ${COMMON.INCOMING_TRAININGS_DAYS_RANGE} днів:`
-      this.config.noOptionsMessage = `😔 У найближчі ${COMMON.INCOMING_TRAININGS_DAYS_RANGE} днів тренувань не знайдено`
-      return this.renderTrainingsMenu(this.sessionParams.trainings)
-    } else {
+    const { group } = params
 
-      const { group } = this.sessionParams
-      
-      if (!group) return []
-      
-      const trainings = await this.trainingService.getTrainingListForManage({ groupId: group.id })
-      this.config.promptMessage = `🗓 Тренування групи:\n\n <i><b>${group.name}</b></i>`
-      this.config.noOptionsMessage = '📅 В цій групі немає доступних тренувань'
+    if (!group) return []
 
-      return this.renderTrainingsMenu(trainings)
-    }
+    const trainings = await this.trainingService.getTrainingListForManage({ groupId: group.id })
+
+    return this.renderTrainingsMenu(trainings)
   }
 
   private renderTrainingsMenu(trainings: (TrainingSelectModel & { trainingSignups: TrainingSignupSelectModel[] })[] = []) {

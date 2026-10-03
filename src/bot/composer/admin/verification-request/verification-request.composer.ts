@@ -81,7 +81,7 @@ export class VerificationRequestComposer {
       if (userProfile.role === UserProfileRoleEnum.CLIENT) {
         ctx.scene.enter(SCENES.VERIFY_CLIENT, { userProfile })
         BotHelper.safeAnswerCbQuery(ctx)
-        ctx.deleteMessage()
+        BotHelper.safeDeleteMessage(ctx)
         return
       }
       if (userProfile.role === UserProfileRoleEnum.TRAINER) {
@@ -99,7 +99,7 @@ export class VerificationRequestComposer {
           TrainerKeyboards.mainMenu(),
         )
         await BotHelper.safeAnswerCbQuery(ctx, 'Тренер успішно верифікований ✅', { show_alert: true })
-        ctx.deleteMessage()
+        BotHelper.safeDeleteMessage(ctx)
         return
       }
     })
@@ -121,7 +121,7 @@ export class VerificationRequestComposer {
       )
 
       await BotHelper.safeAnswerCbQuery(ctx, 'Клієнт успішно верифікований ✅', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     })
   }
@@ -139,7 +139,7 @@ export class VerificationRequestComposer {
         ),
         BotHelper.safeAnswerCbQuery(ctx, 'Ви відхилили запит на реєстрацію ❌'),
       ])
-      await ctx.deleteMessage()
+      await BotHelper.safeDeleteMessage(ctx)
     })
   }
 
@@ -156,7 +156,7 @@ export class VerificationRequestComposer {
         ),
         BotHelper.safeAnswerCbQuery(ctx, 'Ви заблокували користувача 🚫'),
       ])
-      await ctx.deleteMessage()
+      await BotHelper.safeDeleteMessage(ctx)
     })
   }
 
@@ -172,13 +172,13 @@ export class VerificationRequestComposer {
 
       if (!success) {
         await BotHelper.safeAnswerCbQuery(ctx, 'Не вдалося активувати абонемент ❌', { show_alert: true })
-        return ctx.deleteMessage()
+        return BotHelper.safeDeleteMessage(ctx)
       }
       BotHelper.safeAnswerCbQuery(ctx, 'Абонемент успішно активовано ✅', { show_alert: true })
       AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_CONFIRM, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
       await Promise.all([
-        ctx.deleteMessage(),
+        BotHelper.safeDeleteMessage(ctx),
         BotHelper.safeSendMessage(
           ctx.telegram,
           passActivateRequest!.client.userProfile.telegramId,
@@ -195,13 +195,13 @@ export class VerificationRequestComposer {
 
       if (!success) {
         await BotHelper.safeAnswerCbQuery(ctx, 'Не вдалося відхилити запит ❌', { show_alert: true })
-        return ctx.deleteMessage()
+        return BotHelper.safeDeleteMessage(ctx)
       }
       BotHelper.safeAnswerCbQuery(ctx, 'Запит на активацію абонементу відхилено 🚫', { show_alert: true })
       AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_REJECT, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
       await Promise.all([
-        ctx.deleteMessage(),
+        BotHelper.safeDeleteMessage(ctx),
         BotHelper.safeSendMessage(
           ctx.telegram,
           passActivateRequest!.client.userProfile.telegramId,
@@ -221,7 +221,7 @@ export class VerificationRequestComposer {
 
     if (userProfile.status !== UserProfileStatusEnum.VERIFICATION_REQUESTED) {
       await BotHelper.safeAnswerCbQuery(ctx, 'Запит на підтвердження цього користувача не актуальний ⏰', { show_alert: true })
-      return ctx.deleteMessage()
+      return BotHelper.safeDeleteMessage(ctx)
     }
 
     await action(userProfile)
@@ -237,7 +237,7 @@ export class VerificationRequestComposer {
 
     if (!passActivateRequest) {
       await BotHelper.safeAnswerCbQuery(ctx, '⚠️ Цей запит більше недоступний або був оброблений', { show_alert: true })
-      return ctx.deleteMessage()
+      return BotHelper.safeDeleteMessage(ctx)
     }
 
     await action(passActivateRequest)

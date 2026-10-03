@@ -1,6 +1,6 @@
 import { Injectable, Scope } from '@nestjs/common'
 import { KeyboardHelper } from '@app/bot/helpers'
-import { TNormalizedOption } from '@app/bot/libs'
+import { TNormalizedOption, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { BasePaginatedSelectInlineMenu } from './base.paginated-menu'
 
 import { UserProfileService } from '@app/domain/user-profile'
@@ -11,8 +11,8 @@ export class StaffSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{}> 
     super()
   }
 
-  protected async loadOptions(): Promise<TNormalizedOption[]> {
-    const { excludeStaffMemberId } = this.renderOptions.context || {}
+  protected async loadOptions(_params: {}, renderOptions: TPaginatedMenuRenderOptions): Promise<TNormalizedOption[]> {
+    const { excludeStaffMemberId } = renderOptions.context || {}
     const staffMembersUserProfiles = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
 
     const filteredStaff = excludeStaffMemberId

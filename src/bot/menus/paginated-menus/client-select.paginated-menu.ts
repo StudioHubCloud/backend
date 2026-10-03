@@ -7,17 +7,19 @@ import { UserProfileStatusEnum } from '@app/libs'
 export const CLIENT_SIGNIN_MENU = Symbol('client-signin-menu')
 export const CLIENT_SIGNOUT_MENU = Symbol('client-signout-menu')
 
-@Injectable({ scope: Scope.TRANSIENT })
-export class ClientSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<{
+type TClientSelectMenuParams = {
   trainingId?: string
   data?: { name: string; id: string; status?: UserProfileStatusEnum; availableSlots?: number | null; hasActivePass?: boolean }[]
-}> {
+}
+
+@Injectable({ scope: Scope.TRANSIENT })
+export class ClientSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<TClientSelectMenuParams> {
   constructor() {
     super()
   }
 
-  protected async loadOptions(): Promise<TNormalizedOption[]> {
-    const { data = [] } = this.sessionParams
+  protected async loadOptions(params: TClientSelectMenuParams): Promise<TNormalizedOption[]> {
+    const { data = [] } = params
 
     const getPriority = (item: (typeof data)[0]) => {
       if (item.availableSlots === 0 && item.status === UserProfileStatusEnum.ACTIVE) return 1

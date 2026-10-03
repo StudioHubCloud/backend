@@ -88,7 +88,7 @@ export class PayoutStaffComposer {
 
     if (!message) {
       BotHelper.safeAnswerCbQuery(ctx, '❓ Немає даних для відображення', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -114,7 +114,7 @@ export class PayoutStaffComposer {
 
     if (!userId) {
       BotHelper.safeAnswerCbQuery(ctx, '❓ Відсутня інформація про користувача', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
     return action(userId, !!isAdmin)

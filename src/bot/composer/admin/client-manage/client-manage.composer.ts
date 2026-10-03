@@ -185,7 +185,7 @@ export class ClientManageComposer {
 
     if (!userProfile?.client) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Користувач не є клієнтом.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
     BotHelper.safeAnswerCbQuery(ctx)
@@ -229,7 +229,7 @@ export class ClientManageComposer {
 
   private handleRegisterPersonalTrainingAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
     BotHelper.safeAnswerCbQuery(ctx)
-    ctx.deleteMessage()
+    BotHelper.safeDeleteMessage(ctx)
     return ctx.scene.enter(SCENES.PERSONAL_TRAINING_REGISTER, { clientUserProfile })
   }
 
@@ -256,14 +256,14 @@ export class ClientManageComposer {
 
     if (!signupId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Невірні дані кнопки.', { show_alert: true })
-      return ctx.deleteMessage()
+      return BotHelper.safeDeleteMessage(ctx)
     }
 
     const signup = await this.personalTrainingSignupService.findById(signupId)
 
     if (!signup || signup.status !== PersonalTrainingSignupStatusEnum.SCHEDULED) {
       BotHelper.safeAnswerCbQuery(ctx, '⚠️ Це тренування більше недоступне або вже було скасоване', { show_alert: true })
-      return ctx.deleteMessage()
+      return BotHelper.safeDeleteMessage(ctx)
     }
 
     const [canceled, logOperations] = await this.personalTrainingSignupService.cancelTraining(signupId)
@@ -299,7 +299,7 @@ export class ClientManageComposer {
     }
 
     BotHelper.safeAnswerCbQuery(ctx)
-    ctx.deleteMessage()
+    BotHelper.safeDeleteMessage(ctx)
 
     return ctx.scene.enter(SCENES.EDIT_PASS, {
       action,
@@ -315,7 +315,7 @@ export class ClientManageComposer {
     action: TEditUserProfileSceneAction,
   ) => {
     BotHelper.safeAnswerCbQuery(ctx)
-    ctx.deleteMessage()
+    BotHelper.safeDeleteMessage(ctx)
     return ctx.scene.enter(SCENES.EDIT_USER_PROFILE, {
       action,
       clientUserProfile,
@@ -368,12 +368,12 @@ export class ClientManageComposer {
 
     if (!originalPass) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ У клієнта немає активних абонементів.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
     if (PassHelper.isPassActivated(originalPass)) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Абонемент вже активований.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -386,7 +386,7 @@ export class ClientManageComposer {
   private handleAddNewPassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
     const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
     BotHelper.safeAnswerCbQuery(ctx)
-    ctx.deleteMessage()
+    BotHelper.safeDeleteMessage(ctx)
     return ctx.scene.enter(SCENES.PASS_OPEN, { userProfile: clientUserProfile, originalPass })
   }
 
@@ -395,7 +395,7 @@ export class ClientManageComposer {
 
     if (!clientUserId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Невірні дані кнопки.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -403,7 +403,7 @@ export class ClientManageComposer {
 
     if (!userProfile || userProfile.client === null) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Користувач не є клієнтом.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 

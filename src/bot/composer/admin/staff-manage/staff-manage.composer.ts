@@ -106,7 +106,7 @@ export class StaffManageComposer {
 
     if (!user) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка при виборі тренера. Спробуйте ще раз.')
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -114,7 +114,7 @@ export class StaffManageComposer {
 
     if (!isStaffMember) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Обраний користувач не є тренером або адміністратором.')
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -153,7 +153,7 @@ export class StaffManageComposer {
 
     if (!staffUserId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️Відсутній ідентифікатор тренера. Спробуйте ще раз.')
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -165,7 +165,7 @@ export class StaffManageComposer {
 
     if (!groupId || !staffUserId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️Відсутній ідентифікатор групи або тренера. Спробуйте ще раз.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 
@@ -183,7 +183,7 @@ export class StaffManageComposer {
 
     if (!groupId || !staffUserId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️Відсутній ідентифікатор групи або тренера. Спробуйте ще раз.', { show_alert: true })
-      ctx.deleteMessage()
+      BotHelper.safeDeleteMessage(ctx)
       return
     }
 

@@ -23,7 +23,7 @@ import {
   FileTypeEnum,
 } from '@app/libs'
 import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
-import { BotContext } from '../bot.context'
+import { Scenes } from 'telegraf'
 import {
   CLIENT_STATUS_CHANGE_ACTIONS,
   EDIT_GROUP_SCENE_ACTIONS,
@@ -34,6 +34,11 @@ import {
 export type TBotStore = {
   user: AuthUserProfile | null
   audit: IAuditLogTelegramContext | null
+}
+
+/** Telegraf session (per user + chat): scene state plus paginated-menu state keyed by `${callbackPrefix}:${messageId}`. */
+export type TBotSession = Scenes.WizardSession & {
+  menus?: Record<string, TPaginatedMenuState>
 }
 
 export type AuthUserProfile = UserProfileSelectModel & {
@@ -54,9 +59,15 @@ export type TNormalizedOption = { label: string; value: string | number }
 export type TPaginatedMenuRenderOptions = {
   shouldEdit?: boolean
   backButtonCallbackData?: string | null
-  backButtonCallback?: (ctx: BotContext) => Promise<any> | void
   withExitButton?: boolean
   context?: Record<string, any>
+}
+
+/** State of one rendered menu message. Menu instances are shared by all users, so this lives in ctx.session. */
+export type TPaginatedMenuState = {
+  params: Record<string, any>
+  renderOptions: TPaginatedMenuRenderOptions
+  updatedAt: number
 }
 
 export type TPaginatedMenuOptions = { page?: number; perPage?: number; prefix: string }

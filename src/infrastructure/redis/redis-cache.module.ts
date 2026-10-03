@@ -2,6 +2,7 @@ import Redis from 'ioredis'
 import { Global, Module } from '@nestjs/common'
 import { TypedConfigService } from '../config'
 import { RedisCacheService } from './redis-cache.service'
+import { RedisSessionStore } from './redis-session.store'
 import { REDIS_CACHE_CLIENT } from './redis-cache.symbol'
 
 @Global()
@@ -18,7 +19,8 @@ import { REDIS_CACHE_CLIENT } from './redis-cache.symbol'
       },
     },
     RedisCacheService,
+    RedisSessionStore,
   ],
-  exports: [RedisCacheService],
+  exports: [RedisCacheService, RedisSessionStore],
 })
 export class RedisCacheModule {}

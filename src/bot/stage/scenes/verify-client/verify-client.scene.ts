@@ -183,7 +183,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
             `Клієнт не відповідає віковим обмеженням для цього абонементу.\n\nВік: ${age} років\nВікові обмеження: ${ageRangeText}`,
             { show_alert: true },
           )
-          return ctx.deleteMessage()
+          return BotHelper.safeDeleteMessage(ctx)
         }
       }
 

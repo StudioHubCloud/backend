@@ -52,14 +52,14 @@ export class PassActivationRequestsInlineMenu {
 
       if (!id) {
         BotHelper.safeAnswerCbQuery(ctx, '❌ Ідентифікатор запиту не знайдено', { show_alert: true })
-        return ctx.deleteMessage()
+        return BotHelper.safeDeleteMessage(ctx)
       }
 
       const passActivationRequest = await this.passActivationRequestService.findById(id)
 
       if (!passActivationRequest) {
         BotHelper.safeAnswerCbQuery(ctx, '⚠️ Цей запит більше недоступний або був оброблений', { show_alert: true })
-        return ctx.deleteMessage()
+        return BotHelper.safeDeleteMessage(ctx)
       }
 
       BotHelper.safeAnswerCbQuery(ctx)
