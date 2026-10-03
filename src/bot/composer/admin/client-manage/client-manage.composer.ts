@@ -78,23 +78,23 @@ export class ClientManageComposer {
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.MANAGE), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) => this.renderPassManageMenu(ctx, clientUserProfile))
+      return this.withClientIdAction(ctx, (clientUserProfile) => this.renderPassManageMenu(ctx, clientUserProfile))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ADD_NEW), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) => this.handleAddNewPassAction(ctx, clientUserProfile))
+      return this.withClientIdAction(ctx, (clientUserProfile) => this.handleAddNewPassAction(ctx, clientUserProfile))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) => this.handleActivatePassAction(ctx, clientUserProfile))
+      return this.withClientIdAction(ctx, (clientUserProfile) => this.handleActivatePassAction(ctx, clientUserProfile))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.REGISTER), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) => this.handleRegisterPersonalTrainingAction(ctx, clientUserProfile))
+      return this.withClientIdAction(ctx, (clientUserProfile) => this.handleRegisterPersonalTrainingAction(ctx, clientUserProfile))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.CANCEL_LIST), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) => this.renderPersonalTrainingCancelList(ctx, clientUserProfile))
+      return this.withClientIdAction(ctx, (clientUserProfile) => this.renderPersonalTrainingCancelList(ctx, clientUserProfile))
     })
 
     this.composer.action(
@@ -103,57 +103,57 @@ export class ClientManageComposer {
     )
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_LENGTH), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) =>
+      return this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_LENGTH),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_END_DATE), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) =>
+      return this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_END_DATE),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_START_DATE), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) =>
+      return this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_START_DATE),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.UNARCHIVE), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) =>
+      return this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handleChangeStatusAction(ctx, clientUserProfile, CLIENT_STATUS_CHANGE_ACTIONS.UNARCHIVE),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.ARCHIVE), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) =>
+      return this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handleChangeStatusAction(ctx, clientUserProfile, CLIENT_STATUS_CHANGE_ACTIONS.ARCHIVE),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.BACK_TO_MENU), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) => this.renderClientManageMenu(ctx, clientUserProfile.id))
+      return this.withClientIdAction(ctx, (clientUserProfile) => this.renderClientManageMenu(ctx, clientUserProfile.id))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) => this.renderClientEditMenu(ctx, clientUserProfile))
+      return this.withClientIdAction(ctx, (clientUserProfile) => this.renderClientEditMenu(ctx, clientUserProfile))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_NAME), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) =>
+      return this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_NAME),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_PHONE), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) =>
+      return this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_PHONE),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PROFILE.EDIT_DATE_OF_BIRTH), (ctx) => {
-      this.withClientIdAction(ctx, (clientUserProfile) =>
+      return this.withClientIdAction(ctx, (clientUserProfile) =>
         this.handleUserProfileEditAction(ctx, clientUserProfile, EDIT_USER_PROFILE_SCENE_ACTIONS.EDIT_DATE_OF_BIRTH),
       )
     })

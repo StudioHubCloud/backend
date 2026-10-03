@@ -140,13 +140,21 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
     await ctx.replyWithHTML(
       MESSAGES_SCENE.VERIFY_CLIENT.SELECT_PASS,
-      PassRelatedKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates),
+      PassRelatedKeyboards.passTemplatePreviewInlineKeyboard(filteredTemplates, BUTTON_PATTERNS.CLOSE),
     )
   }
 
   private async handlePassTemplateAction(ctx: BotContext, data: string) {
     const previewTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.TEMPLATE_DETAILS, data)
     const selectTemplateActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.TEMPLATE_SELECT, data)
+    const backToTemplateListActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.BACK_TO_LIST, data)
+
+    // Both buttons are labelled "✖️ Закрити" here: each list/details is its own message, and the
+    // pass-type reply keyboard stays visible, so closing just removes the message
+    if (data === CALLBACK_PREFIX.SCENES.PASS.BACK_TO_TYPE_SELECT || backToTemplateListActionMatch) {
+      BotHelper.safeAnswerCbQuery(ctx)
+      return BotHelper.safeDeleteMessage(ctx)
+    }
 
     if (previewTemplateActionMatch) {
       BotHelper.safeAnswerCbQuery(ctx)
@@ -154,7 +162,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       const passTemplateData = await this.passTemplateService.getById(id)
       return ctx.replyWithHTML(
         MessageHelper.constructPassSelectMessage(passTemplateData),
-        PassRelatedKeyboards.passTemplateSelectInlineKeyboard(id),
+        PassRelatedKeyboards.passTemplateSelectInlineKeyboard(id, BUTTON_PATTERNS.CLOSE),
       )
     }
 
@@ -196,6 +204,9 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       await ctx.replyWithHTML(text, CommonSceneKeyboards.confirm())
       return ctx.wizard.next()
     }
+
+    // Unknown or stale button: answer it so Telegram doesn't keep showing a spinner
+    return BotHelper.safeAnswerCbQuery(ctx)
   }
 
   private async handleError(ctx: BotContext, error: any, message: string) {

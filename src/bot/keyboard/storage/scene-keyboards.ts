@@ -69,7 +69,8 @@ export class PassRelatedKeyboards {
     ])
   }
 
-  static passTemplateSelectInlineKeyboard(passTemplateId: string): TReplyInlineKeyboard {
+  // backButtonText: scenes where the button only removes the message (verify-client) pass BUTTON_PATTERNS.CLOSE
+  static passTemplateSelectInlineKeyboard(passTemplateId: string, backButtonText: string = BUTTON_PATTERNS.BACK): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
@@ -79,14 +80,17 @@ export class PassRelatedKeyboards {
       ],
       [
         {
-          text: BUTTON_PATTERNS.BACK,
+          text: backButtonText,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.PASS.BACK_TO_LIST, passTemplateId),
         },
       ],
     ])
   }
 
-  static passTemplatePreviewInlineKeyboard(data: PassTemplateSelectModel[]): TReplyInlineKeyboard {
+  static passTemplatePreviewInlineKeyboard(
+    data: PassTemplateSelectModel[],
+    backButtonText: string = BUTTON_PATTERNS.BACK,
+  ): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       ...data.map((item) => [
         {
@@ -94,7 +98,7 @@ export class PassRelatedKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.PASS.TEMPLATE_DETAILS, item.id),
         },
       ]),
-      [{ text: BUTTON_PATTERNS.BACK, callback_data: CALLBACK_PREFIX.SCENES.PASS.BACK_TO_TYPE_SELECT }],
+      [{ text: backButtonText, callback_data: CALLBACK_PREFIX.SCENES.PASS.BACK_TO_TYPE_SELECT }],
     ])
   }
 

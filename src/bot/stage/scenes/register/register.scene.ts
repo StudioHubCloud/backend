@@ -240,7 +240,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
             caption: MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
             ...AdminKeyboards.verifyActions(id, this.REQUESTED_ROLE),
             parse_mode: 'HTML',
-          })
+          }).catch((error) => console.error('Error sending verification request to admin:', error.message))
         } else {
           BotHelper.safeSendMessage(
             ctx.telegram,

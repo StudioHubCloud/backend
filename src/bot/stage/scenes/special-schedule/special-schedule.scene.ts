@@ -54,14 +54,14 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
       this.exitKeyboard = keyboard
 
       if (!training) {
-        ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.NO_TRAINING_FOUND, this.exitKeyboard)
+        await ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.NO_TRAINING_FOUND, this.exitKeyboard)
         return this.handleSceneExitAndCleanup(ctx)
       }
 
       const group = await this.groupService.getGroupById(training.groupId)
 
       if (!group) {
-        ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.NO_GROUP_FOUND, this.exitKeyboard)
+        await ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.NO_GROUP_FOUND, this.exitKeyboard)
         return this.handleSceneExitAndCleanup(ctx)
       }
 

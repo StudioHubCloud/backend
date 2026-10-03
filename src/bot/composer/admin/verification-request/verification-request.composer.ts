@@ -79,7 +79,7 @@ export class VerificationRequestComposer {
   private handleVerifyWithPass = async (ctx: BotContext) => {
     await this.handleVerifyUserProfileAction(ctx, async (userProfile) => {
       if (userProfile.role === UserProfileRoleEnum.CLIENT) {
-        ctx.scene.enter(SCENES.VERIFY_CLIENT, { userProfile })
+        await ctx.scene.enter(SCENES.VERIFY_CLIENT, { userProfile })
         BotHelper.safeAnswerCbQuery(ctx)
         BotHelper.safeDeleteMessage(ctx)
         return

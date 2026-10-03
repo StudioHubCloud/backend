@@ -75,7 +75,7 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
         const { role } = UserHelper.getUser(ctx)
         const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
 
-        ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.NO_INITIAL_DATA, keyboard)
+        await ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.NO_INITIAL_DATA, keyboard)
         return ctx.scene.leave()
       }
       return await next()

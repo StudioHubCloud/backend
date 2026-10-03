@@ -2,12 +2,13 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
-import { API, AuditLogActions, AuditLogTrigger, PassStatusEnum } from '@app/libs'
+import { API, AuditLogActions, AuditLogTrigger, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
 import { CALLBACK_PREFIX, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { TrainingSelectPaginatedMenu, GroupSelectPaginatedMenu, ActiveSchedulesPaginatedMenu } from '@app/bot/menus'
 import { BotHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
+import { PassService } from '@app/domain/pass'
 import { MESSAGES_CLIENT } from '@app/bot/static/messages'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
@@ -21,6 +22,7 @@ export class SchedulerComposer {
     private readonly activeSchedulesPaginatedMenu: ActiveSchedulesPaginatedMenu,
     private readonly trainingSignupService: TrainingSignupService,
     private readonly groupService: GroupService,
+    private readonly passService: PassService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -139,7 +141,17 @@ export class SchedulerComposer {
     renderOptions: TPaginatedMenuRenderOptions = { withExitButton: true },
   ) => {
     const { id, role } = UserHelper.getUser(ctx)
-    this.groupSelectMenu.initMenu(ctx, { userId: id, role }, renderOptions)
+
+    // Main guard: an individual pass is booked with the trainer, so there is nothing to browse here.
+    // TrainingSignupService keeps the same check as a backup at signup time.
+    if (await this.hasActiveIndividualPass(ctx)) {
+      const { isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
+      return isCallbackQueryUpdate
+        ? BotHelper.safeAnswerCbQuery(ctx, MESSAGES_CLIENT.INDIVIDUAL_PASS_NO_GROUP_SIGNUP, { show_alert: true })
+        : ctx.reply(MESSAGES_CLIENT.INDIVIDUAL_PASS_NO_GROUP_SIGNUP)
+    }
+
+    return this.groupSelectMenu.initMenu(ctx, { userId: id, role }, renderOptions)
   }
 
   private handleSignOutAction = async (ctx: BotContext) => {
@@ -164,10 +176,28 @@ export class SchedulerComposer {
 
     const activeSignups = await this.trainingSignupService.getClientSignups(id)
 
-    if (!activeSignups?.length && renderOptions?.shouldEdit) {
-      return BotHelper.safeEditMessageText(ctx, MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS)
-      }
+    if (!activeSignups?.length) {
+      // "No signups — pick and sign up!" doesn't apply to an individual pass, which can't sign up for groups
+      const emptyMessage = (await this.hasActiveIndividualPass(ctx))
+        ? MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS_INDIVIDUAL
+        : MESSAGES_CLIENT.NO_ACTIVE_SIGNUPS
+
+      return renderOptions?.shouldEdit
+        ? BotHelper.safeEditMessageText(ctx, emptyMessage)
+        : ctx.reply(emptyMessage, { parse_mode: 'HTML' })
+    }
 
     return this.activeSchedulesPaginatedMenu.initMenu(ctx, { data: activeSignups }, renderOptions)
+  }
+
+  private hasActiveIndividualPass = async (ctx: BotContext): Promise<boolean> => {
+    const { role, client } = UserHelper.getUser(ctx)
+
+    if (!UserHelper.isClientRole(role) || !client) {
+      return false
+    }
+
+    const activePass = await this.passService.findActivePassByClientId(client.id)
+    return activePass?.passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL
   }
 }

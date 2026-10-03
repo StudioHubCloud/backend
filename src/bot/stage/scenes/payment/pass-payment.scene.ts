@@ -64,6 +64,9 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
           ? MESSAGES_SCENE.PAYMENT.PASS_PURCHASE_EXIT
           : MESSAGES_SCENE.PAYMENT.PASS_RENEW_EXIT
 
+      // Remove the scene's welcome, menu and uploaded-file messages so they don't stay in chat history.
+      // .catch: the client may exit days later, when Telegram no longer allows deleting them.
+      await ctx.deleteMessages(this.getSceneMessageIds(ctx)).catch(() => {})
       await ctx.replyWithHTML(message, ClientKeyboards.mainMenu())
       return ctx.scene.leave()
     })
@@ -91,7 +94,11 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
 
   private enterSceneHandler = async (ctx: BotContext) => {
     try {
-      await this.renderPassTypeSelectMenu(ctx, false)
+      // The following steps edit this same message, so it is the scene's menu message
+      const menuMessage = await this.renderPassTypeSelectMenu(ctx, false)
+      if (typeof menuMessage === 'object' && 'message_id' in menuMessage) {
+        this.passPaymentScene.setState(ctx, { menuMessageId: menuMessage.message_id })
+      }
       return ctx.wizard.next()
     } catch (error) {
       await this.handleError(ctx, error)
@@ -259,9 +266,6 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
 
   private handleFileConfirmAction = async (ctx: BotContext) => {
     const {
-      fileUpdateMessageIds,
-      menuMessageId,
-      startMessageId,
       fileIds,
       userProfile,
       saleDate,
@@ -270,7 +274,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       requestType,
     } = this.passPaymentScene.getState(ctx)
 
-    const messagesToDelete = [...fileUpdateMessageIds, menuMessageId, startMessageId].filter((id): id is number => id !== null)
+    const messagesToDelete = this.getSceneMessageIds(ctx)
     const fileId = fileIds[0]
 
     const [_, activationRequest, logOperations] = await this.passService.createPassWithActivationRequest({
@@ -309,6 +313,11 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     const message_id = await this.renderFileUploadMenu(ctx)
     this.passPaymentScene.setState(ctx, { menuMessageId: message_id ?? null })
     return
+  }
+
+  private getSceneMessageIds(ctx: BotContext): number[] {
+    const { fileUpdateMessageIds = [], menuMessageId, startMessageId } = this.passPaymentScene.getState(ctx)
+    return [...fileUpdateMessageIds, menuMessageId, startMessageId].filter((id): id is number => typeof id === 'number')
   }
 
   private renderPassTypeSelectMenu = async (ctx: BotContext, shouldEdit: boolean) => {

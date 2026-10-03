@@ -44,20 +44,21 @@ export class BotService implements OnModuleDestroy {
     this.initExitGuard()
 
     this.bot.catch(async (err: any, ctx: BotContext): Promise<void> => {
+      // The scene is left in MiddlewareService.sceneErrorGuardMiddleware (here the session is already saved)
       this.logger.error(`Encountered an error for ctx.update: %o, with message: %s`, ctx.update, err?.message)
-      ctx?.scene?.leave()
       BotHelper.safeSendMessage(
         ctx.telegram,
         this.configService.get('MAINTAINER_CHAT_ID'),
         `Error: ${err.message}\n\nUpdate: ${JSON.stringify(ctx?.update)}`,
       )
-      ctx?.reply(MESSAGES_COMMON.GLOBAL_ERROR)
+      await ctx?.reply(MESSAGES_COMMON.GLOBAL_ERROR).catch(() => {})
       return
     })
   }
 
   private initMiddlewares() {
     this.bot.use(this.middlewareService.metricsMiddleware)
+    this.bot.use(this.middlewareService.sceneErrorGuardMiddleware)
     this.bot.use(this.middlewareService.auditLogMiddleware)
     this.bot.use(this.middlewareService.timerMiddleware)
     this.bot.use(this.middlewareService.loggingMiddleware)
@@ -71,13 +72,13 @@ export class BotService implements OnModuleDestroy {
       return
     })
 
-    this.bot.hears('🚪 Вийти', (ctx) => {
+    this.bot.hears('🚪 Вийти', async (ctx) => {
       const user = UserHelper.getUser(ctx)
-      ctx.replyWithHTML('Головне меню', KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role))
+      await ctx.replyWithHTML('Головне меню', KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role))
       this.logger.error('Global Scene Exit guard triggered for userId: %s', user.telegramId)
 
       if (ctx.scene.current?.id) {
-        ctx.scene.leave()
+        await ctx.scene.leave()
       }
       return
     })

@@ -17,7 +17,7 @@ export class TrainerRootComposer {
     this.composer = new Composer<BotContext>()
 
     this.composer.start(async (ctx) => {
-      ctx.reply(MESSAGES_STAFF.GREETINGS_TRAINER, TrainerKeyboards.mainMenu())
+      return ctx.reply(MESSAGES_STAFF.GREETINGS_TRAINER, TrainerKeyboards.mainMenu())
     })
 
     this.initExternalComposers()

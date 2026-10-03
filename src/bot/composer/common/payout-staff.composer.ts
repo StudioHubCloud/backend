@@ -55,8 +55,7 @@ export class PayoutStaffComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.INITIATE), async (ctx: BotContext) => {
       return this.handlePaymentAction(ctx, async (userId) => {
-        ctx.scene.enter(SCENES.INITIATE_PAYOUT, { staffUserId: userId })
-        return
+        return ctx.scene.enter(SCENES.INITIATE_PAYOUT, { staffUserId: userId })
       })
     })
   }

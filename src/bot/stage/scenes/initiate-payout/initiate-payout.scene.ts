@@ -44,14 +44,14 @@ export class InitiatePayoutScene extends Scenes.WizardScene<BotContext> {
       this.exitKeyboard = keyboard
 
       if (!staffUserId) {
-        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_ID, keyboard)
+        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_ID, keyboard)
         return ctx.scene.leave()
       }
 
       const staffUserProfile = await this.userProfileService.getUserProfileById(staffUserId)
 
       if (!staffUserProfile) {
-        ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_PROFILE, keyboard)
+        await ctx.replyWithHTML(MESSAGES_SCENE.INITIATE_PAYOUT.ERROR_NO_STAFF_PROFILE, keyboard)
         return ctx.scene.leave()
       }
 

@@ -54,6 +54,17 @@ export class MiddlewareService {
     return 'other'
   }
 
+  // Registered right after session() (see BotService.initMiddlewares): session() saves the session in its
+  // `finally`, before bot.catch runs, so leaving the scene must happen here for the change to be persisted.
+  sceneErrorGuardMiddleware = async (ctx: BotContext, next: TNextFunction) => {
+    try {
+      await next()
+    } catch (error) {
+      await ctx.scene?.leave().catch(() => {})
+      throw error
+    }
+  }
+
   loggingMiddleware = async (ctx: BotContext, next: TNextFunction) => {
     const user = ctx.from ? `${ctx.from.id} (${ctx.from.username || ctx.from.first_name})` : 'Unknown User'
     this.logger.debug('Incoming update from %s', user)
