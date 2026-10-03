@@ -1,5 +1,7 @@
+import { CACHE } from '@app/libs'
+
 export class TrainingCacheKey {
-   private static readonly cache_key_prefix = 'training'
+   private static readonly cache_key_prefix = `${CACHE.ENTITY_KEY_PREFIX}training`
 
 
    static trainingsForSchedule(groupId: number, userId: string): string {

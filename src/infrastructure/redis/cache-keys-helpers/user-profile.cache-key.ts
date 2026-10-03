@@ -1,8 +1,8 @@
 import { UserProfileSelectModel } from '@app/infrastructure/database'
-import { UserProfileRoleEnum } from '@app/libs'
+import { UserProfileRoleEnum, CACHE } from '@app/libs'
 
 export class UserProfileCacheKey {
-  private static readonly cache_key_prefix = 'user-profile'
+  private static readonly cache_key_prefix = `${CACHE.ENTITY_KEY_PREFIX}user-profile`
 
   static telegramAuthUser(studioId: string, telegramId: string): string {
     return `${this.cache_key_prefix}:t:${studioId}:${telegramId}`

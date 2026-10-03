@@ -1,7 +1,8 @@
 import { GroupSelectModel } from '@app/infrastructure/database'
+import { CACHE } from '@app/libs'
 
 export class GroupCacheKey {
-   private static readonly cache_key_prefix = 'group'
+   private static readonly cache_key_prefix = `${CACHE.ENTITY_KEY_PREFIX}group`
 
 
   static groupById(id: number): string {

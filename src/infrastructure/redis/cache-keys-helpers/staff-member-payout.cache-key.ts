@@ -1,5 +1,7 @@
+import { CACHE } from '@app/libs'
+
 export class StaffMemberPayoutCacheKey {
-  private static readonly cache_key_prefix = 'sm_payout'
+  private static readonly cache_key_prefix = `${CACHE.ENTITY_KEY_PREFIX}sm_payout`
 
   static lastStaffPayoutDate(staffMemberId: string): string {
     return `${this.cache_key_prefix}:lpd:${staffMemberId}`

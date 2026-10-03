@@ -1,5 +1,7 @@
+import { CACHE } from '@app/libs'
+
 export class TrainingSignupCacheKey {
-     private static readonly cache_key_prefix = 'training-signup'
+     private static readonly cache_key_prefix = `${CACHE.ENTITY_KEY_PREFIX}training-signup`
 
      static clientSignupsInGroup(userProfileId: string, groupId: number): string {
           return `${this.cache_key_prefix}:${userProfileId}:${groupId}`

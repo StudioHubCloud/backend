@@ -23,4 +23,5 @@ export const ENVIRONMENTS = {
 }
 export const CACHE = {
   DEFAULT_TTL: 5 * 60, // 5 minutes
+  ENTITY_KEY_PREFIX: 'cache:', // reset() clears only keys under this prefix
 } as const

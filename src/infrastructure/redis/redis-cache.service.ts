@@ -48,20 +48,22 @@ export class RedisCacheService implements OnModuleDestroy {
     }
   }
 
+  // Clears only entity cache keys; the same Redis DB also holds BullMQ queues and AI state (ai:*)
   async reset(): Promise<void> {
     try {
-      await this.redis.flushdb()
+      const stream = this.redis.scanStream({ match: `${CACHE.ENTITY_KEY_PREFIX}*`, count: 500 })
+      for await (const keys of stream as AsyncIterable<string[]>) {
+        if (keys.length) await this.redis.unlink(...keys)
+      }
       this.logger.debug('[CLEAR CACHE] success')
     } catch (error) {
-      this.metricsService.recordRedisCommandError('flushdb')
+      this.metricsService.recordRedisCommandError('unlink')
       this.logger.error('Error clearing cache: %j', error)
     }
   }
 
   async onModuleDestroy() {
     try {
-      await this.redis.flushdb()
-      console.warn('[REDIS] Cache cleared')
       await this.redis.quit()
       console.warn('[REDIS] Connection closed gracefully')
     } catch (error) {
