@@ -6,7 +6,7 @@ import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
-import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
+import { CALLBACK_PREFIX, SCENES, TReplyInlineKeyboard } from '@app/bot/libs'
 import { StaffMemberPayoutService } from '@app/domain/staff-member-payout'
 
 @Injectable()
@@ -112,13 +112,28 @@ export class PayoutStaffComposer {
 
     // Only individual sessions: show them in place of the group details
     if (!groupMessage) {
-      return BotHelper.safeEditMessageText(ctx, personalMessage, keyboard)
+      return this.editWithLongText(ctx, personalMessage, keyboard, withPersonal)
     }
 
-    await BotHelper.safeEditMessageText(ctx, groupMessage, keyboard)
+    await this.editWithLongText(ctx, groupMessage, keyboard, withPersonal)
 
     if (withPersonal && personalMessage && ctx.chat) {
-      await BotHelper.safeSendMessage(ctx.telegram, ctx.chat.id, personalMessage)
+      await BotHelper.safeSendLongMessage(ctx.telegram, ctx.chat.id, personalMessage)
+    }
+  }
+
+  /**
+   * The current message becomes the first part (with the keyboard); with `sendRest` the other parts of a text over
+   * Telegram's limit follow as new messages. Coming back to the menu re-edits only the first part, the rest is already sent.
+   */
+  private async editWithLongText(ctx: BotContext, text: string, keyboard: TReplyInlineKeyboard, sendRest: boolean) {
+    const [first, ...rest] = BotHelper.splitLongMessage(text)
+    await BotHelper.safeEditMessageText(ctx, first, keyboard)
+
+    if (sendRest && ctx.chat) {
+      for (const part of rest) {
+        await BotHelper.safeSendMessage(ctx.telegram, ctx.chat.id, part)
+      }
     }
   }
 
@@ -134,7 +149,7 @@ export class PayoutStaffComposer {
       ? AdminKeyboards.staffmemberPayoutClientInfoMenu(userId)
       : TrainerKeyboards.staffmemberPayoutClientInfoMenu(userId)
     BotHelper.safeAnswerCbQuery(ctx)
-    return BotHelper.safeEditMessageText(ctx, message, keyboard)
+    return this.editWithLongText(ctx, message, keyboard, true)
   }
 
   /**

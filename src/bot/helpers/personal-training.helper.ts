@@ -195,8 +195,13 @@ export class PersonalTrainingHelper {
   }
 
   /** Trainer's upcoming individual sessions (both kinds), or a placeholder when there are none. */
-  static getStaffUpcomingMessage(trainerName: string, sessions: IStaffPersonalSession[], dateTimeProvider: DateTimeProvider): string {
-    const header = `🤝 ${TextHelper.bold('Заплановані індивідуальні заняття')} — ${TextHelper.escapeHtml(trainerName)}`
+  static getStaffUpcomingMessage(
+    trainerName: string,
+    sessions: IStaffPersonalSession[],
+    days: number,
+    dateTimeProvider: DateTimeProvider,
+  ): string {
+    const header = `🤝 ${TextHelper.bold('Заплановані індивідуальні заняття')} — ${TextHelper.escapeHtml(trainerName)}\n<i>Найближчі ${days} днів. Далі — у «📅 Розклад студії».</i>`
 
     if (!sessions.length) {
       return `${header}\n\n<i>Запланованих занять немає</i>`

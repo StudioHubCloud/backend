@@ -5,7 +5,57 @@ import { FmtString } from 'telegraf/typings/format'
 import { ExtraAnswerCbQuery, ExtraEditMessageText, ExtraReplyMessage } from 'telegraf/typings/telegram-types'
 import { FileTypeEnum } from '@app/libs'
 
+/** Telegram's limit is 4096 characters of text; the margin covers HTML tags counted by the raw length. */
+const MESSAGE_LIMIT = 4000
+/** A line that starts a new block (a group header or a list item); indented lines stay with their block. */
+const BLOCK_START = /^(•|🔹|🤝|👯)/u
+
 export class BotHelper {
+  /**
+   * Splits a long HTML message into parts under Telegram's limit, between blocks (a "🔹 group" header or a "• item"
+   * with its indented lines), so one item is never torn apart. Each line must close its own tags.
+   */
+  static splitLongMessage(text: string, limit: number = MESSAGE_LIMIT): string[] {
+    if (text.length <= limit) {
+      return [text]
+    }
+
+    const blocks: string[] = []
+    for (const line of text.split('\n')) {
+      if (!blocks.length || BLOCK_START.test(line)) {
+        blocks.push(line)
+      } else {
+        blocks[blocks.length - 1] += `\n${line}`
+      }
+    }
+
+    const parts: string[] = []
+    let current = ''
+    for (const block of blocks) {
+      // A single block over the limit (never expected) is cut by lines as a last resort
+      const pieces = block.length > limit ? block.split('\n') : [block]
+      for (const piece of pieces) {
+        if (current && current.length + 1 + piece.length > limit) {
+          parts.push(current.trimEnd())
+          current = ''
+        }
+        current = current ? `${current}\n${piece}` : piece
+      }
+    }
+    if (current.trim()) {
+      parts.push(current.trimEnd())
+    }
+
+    return parts
+  }
+
+  /** Sends a possibly long HTML message as several messages (see splitLongMessage). */
+  static async safeSendLongMessage(telegram: Telegram, chatId: number | string, text: string) {
+    for (const part of this.splitLongMessage(text)) {
+      await this.safeSendMessage(telegram, chatId, part)
+    }
+  }
+
   static getFrom(ctx: BotContext) {
     const update = deunionize(ctx.update)
     let from: User

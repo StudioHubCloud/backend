@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
+import { addDays } from 'date-fns'
 import { BotContext } from '@app/bot/bot.context'
 import { BotHelper, PersonalTrainingHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { PersonalTrainingKeyboards } from '@app/bot/keyboard/storage'
@@ -10,6 +11,9 @@ import { PersonalTrainingSignupService } from '@app/domain/personal-training-sig
 import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
+
+/** "🤝 Заплановані індивідуальні" covers this many days ahead; the schedule covers the rest. */
+const UPCOMING_DAYS = 14
 
 /**
  * Individual sessions from the staff side: a trainer's upcoming sessions (trainer menu and "Персонал" → trainer),
@@ -38,7 +42,11 @@ export class PersonalTrainingStaffComposer {
     this.composer.hears(BUTTON_PATTERNS.UPCOMING_PERSONAL_TRAININGS, async (ctx) => {
       const user = UserHelper.getUser(ctx)
       const message = await this.getUpcomingMessage(user.id)
-      return ctx.replyWithHTML(message ?? MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.NO_TRAINER, PersonalTrainingKeyboards.closeOnly())
+      const parts = BotHelper.splitLongMessage(message ?? MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.NO_TRAINER)
+      // A long list goes as several messages; "✖️ Закрити" on the last one
+      for (const [index, part] of parts.entries()) {
+        await ctx.replyWithHTML(part, index === parts.length - 1 ? PersonalTrainingKeyboards.closeOnly() : undefined)
+      }
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.UPCOMING), async (ctx) => {
@@ -50,7 +58,12 @@ export class PersonalTrainingStaffComposer {
         }
 
         BotHelper.safeAnswerCbQuery(ctx)
-        return BotHelper.safeEditMessageText(ctx, message, PersonalTrainingKeyboards.staffUpcomingMenu(staffUserId))
+        // A long list: the menu keeps the first part, the rest follows as new messages
+        const [first, ...rest] = BotHelper.splitLongMessage(message)
+        await BotHelper.safeEditMessageText(ctx, first, PersonalTrainingKeyboards.staffUpcomingMenu(staffUserId))
+        for (const part of rest) {
+          await BotHelper.safeSendMessage(ctx.telegram, ctx.chat!.id, part)
+        }
       })
     })
 
@@ -79,8 +92,14 @@ export class PersonalTrainingStaffComposer {
       return null
     }
 
-    const sessions = await this.personalTrainingSignupService.getUpcomingForStaffMember(staffUserProfile.staffMember.id)
-    return PersonalTrainingHelper.getStaffUpcomingMessage(UserHelper.getDisplayName(staffUserProfile), sessions, this.dateTimeProvider)
+    const until = addDays(new Date(), UPCOMING_DAYS).toISOString()
+    const sessions = await this.personalTrainingSignupService.getUpcomingForStaffMember(staffUserProfile.staffMember.id, until)
+    return PersonalTrainingHelper.getStaffUpcomingMessage(
+      UserHelper.getDisplayName(staffUserProfile),
+      sessions,
+      UPCOMING_DAYS,
+      this.dateTimeProvider,
+    )
   }
 
   private async renderCancelList(ctx: BotContext, staffUserId: string) {

@@ -20,6 +20,9 @@ export type TScheduleSession = PersonalTrainingSignupSelectModel & IStaffPersona
 /** One line of a studio schedule day, group training or individual session, in time order. */
 export type TScheduleItem = { start: string; training: TScheduleTraining; session?: never } | { start: string; session: TScheduleSession; training?: never }
 
+/** A day lists at most this many items (text and buttons): far beyond a real studio day, keeps both under Telegram's limits. */
+const MAX_DAY_ITEMS = 50
+
 /** Studio schedule day ("📅 Розклад студії"): the day's group trainings and individual sessions as one timeline. */
 export class ScheduleHelper {
   /** "Неділя, 4 жовтня 2026" for a yyyy-MM-dd date. */
@@ -32,16 +35,18 @@ export class ScheduleHelper {
     return format(parse(date, DATE_FORMAT.DATE_MAIN, new Date()), 'd MMM', { locale: uk })
   }
 
-  static getItems(trainings: TScheduleTraining[], sessions: TScheduleSession[]): TScheduleItem[] {
+  /** The day's items in time order, capped at MAX_DAY_ITEMS; `hiddenCount` is how many didn't fit. */
+  static getItems(trainings: TScheduleTraining[], sessions: TScheduleSession[]): { items: TScheduleItem[]; hiddenCount: number } {
     const items: TScheduleItem[] = [
       ...trainings.map((training) => ({ start: training.date, training })),
       ...sessions.map((session) => ({ start: session.scheduledAt, session })),
-    ]
-    return items.sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+    ].sort((a, b) => new Date(a.start).getTime() - new Date(b.start).getTime())
+
+    return { items: items.slice(0, MAX_DAY_ITEMS), hiddenCount: Math.max(0, items.length - MAX_DAY_ITEMS) }
   }
 
   /** The day as a timeline: "17:00  👯‍♀️ K-Pop 10+ · Анна · 6 записів", "18:30  🤝 INDIVIDUAL · Юлія → Анна". */
-  static getDayMessage(date: string, items: TScheduleItem[], dateTimeProvider: DateTimeProvider): string {
+  static getDayMessage(date: string, items: TScheduleItem[], hiddenCount: number, dateTimeProvider: DateTimeProvider): string {
     const header = `📅 ${TextHelper.bold(this.getDayTitle(date))}`
 
     if (!items.length) {
@@ -68,7 +73,8 @@ export class ScheduleHelper {
       return `${time}  🤝 ${title} · ${participants} → ${this.getTrainerName(session.staffMember)}`
     })
 
-    return `${header}\n\n${lines.join('\n')}`
+    const hidden = hiddenCount ? `\n\n<i>…та ще ${hiddenCount}: відкрийте через «Групи»</i>` : ''
+    return `${header}\n\n${lines.join('\n')}${hidden}`
   }
 
   /** Short trainer name for a schedule line (first name, else the display name). HTML-escaped. */

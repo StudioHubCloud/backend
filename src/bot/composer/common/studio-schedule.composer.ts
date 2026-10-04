@@ -145,10 +145,10 @@ export class StudioScheduleComposer {
       this.trainingService.getStudioTrainingsInRange(from, to),
       this.personalTrainingSignupService.getStudioScheduledInRange(from, to),
     ])
-    const items = ScheduleHelper.getItems(trainings, sessions)
+    const { items, hiddenCount } = ScheduleHelper.getItems(trainings, sessions)
 
     return {
-      message: ScheduleHelper.getDayMessage(date, items, this.dateTimeProvider),
+      message: ScheduleHelper.getDayMessage(date, items, hiddenCount, this.dateTimeProvider),
       keyboard: ScheduleKeyboards.day(date, items, this.dateTimeProvider),
     }
   }

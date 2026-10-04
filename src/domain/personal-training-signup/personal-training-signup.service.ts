@@ -391,15 +391,16 @@ export class PersonalTrainingSignupService {
     return !!updated
   }
 
-  /** Upcoming scheduled sessions of a trainer (one-offs and pass sessions), soonest first. */
-  async getUpcomingForStaffMember(staffMemberId: string) {
+  /** Upcoming scheduled sessions of a trainer up to `untilIso` (one-offs and pass sessions), soonest first. */
+  async getUpcomingForStaffMember(staffMemberId: string, untilIso: string) {
     return this.databaseService.drizzle.query.personalTrainingSignup.findMany({
-      where: (row, { eq, and, gte }) =>
+      where: (row, { eq, and, gte, lte }) =>
         and(
           eq(row.studioId, this.studioId),
           eq(row.staffMemberId, staffMemberId),
           eq(row.status, PersonalTrainingSignupStatusEnum.SCHEDULED),
           gte(row.scheduledAt, new Date().toISOString()),
+          lte(row.scheduledAt, untilIso),
         ),
       with: {
         client: { with: { userProfile: { columns: { firstName: true, lastName: true, fullName: true } } } },
