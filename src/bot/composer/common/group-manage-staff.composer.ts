@@ -10,7 +10,7 @@ import {
   CLIENT_SIGNOUT_MENU,
   CLIENT_SIGNIN_MENU,
 } from '@app/bot/menus'
-import { CALLBACK_PREFIX, SCENES, TPaginatedMenuRenderOptions } from '@app/bot/libs'
+import { CALLBACK_PREFIX, COMMON, SCENES, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { PinoLogger } from 'nestjs-pino'
 import { AdminKeyboards, ScheduleKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
@@ -474,9 +474,10 @@ export class GroupManageStaffComposer {
       ctx,
       MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider),
       {
+        // Opened from the studio schedule (origin in the staffUserId slot): "Назад" leads back to that day
         ...(isAdmin
-          ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer)
-          : TrainerKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId)),
+          ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer, ScheduleKeyboards.backButtonForOrigin(staffUserId))
+          : TrainerKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, ScheduleKeyboards.backButtonForOrigin(staffUserId))),
       },
     )
   }
@@ -669,7 +670,14 @@ export class GroupManageStaffComposer {
     if (!UserHelper.isAdminRole(ctx)) {
       return BotHelper.safeAnswerCbQuery(ctx, ADMIN_ONLY_MESSAGE, { show_alert: true })
     }
-    return this.handleTrainingAction(ctx, action)
+    return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+      // A training included in a trainer payout is final (the services refuse it too)
+      const training = await this.trainingService.getTrainingById(+trainingId)
+      if (training?.staffMemberPayoutId) {
+        return BotHelper.safeAnswerCbQuery(ctx, COMMON.PAID_OUT_MESSAGE, { show_alert: true })
+      }
+      return action(trainingId, backButtonCallbackData, staffUserId)
+    })
   }
 
   /** Admins see every group; a trainer sees their own groups, and a training of another group they substitute in. */

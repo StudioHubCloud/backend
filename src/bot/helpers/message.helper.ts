@@ -271,9 +271,13 @@ export class MessageHelper {
       const trainingLines = group.trainings
         .map((training) => {
           const date = dateTimeProvider.formatDateStringInTz(training.date, 'dd MMMM yyyy')
-          const signups = training.trainingSignups.length
+          const confirmed = training.trainingSignups.length
           const payout = PassHelper.toDisplayPrice(training.payout)
-          return `• ${date} | ${signups} ${TextHelper.pluralize(signups, ['запис', 'записи', 'записів'])} | ${payout}`
+          // signupCount is missing in results cached before confirmations existed
+          const attendance = confirmed
+            ? `✅ ${confirmed} з ${training.signupCount ?? confirmed}`
+            : `🔴 0 з ${training.signupCount ?? 0}, не відмічено`
+          return `• ${date} | ${attendance} | ${payout}`
         })
         .join('\n')
 
@@ -282,7 +286,9 @@ export class MessageHelper {
 ${trainingLines}`
     })
 
-    return `${groupMessages.join('\n\n')}`
+    const bonus = result.statistics.bonus ?? 0
+    const bonusBlock = bonus > 0 ? `\n\n🎁 <b>Бонус</b> за середнє ${result.statistics.averageSignups} людей: <b>+${PassHelper.toDisplayPrice(bonus)}</b>` : ''
+    return `${groupMessages.join('\n\n')}${bonusBlock}`
   }
 
   /** Individual sessions breakdown, sent as a separate message after the group details (Telegram 4096-char limit). */
@@ -297,41 +303,102 @@ ${trainingLines}`
       .map((session) => {
         const date = dateTimeProvider.formatDateStringInTz(session.date, 'dd MMMM yyyy, HH:mm')
         const participants = TextHelper.escapeHtml(session.participants)
+        const payoutLine = session.isNoShow
+          ? `🚫 Неявка — <b>${PassHelper.toDisplayPrice(0)}</b>`
+          : session.isUnconfirmed
+            ? `⏳ Не підтверджено — <b>${PassHelper.toDisplayPrice(0)}</b>`
+            : `${PassHelper.toDisplayPrice(session.price)} × ${statistics.personalPayoutPercentage}% = <b>${PassHelper.toDisplayPrice(session.payout)}</b>`
         // Participants on their own line: a one-off note can be long
         return `• ${date} | ${TextHelper.escapeHtml(session.title)}
     ${session.isNote ? '📝' : '👤'} <i>${participants}</i>
-    ${PassHelper.toDisplayPrice(session.price)} × ${statistics.personalPayoutPercentage}% = <b>${PassHelper.toDisplayPrice(session.payout)}</b>`
+    ${payoutLine}`
       })
       .join('\n')
 
     const count = statistics.personalTrainingCount
+    const noShows = statistics.personalNoShowCount ?? 0
+    const noShowNote = noShows ? `, 🚫 ${noShows} ${TextHelper.pluralize(noShows, ['неявка', 'неявки', 'неявок'])}` : ''
+    const unconfirmed = statistics.pendingPersonalCount ?? 0
+    const unconfirmedNote = unconfirmed ? `, ⏳ ${unconfirmed} без підтвердження` : ''
     return `🤝 <b><i><u>Індивідуальні заняття</u></i></b>
-🔸 ${count} ${TextHelper.pluralize(count, ['заняття', 'заняття', 'занять'])} • ${PassHelper.toDisplayPrice(statistics.personalPayout)}
+🔸 ${count} ${TextHelper.pluralize(count, ['заняття', 'заняття', 'занять'])}${noShowNote}${unconfirmedNote} • ${PassHelper.toDisplayPrice(statistics.personalPayout)}
 ${sessionLines}`
   }
 
-  static getStaffPayoutInfoMessage({
-    averagePayoutPerTraining,
-    totalSignups,
-    totalTrainings,
-    groupPayout,
-    personalTrainingCount,
-    personalPayout,
-    totalPayout,
-  }: TPayoutStatistics) {
-    const personalInfo = personalTrainingCount
-      ? `\n\n🤝 <b>Індивідуальні заняття</b>
-- Кількість занять: <i>${personalTrainingCount}</i>
+  static getStaffPayoutInfoMessage(statistics: TPayoutStatistics) {
+    const { averagePayoutPerTraining, totalSignups, totalTrainings, groupPayout, personalTrainingCount, personalPayout, totalPayout } =
+      statistics
+    const noShows = statistics.personalNoShowCount ?? 0
+    const personalInfo =
+      personalTrainingCount || noShows
+        ? `\n\n🤝 <b>Індивідуальні заняття</b>
+- Відбулося: <i>${personalTrainingCount}</i>${noShows ? `\n- Неявки: <i>${noShows}</i> (0 ₴)` : ''}
 - Сума: <i>${PassHelper.toDisplayPrice(personalPayout)}</i>`
-      : ''
+        : ''
 
     return `👥 <b>Групові тренування</b>
-- Загальна кількість тренувань: <i>${totalTrainings}</i>
-- Загальна кількість записів: <i>${totalSignups}</i>
+- Кількість тренувань: <i>${totalTrainings}</i>
+- Підтверджено людей: <i>${totalSignups}</i>${this.getAverageSignupsLine(statistics)}
 - Середня виплата за тренування: <i>${PassHelper.toDisplayPrice(averagePayoutPerTraining)}</i>
-- Сума: <i>${PassHelper.toDisplayPrice(groupPayout)}</i>${personalInfo}
+- Сума: <i>${PassHelper.toDisplayPrice(groupPayout)}</i>${this.getBonusLine(statistics)}${personalInfo}
 
-💵 <i>Сума до виплати: <b>${PassHelper.toDisplayPrice(totalPayout)}</b></i>`
+💵 <i>Сума до виплати: <b>${PassHelper.toDisplayPrice(totalPayout)}</b></i>${this.getPayoutPendingWarning(statistics)}`
+  }
+
+  /** "- Середня кількість людей: 9.4" (results cached before the bonus existed have no average). */
+  private static getAverageSignupsLine(statistics: TPayoutStatistics): string {
+    return statistics.averageSignups !== undefined && statistics.totalTrainings
+      ? `\n- Середня кількість людей: <i>${statistics.averageSignups}</i>`
+      : ''
+  }
+
+  /** The group bonus: "+1000 ₴" once the average reaches the rule's threshold, else how far it is. */
+  static getBonusLine(statistics: TPayoutStatistics): string {
+    const { bonusThreshold, bonus = 0, totalTrainings } = statistics
+    if (bonusThreshold === undefined || !totalTrainings) {
+      return ''
+    }
+    return bonus > 0
+      ? `\n- 🎁 Бонус за середнє ${bonusThreshold}+: <b>+${PassHelper.toDisplayPrice(bonus)}</b>`
+      : `\n- 🎁 Бонус від середнього ${bonusThreshold} людей: <i>не досягнуто</i>`
+  }
+
+  /** The trainer's reminder on the last day of the month: individual sessions tomorrow's payout closes with 0 unless confirmed. */
+  static getUnconfirmedSessionsReminder(unconfirmedSessions: number): string {
+    const sessions = `${unconfirmedSessions} ${TextHelper.pluralize(unconfirmedSessions, ['індивідуальне заняття', 'індивідуальні заняття', 'індивідуальних занять'])}`
+    return (
+      `⏳ <b>Завтра о 12:00 — виплата за місяць</b>\n\n` +
+      `Ще не підтверджено: ${sessions}.\n\n` +
+      `Виплата закриє ${unconfirmedSessions === 1 ? 'його' : 'їх'} з 0 ₴. Підтвердити можна в «📅 Розклад студії» → день → заняття.`
+    )
+  }
+
+  /** Text of the list of payouts the monthly cron prepared (the cron's message to admins, and the list in the bot). */
+  static getPendingPayoutsListMessage(): string {
+    return (
+      `💰 <b>Підготовлені виплати</b>\n\n` +
+      `Дані зафіксовані, заняття цих виплат заблоковані. Відкрий тренера і перевір: ` +
+      `<b>💸 Оплатити</b> або <b>❌ Відмінити</b> (тоді виплату робиш вручну).`
+    )
+  }
+
+  /**
+   * What the payout closes with 0 because nobody confirmed it (the whole period is closed): shown before a payout is
+   * registered, so the trainer or the admin can still confirm. Empty when everything is confirmed.
+   */
+  static getPayoutPendingWarning(statistics: TPayoutStatistics): string {
+    const pending = statistics.pendingPersonalCount ?? 0
+    const unmarked = statistics.unmarkedTrainingCount ?? 0
+    const lines = [
+      pending
+        ? `- ⏳ ${pending} ${TextHelper.pluralize(pending, ['індивідуальне', 'індивідуальні', 'індивідуальних'])} без підтвердження: ${pending === 1 ? 'закриється' : 'закриються'} з 0 ₴`
+        : '',
+      unmarked
+        ? `- 🔴 ${unmarked} ${TextHelper.pluralize(unmarked, ['групове', 'групові', 'групових'])} без жодної відмітки: ${unmarked === 1 ? 'закриється' : 'закриються'} з 0 ₴`
+        : '',
+    ].filter(Boolean)
+
+    return lines.length ? `\n\n⚠️ <b>Не підтверджено</b>\n${lines.join('\n')}` : ''
   }
 
   static getStaffPayoutClientInfoMessage(result: TSalaryPayoutResult, dateTimeProvider: DateTimeProvider): string {

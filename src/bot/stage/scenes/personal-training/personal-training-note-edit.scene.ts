@@ -93,7 +93,7 @@ export class PersonalTrainingNoteEditScene extends Scenes.WizardScene<BotContext
       if (session) {
         await ctx.replyWithHTML(
           PersonalTrainingHelper.getAdminSessionMessage(session, this.dateTimeProvider),
-          ScheduleKeyboards.session(session, this.dateTimeProvider, true),
+          ScheduleKeyboards.session(session, this.dateTimeProvider, { canManage: true, canConfirm: true, isMaintainer: UserHelper.isMaintainerRole(ctx) }), // admin-only scene
         )
       }
 

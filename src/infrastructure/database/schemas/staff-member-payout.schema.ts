@@ -1,9 +1,12 @@
-import { decimal, varchar, pgTable as table, uuid, timestamp, text, index } from 'drizzle-orm/pg-core'
+import { decimal, varchar, pgTable as table, uuid, timestamp, text, index, jsonb } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { studio } from './studio.schema'
 import { staffMember } from './staff-member.schema'
 import { training } from './training.schema'
 import { personalTrainingSignup } from './personal-training-signup.schema'
+import { StaffMemberPayoutStatusPgEnum } from '../database.enums'
+import { StaffMemberPayoutStatusEnum } from '@app/libs/constants/enums'
+import type { TSalaryPayoutResult } from '@app/libs/types/global'
 
 export const staffMemberPayout = table(
   'staff_member_payout',
@@ -17,6 +20,9 @@ export const staffMemberPayout = table(
       .notNull(),
     staffMemberId: uuid('staff_member_id').references(() => staffMember.id, { onDelete: 'cascade' }),
     description: text('description'), // "Monthly pass", "Salary March 2024", "Equipment purchase"
+    // PENDING: prepared by the monthly cron, its sessions already linked (locked) until an admin pays or cancels it
+    status: StaffMemberPayoutStatusPgEnum().notNull().default(StaffMemberPayoutStatusEnum.PAID),
+    snapshot: jsonb('snapshot').$type<TSalaryPayoutResult>(), // the calculation at preparation time, shown instead of a new one
   },
   (table) => [
     index().on(table.studioId, table.staffMemberId),

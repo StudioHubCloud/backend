@@ -276,6 +276,43 @@ export class PersonalTrainingSignupService {
     return [updated, allLogOperations]
   }
 
+  /**
+   * Confirms a session after the fact: COMPLETED pays the trainer, NO_SHOW pays 0 and the pass session stays used.
+   * Only a scheduled, not paid-out session of this studio (see `transitionStatus`).
+   */
+  async confirmTraining(
+    id: string,
+    status: PersonalTrainingSignupStatusEnum.COMPLETED | PersonalTrainingSignupStatusEnum.NO_SHOW,
+    confirmedById: string,
+  ): Promise<[PersonalTrainingSignupSelectModel, AuditLogServiceOperation[]]> {
+    const extra = { confirmedAt: new Date().toISOString(), confirmedById }
+    const updated = await this.transitionStatus(id, PersonalTrainingSignupStatusEnum.SCHEDULED, status, extra)
+
+    await this.redisCacheService.reset()
+
+    return [updated, this.getConfirmLogOperations(updated, { status, ...extra }, this.confirmTraining.name)]
+  }
+
+  /** Takes a confirmation back (a wrong tap) while the session is not paid out: back to SCHEDULED. */
+  async unconfirmTraining(id: string): Promise<[PersonalTrainingSignupSelectModel, AuditLogServiceOperation[]]> {
+    const session = await this.findById(id)
+    const confirmedStatuses = [PersonalTrainingSignupStatusEnum.COMPLETED, PersonalTrainingSignupStatusEnum.NO_SHOW]
+
+    if (!session || !confirmedStatuses.includes(session.status)) {
+      throw new BadRequestException(`Personal training signup ${id} is not confirmed`)
+    }
+
+    const extra = { confirmedAt: null, confirmedById: null }
+    const updated = await this.transitionStatus(id, session.status, PersonalTrainingSignupStatusEnum.SCHEDULED, extra)
+
+    await this.redisCacheService.reset()
+
+    return [
+      updated,
+      this.getConfirmLogOperations(updated, { status: PersonalTrainingSignupStatusEnum.SCHEDULED, ...extra }, this.unconfirmTraining.name),
+    ]
+  }
+
   async findById(id: string) {
     return this.databaseService.drizzle.query.personalTrainingSignup.findFirst({
       where: (row, { eq, and }) => and(eq(row.id, id), eq(row.studioId, this.studioId)),
@@ -296,11 +333,11 @@ export class PersonalTrainingSignupService {
     const [trainings, sessions] = await Promise.all([
       this.trainingService.getStaffMemberTrainingsInRange(staffMemberId, fromIso, toIso),
       this.databaseService.drizzle.query.personalTrainingSignup.findMany({
-        where: (row, { eq, and, gte, lte }) =>
+        where: (row, { eq, and, gte, lte, ne }) =>
           and(
             eq(row.studioId, this.studioId),
             eq(row.staffMemberId, staffMemberId),
-            eq(row.status, PersonalTrainingSignupStatusEnum.SCHEDULED),
+            ne(row.status, PersonalTrainingSignupStatusEnum.CANCELED), // confirmed sessions still took the slot
             gte(row.scheduledAt, fromIso),
             lte(row.scheduledAt, toIso),
           ),
@@ -317,13 +354,16 @@ export class PersonalTrainingSignupService {
     ]
   }
 
-  /** The studio's scheduled sessions (all trainers, both kinds) starting in [fromIso, toIso], soonest first. */
+  /**
+   * The studio's not cancelled sessions (all trainers, both kinds; scheduled and confirmed) starting in
+   * [fromIso, toIso], soonest first.
+   */
   async getStudioScheduledInRange(fromIso: string, toIso: string) {
     return this.databaseService.drizzle.query.personalTrainingSignup.findMany({
-      where: (row, { eq, and, gte, lte }) =>
+      where: (row, { eq, and, gte, lte, ne }) =>
         and(
           eq(row.studioId, this.studioId),
-          eq(row.status, PersonalTrainingSignupStatusEnum.SCHEDULED),
+          ne(row.status, PersonalTrainingSignupStatusEnum.CANCELED),
           gte(row.scheduledAt, fromIso),
           lte(row.scheduledAt, toIso),
         ),
@@ -347,6 +387,7 @@ export class PersonalTrainingSignupService {
           eq(personalTrainingSignup.id, id),
           eq(personalTrainingSignup.studioId, this.studioId),
           isNotNull(personalTrainingSignup.studioPriceId),
+          isNull(personalTrainingSignup.staffMemberPayoutId), // a paid-out session is final
         ),
       )
       .returning()
@@ -459,21 +500,25 @@ export class PersonalTrainingSignupService {
   }
 
   /**
-   * Unpaid sessions of a trainer up to `endDateBoundary` (UTC ISO), one-offs and pass sessions.
-   * Until sessions can be confirmed, a scheduled session counts once its time has passed.
+   * Unpaid sessions of a trainer in the payout period, up to `endDateBoundary` (UTC ISO), one-offs and pass sessions.
+   * The payout closes the whole period: COMPLETED ones are paid; NO_SHOW ones and past sessions nobody confirmed are
+   * closed with 0 (a session that hasn't started yet is left for a later payout).
    */
   async getUnpaidForStaffMemberSalary(staffMemberId: string, endDateBoundary: string) {
+    const confirmedStatuses = [PersonalTrainingSignupStatusEnum.COMPLETED, PersonalTrainingSignupStatusEnum.NO_SHOW]
     const now = new Date().toISOString()
-    const boundary = endDateBoundary < now ? endDateBoundary : now
+    const pastBoundary = endDateBoundary < now ? endDateBoundary : now
 
     return this.databaseService.drizzle.query.personalTrainingSignup.findMany({
-      where: (row, { eq, and, lte, isNull }) =>
+      where: (row, { eq, and, or, lte, isNull, inArray }) =>
         and(
           eq(row.studioId, this.studioId),
           eq(row.staffMemberId, staffMemberId),
-          eq(row.status, PersonalTrainingSignupStatusEnum.SCHEDULED),
           isNull(row.staffMemberPayoutId),
-          lte(row.scheduledAt, boundary),
+          or(
+            and(inArray(row.status, confirmedStatuses), lte(row.scheduledAt, endDateBoundary)),
+            and(eq(row.status, PersonalTrainingSignupStatusEnum.SCHEDULED), lte(row.scheduledAt, pastBoundary)),
+          ),
         ),
       with: {
         client: { with: { userProfile: { columns: { firstName: true, lastName: true, fullName: true } } } },
@@ -482,6 +527,23 @@ export class PersonalTrainingSignupService {
       },
       orderBy: (row, { asc }) => asc(row.scheduledAt),
     })
+  }
+
+  private getConfirmLogOperations(
+    updated: PersonalTrainingSignupSelectModel,
+    payload: Record<string, unknown>,
+    methodName: string,
+  ): AuditLogServiceOperation[] {
+    return [
+      {
+        entity: AuditLogEntity.PERSONAL_TRAINING_SIGNUP,
+        entityId: updated.id,
+        operation: AuditLogOperation.UPDATE,
+        payload,
+        timestamp: new Date().toISOString(),
+        metadata: { serviceName: PersonalTrainingSignupService.name, methodName },
+      },
+    ]
   }
 
   private async transitionStatus(

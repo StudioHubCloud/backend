@@ -7,6 +7,7 @@ import { GroupManageStaffComposer } from '../common/group-manage-staff.composer'
 import { PayoutStaffComposer } from '../common/payout-staff.composer'
 import { PersonalTrainingStaffComposer } from '../common/personal-training-staff.composer'
 import { StudioScheduleComposer } from '../common/studio-schedule.composer'
+import { CurrentSessionComposer } from '../common/current-session.composer'
 
 @Injectable()
 export class TrainerRootComposer {
@@ -17,6 +18,7 @@ export class TrainerRootComposer {
     private readonly payoutStaffComposer: PayoutStaffComposer,
     private readonly personalTrainingStaffComposer: PersonalTrainingStaffComposer,
     private readonly studioScheduleComposer: StudioScheduleComposer,
+    private readonly currentSessionComposer: CurrentSessionComposer,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -36,5 +38,6 @@ export class TrainerRootComposer {
     this.composer.use(this.payoutStaffComposer.middleware())
     this.composer.use(this.personalTrainingStaffComposer.middleware())
     this.composer.use(this.studioScheduleComposer.middleware())
+    this.composer.use(this.currentSessionComposer.middleware())
   }
 }

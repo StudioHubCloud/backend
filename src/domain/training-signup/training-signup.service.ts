@@ -1,9 +1,11 @@
-import { forwardRef, Inject, Injectable } from '@nestjs/common'
-import { and, eq, ne } from 'drizzle-orm'
+import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common'
+import { and, eq, exists, isNull, ne } from 'drizzle-orm'
 import { PinoLogger } from 'nestjs-pino'
 import { addDays, isAfter, isBefore, subHours } from 'date-fns'
 import {
   DatabaseService,
+  group,
+  training,
   TrainingSelectModel,
   trainingSignup,
   TrainingSignupInsertModel,
@@ -30,6 +32,7 @@ import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/r
 import { COMMON } from '@app/bot/libs'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { UserProfileService } from '../user-profile'
+import { TypedConfigService } from '@app/infrastructure/config'
 
 @Injectable()
 export class TrainingSignupService {
@@ -43,6 +46,7 @@ export class TrainingSignupService {
     private readonly groupAgeRestrictionService: GroupAgeRestrictionService,
     private readonly redisCacheService: RedisCacheService,
     private readonly userProfileService: UserProfileService,
+    private readonly configService: TypedConfigService,
   ) {}
 
   async findTrainingSignupsByCondition(conditions: Partial<TrainingSignupSelectModel>) {
@@ -343,6 +347,10 @@ export class TrainingSignupService {
         return { status: API.RESPONSE.ERROR_STRING, message: `Запис наразі не активний 🙈` }
       }
 
+      if (signup.training.staffMemberPayoutId) {
+        return { status: API.RESPONSE.ERROR_STRING, message: COMMON.PAID_OUT_MESSAGE }
+      }
+
       await this.signOutFromTraining({ id: signup.id })
       await this.redisCacheService.reset()
 
@@ -381,6 +389,10 @@ export class TrainingSignupService {
 
       if (training.isCancelled) {
         return { status: API.RESPONSE.ERROR_STRING, message: `На жаль, тренування було скасовано 😔` }
+      }
+
+      if (training.staffMemberPayoutId) {
+        return { status: API.RESPONSE.ERROR_STRING, message: COMMON.PAID_OUT_MESSAGE }
       }
 
       if (isAlreadySignedUp) {
@@ -499,17 +511,85 @@ export class TrainingSignupService {
       .returning()
   }
 
-  async createSpecialScheduleSignup(values: { trainingId: number; fallbackUsername: string; groupId: number }) {
-    const { trainingId, fallbackUsername, groupId } = values
+  /**
+   * A signup by name for someone who is not a client (e.g. a one-time visitor). `confirmedById` marks them as
+   * already present, for visitors added on site at the training.
+   */
+  async createSpecialScheduleSignup(values: { trainingId: number; fallbackUsername: string; groupId: number; confirmedById?: string }) {
+    const { trainingId, fallbackUsername, groupId, confirmedById } = values
+    const targetTraining = await this.trainingService.getTrainingById(trainingId)
+    this.trainingService.assertNotPaidOut(targetTraining)
+
     const result = await this.signUpForTraining({
       trainingId,
       userProfileId: null,
       groupId,
       type: TrainingSignupTypeEnum.SPECIAL,
       fallbackUsername,
+      ...(confirmedById && { confirmedAt: new Date().toISOString(), confirmedById }),
     })
     await this.redisCacheService.reset()
     return result
+  }
+
+  /**
+   * Confirms (or takes back) that the client of an active signup came to the training: the trainer is paid per
+   * confirmed attendee. Refused for another studio's, a cancelled or an already paid-out training, all checked in
+   * the UPDATE itself so a stale button can't slip through.
+   */
+  async setAttendance(
+    signupId: string,
+    attended: boolean,
+    confirmedById: string,
+  ): Promise<[TrainingSignupSelectModel, AuditLogServiceOperation[]]> {
+    const values = attended
+      ? { confirmedAt: new Date().toISOString(), confirmedById }
+      : { confirmedAt: null, confirmedById: null }
+
+    const [updated] = await this.databaseService.drizzle
+      .update(trainingSignup)
+      .set(values)
+      .where(
+        and(
+          eq(trainingSignup.id, signupId),
+          eq(trainingSignup.status, TrainingSignupStatusEnum.ACTIVE),
+          exists(
+            this.databaseService.drizzle
+              .select()
+              .from(training)
+              .innerJoin(group, eq(group.id, training.groupId))
+              .where(
+                and(
+                  eq(training.id, trainingSignup.trainingId),
+                  eq(training.isCancelled, false),
+                  isNull(training.staffMemberPayoutId),
+                  eq(group.studioId, this.configService.getStudioId()),
+                ),
+              ),
+          ),
+        ),
+      )
+      .returning()
+
+    if (!updated) {
+      throw new BadRequestException(`Attendance of signup ${signupId} can't be changed: not active, cancelled or paid out`)
+    }
+
+    await this.redisCacheService.reset()
+
+    return [
+      updated,
+      [
+        {
+          entity: AuditLogEntity.TRAINING_SIGNUP,
+          entityId: updated.id,
+          operation: AuditLogOperation.UPDATE,
+          payload: values,
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: TrainingSignupService.name, methodName: this.setAttendance.name },
+        },
+      ],
+    ]
   }
 
   async getTrainingSignupByPassId(passId: string) {

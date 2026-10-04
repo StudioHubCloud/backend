@@ -55,12 +55,14 @@ export class StudioPayoutRuleService {
 
     // Share of an individual session's price; only required when the staff member has individual sessions
     const percentageRule = applicableRules.find((rule) => rule.type === StudioPayoutRuleTypeEnum.PERCENTAGE)
+    // Optional: + amount when group trainings averaged min_signups+ confirmed people in the period
+    const bonusRule = applicableRules.find((rule) => rule.type === StudioPayoutRuleTypeEnum.BONUS)
 
     if (!fixedRule || !perSignUpRule) {
       this.logger.warn('Missing required payout rules for staff member')
       throw new NotFoundException('No applicable payout rules found for staff member, cannot calculate staff payout salary')
     }
 
-    return { fixedRule, perSignUpRule, percentageRule }
+    return { fixedRule, perSignUpRule, percentageRule, bonusRule }
   }
 }

@@ -47,9 +47,6 @@ export const BUTTON_PATTERNS = {
   PASS_REQUESTS: '📜 Запити на активацію',
   BACK_TO_MAIN_ADMIN_MENU: '🔙 Назад до меню адміністратора',
   BACK_TO_MAIN_TRAINER_MENU: '🔙 Назад до меню тренера',
-  BACK_TO_TRAINING_LIST: '⬅️ Назад до списку тренувань',
-  BACK_TO_STAFF_LIST: '⬅️ Назад до списку тренерів',
-  BACK_TO_GROUP_LIST: '⬅️ Назад до списку груп',
   GROUP_TRAININGS: '📝 Інформація про тренування',
   PAYOUT_CALCULATIONS: '💰 Нарахування оплати',
   UPCOMING_TRAININGS: '🗓️ Найближчі тренування',
@@ -81,6 +78,7 @@ export const BUTTON_PATTERNS = {
   REGISTER_ONE_OFF_TRAINING: '➕ Разове заняття',
   UPCOMING_PERSONAL_TRAININGS: '🤝 Заплановані індивідуальні',
   STUDIO_SCHEDULE: '📅 Розклад студії',
+  CURRENT_SESSION: '⏱ Поточне заняття',
   EDIT_NOTE: '✏️ Редагувати нотатку',
   INDIVIDUAL_PASS_RULES: "📋 Пам'ятка",
 } as const

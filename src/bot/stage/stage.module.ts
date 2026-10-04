@@ -33,7 +33,6 @@ import { APP } from '@app/libs'
     StageService,
     Stage.RegisterScene,
     Stage.VerifyClientScene,
-    Stage.InitiatePayoutScene,
     Stage.EditPassScene,
     Stage.EditUserProfileScene,
     Stage.PassPaymentScene,

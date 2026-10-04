@@ -18,11 +18,9 @@ import { PersonalTrainingSignupService } from '@app/domain/personal-training-sig
 import { TypedConfigService } from '../config'
 import { UserProfileSelectModel } from '../database'
 import { DateTimeProvider, DateTimeProviderInjector } from '../providers'
-import { PersonalTrainingHelper, UserHelper } from '@app/bot/helpers'
-import {
-  IInitiatePayoutSceneState,
-  InitiatePayoutSceneHelper,
-} from '@app/bot/stage/scenes/initiate-payout/initiate-payout.scene-helper'
+import { MessageHelper, PersonalTrainingHelper, UserHelper } from '@app/bot/helpers'
+import { AdminKeyboards } from '@app/bot/keyboard/storage'
+import { InitiatePayoutSceneHelper } from '@app/bot/stage/scenes/initiate-payout/initiate-payout.scene-helper'
 
 @Injectable()
 export class CronService {
@@ -90,22 +88,39 @@ export class CronService {
     timeZone: STATIC_CONFIG.timeZone,
   })
   async monthlyStaffPayoutsCron() {
+    // The previous month: everything unpaid up to its last day (inclusive), dated that day
+    const todayInTz = formatInTimeZone(new Date(), STATIC_CONFIG.timeZone, DATE_FORMAT.DATE_MAIN)
+    return this.prepareMonthlyStaffPayouts(format(subDays(startOfMonth(parseISO(todayInTz)), 1), DATE_FORMAT.DATE_INPUT))
+  }
+
+  /**
+   * Prepares (does not pay) the payouts of the period ending `payoutDate` (dd.MM.yyyy, inclusive), dated that day.
+   * Each payout is stored as pending with a snapshot, its sessions locked; admins pay or cancel each one in the bot.
+   */
+  private async prepareMonthlyStaffPayouts(payoutDate: string) {
     await this.metricsService.runJob('monthly-staff-payouts', async () => {
-      // Pays out the previous month: everything unpaid up to its last day (inclusive), dated that day
-      const todayInTz = formatInTimeZone(new Date(), STATIC_CONFIG.timeZone, DATE_FORMAT.DATE_MAIN)
-      const payoutDate = format(subDays(startOfMonth(parseISO(todayInTz)), 1), DATE_FORMAT.DATE_INPUT)
       this.logger.debug(`Monthly staff payouts cron job executed, payout date: ${payoutDate}`)
 
       const staffUserProfiles = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
-      const paidDescriptions: string[] = []
+      let preparedCount = 0
       const failures: string[] = []
 
       // One staff member's failure must not stop the others
       for (const staffUserProfile of staffUserProfiles) {
         try {
-          const description = await this.registerMonthlyStaffPayout(staffUserProfile, payoutDate)
-          if (description) {
-            paidDescriptions.push(description)
+          const payout = await this.staffMemberPayoutService.preparePendingPayout(staffUserProfile.id, payoutDate, (salary) =>
+            InitiatePayoutSceneHelper.getPayoutDescriptionMessage({
+              staffUserProfile,
+              staffUserId: staffUserProfile.id,
+              payoutDate,
+              payoutAmount: salary.statistics.totalPayout,
+              trainingIds: salary.trainingIds,
+              personalTrainingIds: salary.personalTrainingIds,
+              payoutStatistics: salary.statistics,
+            }),
+          )
+          if (payout) {
+            preparedCount += 1
           }
         } catch (error) {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
@@ -114,10 +129,8 @@ export class CronService {
         }
       }
 
-      if (paidDescriptions.length > 0) {
-        const admins = await this.userProfileService.findStudioAdmins()
-        const adminMessage = `🤖 Автоматичні виплати за місяць (${payoutDate}):\n\n${paidDescriptions.join('\n')}`
-        await Promise.all(admins.map((admin) => this.botNotificationService.sendCustomNotification(admin.telegramId, adminMessage)))
+      if (preparedCount > 0) {
+        await this.notifyAdminsAboutPendingPayouts()
       }
 
       if (failures.length > 0) {
@@ -127,43 +140,79 @@ export class CronService {
         )
       }
 
-      this.logger.debug(`Monthly staff payouts completed: ${paidDescriptions.length} paid, ${failures.length} failed`)
+      this.logger.debug(`Monthly staff payouts completed: ${preparedCount} prepared, ${failures.length} failed`)
     })
   }
 
-  /** Registers one staff member's payout and notifies them. Returns the payout description, or null when there is nothing to pay. */
-  private async registerMonthlyStaffPayout(staffUserProfile: UserProfileSelectModel, payoutDate: string) {
-    const salary = await this.staffMemberPayoutService.calculateStaffPayoutSalary(staffUserProfile.id, payoutDate)
+  /**
+   * Every studio admin gets the list of prepared payouts (all still waiting, older ones too), one button per trainer.
+   * Maintainers only in the test studio (it has no admin); in production salaries are the admins' business.
+   */
+  private async notifyAdminsAboutPendingPayouts() {
+    const [admins, payouts] = await Promise.all([
+      this.userProfileService.findStudioAdmins({ withMaintainers: !this.configService.isProduction() }),
+      this.staffMemberPayoutService.findAllPendingPayouts(),
+    ])
+    const items = payouts
+      .filter((payout) => payout.staffMember?.userProfile)
+      .map((payout) => ({
+        staffUserId: payout.staffMember!.userProfile.id,
+        name: UserHelper.getDisplayName(payout.staffMember!.userProfile),
+        amount: Number(payout.amount),
+      }))
+    const keyboard = AdminKeyboards.pendingPayoutsList(items)
 
-    if (salary.statistics.totalPayout <= 0) {
-      return null
-    }
-
-    const payoutState: IInitiatePayoutSceneState = {
-      staffUserProfile,
-      staffUserId: staffUserProfile.id,
-      payoutDate,
-      payoutAmount: salary.statistics.totalPayout,
-      trainingIds: salary.trainingIds,
-      personalTrainingIds: salary.personalTrainingIds,
-      payoutStatistics: salary.statistics,
-    }
-    const description = InitiatePayoutSceneHelper.getPayoutDescriptionMessage(payoutState)
-
-    await this.staffMemberPayoutService.initiateStaffPayout({
-      staffUserId: staffUserProfile.id,
-      amount: String(payoutState.payoutAmount),
-      paidAt: payoutDate,
-      description,
-      trainingIds: salary.trainingIds,
-      personalTrainingIds: salary.personalTrainingIds,
-    })
-    await this.botNotificationService.sendCustomNotification(
-      staffUserProfile.telegramId,
-      InitiatePayoutSceneHelper.getStaffInfoMessage(payoutState),
+    await Promise.all(
+      admins.map((admin) =>
+        this.botNotificationService.sendCustomNotification(admin.telegramId, MessageHelper.getPendingPayoutsListMessage(), {
+          parse_mode: 'HTML',
+          ...keyboard,
+        }),
+      ),
     )
+  }
 
-    return description
+  /**
+   * The evening before the monthly payouts are prepared (last day of the month, 18:00): each trainer with individual
+   * sessions nobody confirmed gets a reminder, since the payout closes them with 0 (group attendance is marked before
+   * the start, no reminder). Runs daily, acts only when tomorrow is the 1st.
+   */
+  @Cron(CronExpression.EVERY_DAY_AT_6PM, {
+    name: 'remind-unconfirmed-sessions',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
+  async remindUnconfirmedSessionsCron() {
+    const todayInTz = formatInTimeZone(new Date(), STATIC_CONFIG.timeZone, DATE_FORMAT.DATE_MAIN)
+    if (add(parseISO(todayInTz), { days: 1 }).getDate() !== 1) {
+      return
+    }
+
+    await this.metricsService.runJob('remind-unconfirmed-sessions', async () => {
+      const payoutDate = format(parseISO(todayInTz), DATE_FORMAT.DATE_INPUT)
+      const staffUserProfiles = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
+
+      for (const staffUserProfile of staffUserProfiles) {
+        try {
+          // A trainer whose previous payout still waits for an admin gets nothing new prepared tomorrow
+          if (await this.staffMemberPayoutService.findPendingPayoutByUserProfileId(staffUserProfile.id)) {
+            continue
+          }
+          const salary = await this.staffMemberPayoutService.calculateStaffPayoutSalary(staffUserProfile.id, payoutDate)
+          const unconfirmedSessions = salary.statistics.pendingPersonalCount ?? 0
+
+          if (unconfirmedSessions) {
+            await this.botNotificationService.sendCustomNotification(
+              staffUserProfile.telegramId,
+              MessageHelper.getUnconfirmedSessionsReminder(unconfirmedSessions),
+              { parse_mode: 'HTML' },
+            )
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          this.logger.error(`Unconfirmed sessions reminder failed for user profile ${staffUserProfile.id}: ${errorMessage}`)
+        }
+      }
+    })
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {

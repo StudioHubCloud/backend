@@ -1,9 +1,10 @@
-import { KeyboardHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
+import { KeyboardHelper, PassHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
 import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
 import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 import { InlineKeyboardButton } from '@telegraf/types'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { COMMON_BUTTONS } from './common-keyboards'
+import { CurrentSessionKeyboards } from './current-session-keyboards'
 import { PassActivationRequestTypeEnum, UserProfileRoleEnum } from '@app/libs'
 
 export class AdminKeyboards {
@@ -55,7 +56,7 @@ export class AdminKeyboards {
     ])
   }
 
-  /** `backButton` replaces "Назад до списку груп" (e.g. "Назад до дня" when opened from the studio schedule). */
+  /** `backButton` replaces the back to the group list (e.g. back to the day when opened from the studio schedule). */
   static groupManageMenu(groupId: number, staffUserId?: string, backButton?: InlineKeyboardButton): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       [
@@ -66,7 +67,7 @@ export class AdminKeyboards {
       ],
       [
         backButton ?? {
-          text: BUTTON_PATTERNS.BACK_TO_GROUP_LIST,
+          text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT,
             groupId,
@@ -102,6 +103,7 @@ export class AdminKeyboards {
     backButtonCallbackData?: string | null,
     staffUserId?: string,
     hasSubstituteTrainer: boolean = false,
+    backButton?: InlineKeyboardButton, // replaces the back to the group's trainings (e.g. back to the schedule day)
   ): TReplyInlineKeyboard {
     const { id: trainingId, groupId, isCancelled } = training
 
@@ -141,6 +143,7 @@ export class AdminKeyboards {
 
     return KeyboardHelper.createInlineKeyboard([
       [isCancelled ? canceledSignupsButton : activeSignupsButton],
+      ...(isCancelled ? [] : [[CurrentSessionKeyboards.openTrainingButton(trainingId)]]),
       [
         {
           text: hasSubstituteTrainer ? BUTTON_PATTERNS.DEASSIGN_SUBSTITUTE : BUTTON_PATTERNS.ASSIGN_SUBSTITUTE,
@@ -183,8 +186,8 @@ export class AdminKeyboards {
       ],
       [isCancelled ? makeActiveButton : cancelButton],
       [
-        {
-          text: BUTTON_PATTERNS.BACK_TO_TRAINING_LIST,
+        backButton ?? {
+          text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(
             backButtonCallbackData ?? CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT,
             groupId,
@@ -228,6 +231,78 @@ export class AdminKeyboards {
     keyboard.push([COMMON_BUTTONS.CLOSE])
 
     return KeyboardHelper.createInlineKeyboard(keyboard)
+  }
+
+  /** Green "💰 Підготовлені виплати (N)": above the "Персонал" list and in the monthly cron's message. */
+  static pendingPayoutsButton(count: number): InlineKeyboardButton {
+    return KeyboardHelper.withStyle(
+      { text: `💰 Підготовлені виплати (${count})`, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.PENDING_LIST, 0) },
+      'success',
+    )
+  }
+
+  /** One button per prepared payout ("Анна Коваль · 4 250 ₴") → that trainer's payout screen. */
+  static pendingPayoutsList(payouts: { staffUserId: string; name: string; amount: number }[]): TReplyInlineKeyboard {
+    const rows: InlineKeyboardButton[][] = payouts.map(({ staffUserId, name, amount }) => [
+      {
+        text: `👤 ${name} · ${PassHelper.toDisplayPrice(amount)}`,
+        callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.SUMMARY, staffUserId, 'true'),
+      },
+    ])
+    rows.push([COMMON_BUTTONS.CLOSE])
+    return KeyboardHelper.createInlineKeyboard(rows)
+  }
+
+  /** A prepared payout: 💸 pay (green) or ❌ cancel, the details, "Назад" to the list of prepared payouts. */
+  static pendingPayoutSummaryMenu(payoutId: string, staffUserId: string, amount: number): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      [
+        KeyboardHelper.withStyle(
+          { text: `💸 Оплатити ${PassHelper.toDisplayPrice(amount)}`, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.APPROVE, payoutId) },
+          'success',
+        ),
+        KeyboardHelper.withStyle(
+          { text: '❌ Відмінити', callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.CANCEL_PENDING, payoutId) },
+          'danger',
+        ),
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.SEE_DETAILS,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS, staffUserId, 'true'),
+        },
+      ],
+      // Back to the list of prepared payouts, wherever it was opened from (the cron's list or "Персонал")
+      [{ text: BUTTON_PATTERNS.BACK, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.PENDING_LIST, 0) }],
+      [COMMON_BUTTONS.CLOSE],
+    ])
+  }
+
+  /** Manual payout, step 1: the end of the period ("Сьогодні · 04.10", "Кінець минулого місяця · 30.09"), back to the summary. */
+  static manualPayoutDatesMenu(staffUserId: string, dates: { label: string; date: string }[]): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard([
+      ...dates.map(({ label, date }) => [
+        { text: label, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.MANUAL_DATE, staffUserId, date) },
+      ]),
+      [{ text: BUTTON_PATTERNS.BACK, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.SUMMARY, staffUserId, 'true') }],
+      [COMMON_BUTTONS.CLOSE],
+    ])
+  }
+
+  /** Manual payout, step 2: the calculation for that date → 💸 pay (green, when there is something to pay) or back to the dates. */
+  static manualPayoutConfirmMenu(staffUserId: string, date: string, amount: number): TReplyInlineKeyboard {
+    const rows: InlineKeyboardButton[][] = []
+    if (amount > 0) {
+      rows.push([
+        KeyboardHelper.withStyle(
+          { text: `💸 Оплатити ${PassHelper.toDisplayPrice(amount)}`, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.MANUAL_PAY, staffUserId, date) },
+          'success',
+        ),
+      ])
+    }
+    rows.push([{ text: BUTTON_PATTERNS.BACK, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.INITIATE, staffUserId, 'true') }])
+    rows.push([COMMON_BUTTONS.CLOSE])
+    return KeyboardHelper.createInlineKeyboard(rows)
   }
 
   static staffmemberPayoutDetailsMenu(userId: string): TReplyInlineKeyboard {
@@ -300,7 +375,7 @@ export class AdminKeyboards {
       ],
       [
         {
-          text: BUTTON_PATTERNS.BACK_TO_STAFF_LIST,
+          text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.PAYOUT.BACK_TO_STAFF_LIST,
             userId,

@@ -14,6 +14,7 @@ import { NextFunction } from 'express'
 import { UserProfileService } from '@app/domain/user-profile'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
+import { StaffMemberPayoutService } from '@app/domain/staff-member-payout'
 import { API, UserProfileRoleEnum } from '@app/libs'
 
 @Injectable()
@@ -26,6 +27,7 @@ export class StaffManageComposer {
     @Inject(REMOVE_GROUP_FROM_STAFF_MENU) private readonly groupSelectRemovePaginatedMenu: GroupSelectPaginatedMenu,
     private readonly userProfileService: UserProfileService,
     private readonly groupService: GroupService,
+    private readonly staffMemberPayoutService: StaffMemberPayoutService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -97,7 +99,10 @@ export class StaffManageComposer {
     _: NextFunction,
     renderOptions: TPaginatedMenuRenderOptions = { shouldEdit: false, withExitButton: true },
   ) => {
-    return this.staffSelectPaginatedMenu.initMenu(ctx, {}, renderOptions)
+    // Payouts the monthly cron prepared go first, in green, until each one is paid or cancelled
+    const pendingPayouts = await this.staffMemberPayoutService.findAllPendingPayouts()
+    const topButtons = pendingPayouts.length ? [[AdminKeyboards.pendingPayoutsButton(pendingPayouts.length)]] : undefined
+    return this.staffSelectPaginatedMenu.initMenu(ctx, {}, { ...renderOptions, topButtons })
   }
 
   private renderStaffMemberManageMenu = async (ctx: BotContext, staffUserId?: string) => {

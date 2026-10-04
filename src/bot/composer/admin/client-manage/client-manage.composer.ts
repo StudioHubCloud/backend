@@ -233,7 +233,10 @@ export class ClientManageComposer {
   }
 
   private renderPersonalTrainingCancelList = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
-    const scheduled = await this.personalTrainingSignupService.getScheduledForClient(clientUserProfile.client.id)
+    const scheduled = PersonalTrainingHelper.filterCancellable(
+      ctx,
+      await this.personalTrainingSignupService.getScheduledForClient(clientUserProfile.client.id),
+    )
 
     if (!scheduled.length) {
       return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_TRAININGS_TO_CANCEL, {

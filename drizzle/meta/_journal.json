@@ -414,6 +414,41 @@
       "when": 1791113011805,
       "tag": "0085_personal-training-reminder-sent",
       "breakpoints": true
+    },
+    {
+      "idx": 86,
+      "version": "7",
+      "when": 1791117349198,
+      "tag": "0086_session_confirmations",
+      "breakpoints": true
+    },
+    {
+      "idx": 87,
+      "version": "7",
+      "when": 1791117964641,
+      "tag": "0087_audit_confirmation_actions",
+      "breakpoints": true
+    },
+    {
+      "idx": 88,
+      "version": "7",
+      "when": 1791141301962,
+      "tag": "0088_staff_payout_status",
+      "breakpoints": true
+    },
+    {
+      "idx": 89,
+      "version": "7",
+      "when": 1791143513029,
+      "tag": "0089_payout_rule_bonus_type",
+      "breakpoints": true
+    },
+    {
+      "idx": 90,
+      "version": "7",
+      "when": 1791143526231,
+      "tag": "0090_payout_rule_bonus",
+      "breakpoints": true
     }
   ]
 }

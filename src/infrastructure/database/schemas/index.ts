@@ -55,4 +55,5 @@ export {
   AuditLogActionsPgEnum,
   AuditLogEntityPgEnum,
   PersonalTrainingSignupStatusPgEnum,
+  StaffMemberPayoutStatusPgEnum,
 } from '../database.enums'

@@ -1,5 +1,5 @@
 import { BadRequestException, forwardRef, Inject, Injectable, NotFoundException } from '@nestjs/common'
-import { and, eq, gte, lte } from 'drizzle-orm'
+import { and, eq, gte, isNull, lte } from 'drizzle-orm'
 import { addDays, endOfDay, startOfDay } from 'date-fns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import {
@@ -72,6 +72,8 @@ export class TrainingService {
       throw new BadRequestException(`Training with id: ${trainingId} is already cancelled`)
     }
 
+    this.assertNotPaidOut(targetTraining)
+
     if (new Date(targetTraining.date) < new Date()) {
       throw new BadRequestException(`Training with id: ${trainingId} is in the past and cannot be canceled`)
     }
@@ -99,6 +101,7 @@ export class TrainingService {
     if (!targetTraining.isCancelled) {
       throw new BadRequestException(`Training with id: ${trainingId} is not cancelled`)
     }
+    this.assertNotPaidOut(targetTraining)
     if (new Date(targetTraining.date) < new Date()) {
       throw new BadRequestException(`Training with id: ${trainingId} is in the past and cannot be activated`)
     }
@@ -221,12 +224,17 @@ export class TrainingService {
     if (updateData.date && new Date(updateData.date) < new Date()) {
       throw new BadRequestException(`Training with id: ${trainingId} cannot be updated to a past date`)
     }
+    this.assertNotPaidOut(targetTraining)
 
     const [updatedTraining] = await this.databaseService.drizzle
       .update(training)
       .set(updateData)
-      .where(eq(training.id, trainingId))
+      .where(and(eq(training.id, trainingId), isNull(training.staffMemberPayoutId)))
       .returning()
+
+    if (!updatedTraining) {
+      throw new BadRequestException(COMMON.PAID_OUT_MESSAGE)
+    }
 
     await this.redisCacheService.reset()
 
@@ -346,6 +354,7 @@ export class TrainingService {
       },
       with: {
         group: true,
+        // All signups: the payout counts the confirmed ones (`confirmedAt`) and shows "confirmed of signed up"
         trainingSignups: {
           where: (signup, { inArray }) =>
             inArray(signup.status, [TrainingSignupStatusEnum.ACTIVE, TrainingSignupStatusEnum.ARCHIVED]),
@@ -362,7 +371,7 @@ export class TrainingService {
 
   /**
    * All of the studio's group trainings (cancelled ones too, marked in the UI) starting in [fromIso, toIso], with the
-   * group's trainer, a substitute trainer if any, and the active signups (ids only, for the count).
+   * group's trainer, a substitute trainer if any, and the active signups (ids and confirmation, for the counts).
    */
   async getStudioTrainingsInRange(fromIso: string, toIso: string) {
     return this.databaseService.drizzle.query.training.findMany({
@@ -382,7 +391,7 @@ export class TrainingService {
         trainer: { with: { userProfile: true } },
         trainingSignups: {
           where: (signup, { eq }) => eq(signup.status, TrainingSignupStatusEnum.ACTIVE),
-          columns: { id: true },
+          columns: { id: true, confirmedAt: true },
         },
       },
       orderBy: (training, { asc }) => asc(training.date),
@@ -418,6 +427,13 @@ export class TrainingService {
 
   async deassignSubstituteTrainer(trainingId: number) {
     return this.updateTraining(trainingId, { trainerId: null })
+  }
+
+  /** A training included in a trainer payout is final: no cancel, activate, signup or trainer changes. */
+  assertNotPaidOut(targetTraining: { staffMemberPayoutId: string | null } | null) {
+    if (targetTraining?.staffMemberPayoutId) {
+      throw new BadRequestException(COMMON.PAID_OUT_MESSAGE)
+    }
   }
 
   private staffMemberTrainingFilter(staffMemberId: string) {

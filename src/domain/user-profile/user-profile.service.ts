@@ -37,12 +37,14 @@ export class UserProfileService {
     this.studioId = this.configService.getStudioId()
   }
 
-  async findStudioAdmins() {
+  /** Active admins of the studio; `withMaintainers` adds the maintainers (e.g. in the test studio, which has no admin). */
+  async findStudioAdmins({ withMaintainers = false }: { withMaintainers?: boolean } = {}) {
+    const roles = withMaintainers ? [UserProfileRoleEnum.ADMIN, UserProfileRoleEnum.MAINTAINER] : [UserProfileRoleEnum.ADMIN]
     return await this.databaseService.drizzle.query.userProfile.findMany({
-      where: (userProfile, { eq, and }) =>
+      where: (userProfile, { eq, and, inArray }) =>
         and(
           eq(userProfile.studioId, this.studioId),
-          eq(userProfile.role, UserProfileRoleEnum.ADMIN),
+          inArray(userProfile.role, roles),
           eq(userProfile.status, UserProfileStatusEnum.ACTIVE),
         ),
     })

@@ -6,6 +6,7 @@ import { staffMember } from './staff-member.schema'
 import { studio } from './studio.schema'
 import { studioPrice } from './studio-price.schema'
 import { staffMemberPayout } from './staff-member-payout.schema'
+import { userProfile } from './user-profile.schema'
 import { PersonalTrainingSignupStatusPgEnum } from '../database.enums'
 import { PersonalTrainingSignupStatusEnum } from '@app/libs/constants/enums'
 
@@ -27,6 +28,8 @@ export const personalTrainingSignup = table(
     staffMemberPayoutId: uuid('staff_member_payout_id').references(() => staffMemberPayout.id, { onDelete: 'set null' }),
     cancelledAt: timestamp('cancelled_at', { mode: 'string', withTimezone: true }),
     reminderSent: boolean('reminder_sent').notNull().default(false), // the 4-hour reminder went out (client and trainer)
+    confirmedAt: timestamp('confirmed_at', { mode: 'string', withTimezone: true }), // set with status completed / no_show
+    confirmedById: uuid('confirmed_by_id').references(() => userProfile.id, { onDelete: 'set null' }), // trainer or admin
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [

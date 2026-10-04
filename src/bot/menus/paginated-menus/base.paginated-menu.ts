@@ -137,6 +137,9 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
       page,
     })
 
+    if (renderOptions.topButtons?.length) {
+      menu.inline_keyboard.unshift(...renderOptions.topButtons)
+    }
     this.appendBackButton(menu, renderOptions)
     this.appendExitButton(menu, renderOptions)
 

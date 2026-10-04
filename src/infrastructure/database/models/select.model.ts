@@ -12,6 +12,7 @@ export type GroupStyleVariantSelectModel = InferSelectModel<typeof schemas.group
 export type GroupSelectModel = InferSelectModel<typeof schemas.group>
 export type PassSelectModel = InferSelectModel<typeof schemas.pass>
 export type StaffMemberSelectModel = InferSelectModel<typeof schemas.staffMember>
+export type StaffMemberPayoutSelectModel = InferSelectModel<typeof schemas.staffMemberPayout>
 export type StudioSelectModel = InferSelectModel<typeof schemas.studio>
 export type SubscribtionPlanSelectModel = InferSelectModel<typeof schemas.subscribtionPlan>
 export type SubscribtionSelectModel = InferSelectModel<typeof schemas.subscribtion>

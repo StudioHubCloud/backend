@@ -109,7 +109,10 @@ export class PersonalTrainingStaffComposer {
       return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.NO_TRAINER, { show_alert: true })
     }
 
-    const trainings = await this.personalTrainingSignupService.getCancellableForStaffMember(staffUserProfile.staffMember.id)
+    const trainings = PersonalTrainingHelper.filterCancellable(
+      ctx,
+      await this.personalTrainingSignupService.getCancellableForStaffMember(staffUserProfile.staffMember.id),
+    )
 
     if (!trainings.length) {
       return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.NO_TRAININGS_TO_CANCEL, { show_alert: true })
@@ -136,7 +139,9 @@ export class PersonalTrainingStaffComposer {
     }
 
     const trainerUserProfile = signup.staffMember?.userProfile
-    const remaining = signup.staffMember ? await this.personalTrainingSignupService.getCancellableForStaffMember(signup.staffMember.id) : []
+    const remaining = signup.staffMember
+      ? PersonalTrainingHelper.filterCancellable(ctx, await this.personalTrainingSignupService.getCancellableForStaffMember(signup.staffMember.id))
+      : []
 
     if (!trainerUserProfile || !remaining.length) {
       return BotHelper.safeDeleteMessage(ctx)

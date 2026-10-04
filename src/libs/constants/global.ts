@@ -19,6 +19,8 @@ export const DATE_FORMAT = {
 
 export const TRAINING_CONFIG = {
   DURATION_MINUTES: 60, // group trainings and individual sessions alike (no per-training duration in the DB)
+  // Attendance can be confirmed from this long before the start; "⏱ Поточне заняття" switches to the next session then
+  CONFIRM_LEAD_MINUTES: 30,
 } as const
 
 export const ENVIRONMENTS = {

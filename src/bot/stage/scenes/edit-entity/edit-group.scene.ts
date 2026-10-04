@@ -7,7 +7,6 @@
 // import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 // import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 // import { AdminKeyboards } from '@app/bot/keyboard/storage'
-// import { InitiatePayoutSceneKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
 // import { DATE_FORMAT } from '@app/libs'
 // import { IEditGroupSceneState, EditGroupSceneHelper } from './edit-group.scene-helper'
 // import { UserProfileService } from '@app/domain/user-profile'

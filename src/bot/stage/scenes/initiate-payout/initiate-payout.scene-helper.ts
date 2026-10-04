@@ -1,4 +1,4 @@
-import { PassHelper, UserHelper } from '@app/bot/helpers'
+import { MessageHelper, PassHelper, TextHelper, UserHelper } from '@app/bot/helpers'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
 import { TPayoutStatistics } from '@app/libs'
 
@@ -34,6 +34,19 @@ export class InitiatePayoutSceneHelper {
     )
   }
 
+  /** Shown to the admin after a manual payout: who, the period, the breakdown, and that the trainer was notified. */
+  static getPayoutDoneMessage(data: IInitiatePayoutSceneState): string {
+    const { staffUserProfile, payoutDate, payoutAmount, payoutStatistics } = data
+    return (
+      `✅ <b>Зарплату виплачено</b>\n\n` +
+      `👤 ${UserHelper.getDisplayName(staffUserProfile)}\n` +
+      `📅 Період до <b>${payoutDate}</b>\n` +
+      this.getPayoutBreakdown(payoutStatistics) +
+      `💰 Сума: <b>${PassHelper.toDisplayPrice(payoutAmount)}</b>\n\n` +
+      `📨 <i>Тренеру надіслано повідомлення</i>`
+    )
+  }
+
   static getConfirmPayoutMessage(data: IInitiatePayoutSceneState): string {
     const { staffUserProfile, payoutDate, payoutAmount, payoutStatistics } = data
     return (
@@ -41,7 +54,8 @@ export class InitiatePayoutSceneHelper {
       `👤 Працівник: <b>${UserHelper.getDisplayName(staffUserProfile)}</b>\n` +
       `📅 Дата виплати: <b>${payoutDate}</b>\n` +
       this.getPayoutBreakdown(payoutStatistics) +
-      `💰 Сума виплати: <b>${PassHelper.toDisplayPrice(payoutAmount)}</b>\n`
+      `💰 Сума виплати: <b>${PassHelper.toDisplayPrice(payoutAmount)}</b>\n` +
+      (payoutStatistics ? MessageHelper.getPayoutPendingWarning(payoutStatistics).replace(/^\n/, '') : '')
     )
   }
 
@@ -54,9 +68,13 @@ export class InitiatePayoutSceneHelper {
     const groupLine = totalTrainings
       ? `👥 Групові: ${totalTrainings} трен. • ${PassHelper.toDisplayPrice(groupPayout)}\n`
       : ''
-    const personalLine = personalTrainingCount
-      ? `🤝 Індивідуальні: ${personalTrainingCount} зан. • ${PassHelper.toDisplayPrice(personalPayout)}\n`
-      : ''
-    return groupLine + personalLine
+    const noShows = statistics.personalNoShowCount ?? 0
+    const noShowNote = noShows ? ` (+ 🚫 ${noShows} ${TextHelper.pluralize(noShows, ['неявка', 'неявки', 'неявок'])})` : ''
+    const personalLine =
+      personalTrainingCount || noShows
+        ? `🤝 Індивідуальні: ${personalTrainingCount} зан.${noShowNote} • ${PassHelper.toDisplayPrice(personalPayout)}\n`
+        : ''
+    const bonusLine = statistics.bonus ? `🎁 Бонус: ${PassHelper.toDisplayPrice(statistics.bonus)}\n` : ''
+    return groupLine + bonusLine + personalLine
   }
 }

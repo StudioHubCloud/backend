@@ -1,0 +1,1 @@
+ALTER TYPE "public"."studio_payout_rule_type_enum" ADD VALUE 'bonus';

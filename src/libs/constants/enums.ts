@@ -88,11 +88,19 @@ export enum StudioPayoutRuleTypeEnum {
   FIXED = 'fixed',
   PERCENTAGE = 'percentage',
   PER_SIGNUP = 'per_signup',
+  BONUS = 'bonus', // + amount per payout when group trainings averaged min_signups+ confirmed people in the period
 }
 
 export enum PersonalTrainingSignupStatusEnum {
   SCHEDULED = 'scheduled',
   CANCELED = 'canceled',
+  COMPLETED = 'completed', // confirmed: the session took place, the trainer is paid
+  NO_SHOW = 'no_show', // confirmed: the client didn't come, the pass session is burnt, the trainer gets 0
+}
+
+export enum StaffMemberPayoutStatusEnum {
+  PENDING = 'pending', // prepared by the monthly cron (snapshot, sessions locked), waiting for an admin to pay or cancel
+  PAID = 'paid',
 }
 
 export enum FileTypeEnum {
@@ -127,6 +135,10 @@ export enum AuditLogActions {
   AI_ASSISTANT_ACTION = 'ai_assistant_action',
   PERSONAL_TRAINING_REGISTER = 'personal_training_register',
   PERSONAL_TRAINING_CANCEL = 'personal_training_cancel',
+  TRAINING_SIGNUP_ATTENDANCE = 'training_signup_attendance', // a trainer / admin confirms or unconfirms that a client came
+  PERSONAL_TRAINING_CONFIRM = 'personal_training_confirm', // completed / no-show, or back to scheduled
+  STAFF_PAYOUT_APPROVE = 'staff_payout_approve', // an admin pays a payout the monthly cron prepared
+  STAFF_PAYOUT_CANCEL = 'staff_payout_cancel', // an admin cancels it (sessions unlocked, paid manually later)
 }
 
 export enum AuditLogTrigger {
@@ -146,4 +158,5 @@ export enum AuditLogEntity {
   CLIENT = 'client',
   USER_PROFILE = 'user_profile',
   PERSONAL_TRAINING_SIGNUP = 'personal_training_signup',
+  STAFF_MEMBER_PAYOUT = 'staff_member_payout',
 }

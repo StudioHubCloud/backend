@@ -159,11 +159,13 @@ export class BotHelper {
     }
   }
 
+  /** The sent message, or undefined when Telegram refused it (logged, never thrown). */
   static async safeSendMessage(telegram: Telegram, chatId: number | string, text: string | FmtString, options?: ExtraReplyMessage) {
     try {
-      await telegram.sendMessage(chatId, text, { parse_mode: 'HTML', ...options })
+      return await telegram.sendMessage(chatId, text, { parse_mode: 'HTML', ...options })
     } catch (error: any) {
       console.error('Error sending message:', error?.message, chatId, text)
+      return undefined
     }
   }
 
@@ -180,7 +182,10 @@ export class BotHelper {
     try {
       return await ctx.editMessageText(text, { parse_mode: 'HTML', ...extra })
     } catch (error: any) {
-      console.error('Error editing message text:', error.message)
+      // Same text and keyboard (e.g. 🔄 or "Сьогодні" when nothing changed): Telegram refuses, the message is already right
+      if (!error?.message?.includes('message is not modified')) {
+        console.error('Error editing message text:', error.message)
+      }
       return false
     }
   }

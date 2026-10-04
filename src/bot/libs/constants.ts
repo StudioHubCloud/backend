@@ -7,6 +7,8 @@ export const COMMON = {
   SIGNOUT_ALLOWED_HOURS_BEFORE_TRAINING: 6,
   INCOMING_TRAININGS_DAYS_RANGE: 7,
   TRAINING_MANAGE_SUBSTRACT_DAYS_THRESHOLD: 7,
+  // A training / individual session included in a trainer payout (paid, or prepared by the monthly cron) is final
+  PAID_OUT_MESSAGE: '🔒 Заняття вже включене у виплату тренеру — зміни заборонені',
 } as const
 
 export const ERA_STUDIO_LOGO_320_DEV = 'AgACAgIAAxkBAAIqK2kVKoaeYgoI2mLw85CTcpzrJlaMAAK6DWsb9uCpSKX5LOSGkH-_AQADAgADbQADNgQ'
@@ -17,7 +19,6 @@ export const SCENES = {
   VERIFY_CLIENT: 'verify_client',
   VERIFY_TRAINER: 'verify_trainer',
   SIGN_IN_CLIENT: 'sign_in_client',
-  INITIATE_PAYOUT: 'initiate_payout',
   SPECIAL_SCHEDULE: 'special_schedule',
   EDIT_GROUP: 'edit_group',
   EDIT_PASS: 'edit_pass',
@@ -83,12 +84,19 @@ export const CALLBACK_PREFIX = {
     },
     PAYOUT: {
       DETAILS: 'p.i.st',
-      DETAILS_BACK: 'p.i.st.b', // back from client info: group details only, the individual one is already sent
+      DETAILS_BACK: 'p.i.st.b', // back from client info to the details (same screen as DETAILS)
       SUMMARY: 'p.d.st',
       INITIATE: 'p.init.st',
       CLIENT_INFO: 'p.i.cl',
       BACK_TO_STAFF_MANAGE: 'p.b.s.st.m',
       BACK_TO_STAFF_LIST: 'p.b.s.st.l',
+      // Payouts the monthly cron prepared (status pending): the list, pay, cancel
+      PENDING_LIST: 'p.pl', // value: 0
+      APPROVE: 'p.ap', // value: payout id
+      CANCEL_PENDING: 'p.cp', // value: payout id
+      // Manual payout (admin): end of the period, then pay
+      MANUAL_DATE: 'p.md', // value: staff user id, subvalue: period end dd.MM.yyyy
+      MANUAL_PAY: 'p.mp', // value: staff user id, subvalue: period end dd.MM.yyyy
     },
     // Admin "Розклад студії": calendar → day → groups / individual sessions
     SCHEDULE: {
@@ -98,6 +106,14 @@ export const CALLBACK_PREFIX = {
       PERSONAL: 'sch.p', // value: signup id
       PERSONAL_CANCEL: 'sch.pc', // value: signup id
       PERSONAL_NOTE: 'sch.pn', // value: signup id
+    },
+    // "⏱ Поточне заняття": confirm who came (group) / that a session took place (individual)
+    CURRENT: {
+      TRAINING: 'cur.t', // value: training id, subvalue: n = as a new message (opened from another menu)
+      SESSION: 'cur.s', // value: personal training signup id, subvalue: n = as a new message
+      ATTENDANCE: 'cur.a', // value: training signup id, subvalue: 1 = came, 0 = take back
+      CONFIRM: 'cur.c', // value: personal training signup id, subvalue: c = completed, n = no-show, u = take back (+ s = from the schedule card)
+      ADD_VISITOR: 'cur.v', // admin: a one-time visitor by name (SPECIAL_SCHEDULE scene); value: training id
     },
     PERSONAL_TRAINING: {
       REGISTER: 'pt.reg.st',

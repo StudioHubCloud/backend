@@ -2,7 +2,7 @@ import { format, parse } from 'date-fns'
 import { uk } from 'date-fns/locale'
 import { GroupSelectModel, PersonalTrainingSignupSelectModel, TrainingSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 import { DateTimeProvider } from '@app/infrastructure/providers'
-import { DATE_FORMAT } from '@app/libs'
+import { DATE_FORMAT, PersonalTrainingSignupStatusEnum } from '@app/libs'
 import { TextHelper } from './text.helper'
 import { UserHelper } from './user.helper'
 import { PersonalTrainingHelper, IStaffPersonalSession } from './personal-training.helper'
@@ -12,7 +12,7 @@ type TTrainerRef = { userProfile: UserProfileSelectModel | null } | null
 export type TScheduleTraining = TrainingSelectModel & {
   group: GroupSelectModel & { trainer: TTrainerRef }
   trainer: TTrainerRef // substitute trainer
-  trainingSignups: { id: string }[] // active signups
+  trainingSignups: { id: string; confirmedAt: string | null }[] // active signups
 }
 
 export type TScheduleSession = PersonalTrainingSignupSelectModel & IStaffPersonalSession & { staffMember: TTrainerRef }
@@ -64,13 +64,17 @@ export class ScheduleHelper {
         }
         const trainer = this.getTrainerName(training.trainer ?? training.group.trainer)
         const signups = training.trainingSignups.length
-        return `${time}  👯‍♀️ ${name} · ${trainer} · ${signups} ${TextHelper.pluralize(signups, ['запис', 'записи', 'записів'])}`
+        const confirmed = training.trainingSignups.filter((signup) => signup.confirmedAt).length
+        const confirmedNote = confirmed ? ` · ✅ ${confirmed}` : ''
+        return `${time}  👯‍♀️ ${name} · ${trainer} · ${signups} ${TextHelper.pluralize(signups, ['запис', 'записи', 'записів'])}${confirmedNote}`
       }
 
       const { session } = item
       const title = TextHelper.escapeHtml(PersonalTrainingHelper.getSessionTitle(session))
       const participants = TextHelper.escapeHtml(PersonalTrainingHelper.getSessionParticipants(session))
-      return `${time}  🤝 ${title} · ${participants} → ${this.getTrainerName(session.staffMember)}`
+      const status =
+        session.status === PersonalTrainingSignupStatusEnum.COMPLETED ? ' · ✅' : session.status === PersonalTrainingSignupStatusEnum.NO_SHOW ? ' · 🚫 неявка' : ''
+      return `${time}  🤝 ${title} · ${participants} → ${this.getTrainerName(session.staffMember)}${status}`
     })
 
     const hidden = hiddenCount ? `\n\n<i>…та ще ${hiddenCount}: відкрийте через «Групи»</i>` : ''

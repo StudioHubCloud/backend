@@ -21,6 +21,8 @@ export interface IStaffPersonalSession {
   client?: { userProfile: Pick<UserProfileSelectModel, 'firstName' | 'lastName' | 'fullName'> | null } | null
 }
 
+const STARTED_CANCEL_MESSAGE = '⏰ Заняття вже почалося: можна лише відмітити «Відбулося» чи «Неявка». Скасувати його може мейнтейнер'
+
 export class PersonalTrainingHelper {
   private static formatLine(signup: GetPersonalTrainingSignupListItem, dateTimeProvider: DateTimeProvider): string {
     const date = dateTimeProvider.formatDateStringInTz(signup.scheduledAt, 'dd MMMM, HH:mm')
@@ -224,6 +226,19 @@ export class PersonalTrainingHelper {
    * guards, cancel (a pass session's slot goes back to the pass), audit, and notifications to the client
    * (pass sessions) and the trainer. Returns the cancelled signup, or null when refused (an alert was shown).
    */
+  /**
+   * An admin cancels a session (the pass gets it back) only before it starts; afterwards only "Відбулося" / "Неявка"
+   * (a no-show burns it). A maintainer can still cancel a started session.
+   */
+  static canCancel(ctx: BotContext, scheduledAt: string): boolean {
+    return UserHelper.isMaintainerRole(ctx) || new Date(scheduledAt).getTime() > Date.now()
+  }
+
+  /** The sessions of a cancel list this user may still cancel (see canCancel). */
+  static filterCancellable<T extends { scheduledAt: string }>(ctx: BotContext, sessions: T[]): T[] {
+    return sessions.filter((session) => this.canCancel(ctx, session.scheduledAt))
+  }
+
   static async cancelByAdmin(
     ctx: BotContext,
     signupId: string,
@@ -239,8 +254,13 @@ export class PersonalTrainingHelper {
     }
 
     if (signup.staffMemberPayoutId) {
-      BotHelper.safeAnswerCbQuery(ctx, '💰 Це заняття вже оплачене тренеру, його не можна скасувати', { show_alert: true })
+      BotHelper.safeAnswerCbQuery(ctx, '💰 Це заняття вже включене у виплату тренеру, його не можна скасувати', { show_alert: true })
       await BotHelper.safeDeleteMessage(ctx)
+      return null
+    }
+
+    if (!this.canCancel(ctx, signup.scheduledAt)) {
+      BotHelper.safeAnswerCbQuery(ctx, STARTED_CANCEL_MESSAGE, { show_alert: true })
       return null
     }
 
@@ -276,18 +296,35 @@ export class PersonalTrainingHelper {
   /** One session for the admin (studio schedule): trainer, kind, who, time, whether it's already paid out. */
   static getAdminSessionMessage(
     session: IStaffPersonalSession & {
+      status: PersonalTrainingSignupStatusEnum
       staffMemberPayoutId: string | null
       staffMember: { userProfile: UserProfileSelectModel | null } | null
     },
     dateTimeProvider: DateTimeProvider,
   ): string {
     const trainerName = UserHelper.getDisplayName(session.staffMember?.userProfile ?? null)
-    const paid = session.staffMemberPayoutId ? `\n\n💰 <i>Вже оплачено тренеру</i>` : ''
+    const paid = session.staffMemberPayoutId ? `\n\n💰 <i>Включено у виплату тренеру</i>` : ''
     return (
       `🤝 ${TextHelper.bold(session.studioPrice ? 'Разове заняття' : 'Заняття з абонемента')}\n\n` +
       `👨‍🏫 Тренер: ${TextHelper.bold(TextHelper.escapeHtml(trainerName))}\n` +
-      `${this.getSessionBlock(session, dateTimeProvider)}${paid}`
+      `${this.getSessionBlock(session, dateTimeProvider)}\n\n` +
+      `Статус: ${this.getStatusLabel(session.status, !!session.staffMemberPayoutId)}${paid}`
     )
+  }
+
+  /** Confirmation status of a session for staff: "⏳ Очікує підтвердження", "✅ Відбулося", "🚫 Неявка"… */
+  static getStatusLabel(status: PersonalTrainingSignupStatusEnum, isPaidOut = false): string {
+    switch (status) {
+      case PersonalTrainingSignupStatusEnum.COMPLETED:
+        return '✅ Відбулося'
+      case PersonalTrainingSignupStatusEnum.NO_SHOW:
+        return '🚫 Неявка'
+      case PersonalTrainingSignupStatusEnum.CANCELED:
+        return '❌ Скасовано'
+      default:
+        // Nobody confirmed it before the payout closed the period: final, paid 0
+        return isPaidOut ? '⚪️ Не підтверджено (закрито виплатою)' : '⏳ Очікує підтвердження'
+    }
   }
 
   /** Client reminder a few hours before a pass session (same tone as the group training reminder). */

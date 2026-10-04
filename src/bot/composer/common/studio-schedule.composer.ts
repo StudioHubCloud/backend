@@ -22,7 +22,8 @@ const CALENDAR_PROMPT = '📅 <b>Розклад студії</b>\n\nОберіт
 
 /**
  * "📅 Розклад студії" for admins and trainers: a day's timeline (group trainings and individual sessions, ◀️ / ▶️ by day,
- * "📅 Обрати дату" for the calendar) → the existing group menu (with "Назад до дня") or one individual session.
+ * "📅 Обрати дату" for the calendar) → that training's existing menu (its "Назад" leads back to the day; access is
+ * checked by the training handlers: a trainer's own group or substitution) or one individual session.
  * A shortcut to "Групи" with the same limits: a trainer opens only their own groups, and individual sessions are
  * read-only for trainers (admins can edit a one-off's note and cancel). Dates travel as yyyy-MM-dd in the studio time zone.
  */
@@ -161,11 +162,15 @@ export class StudioScheduleComposer {
       return BotHelper.safeDeleteMessage(ctx)
     }
 
+    const isAdmin = UserHelper.isAdminRole(ctx)
+    // A trainer confirms their own sessions (the confirmation handlers check it again)
+    const canConfirm = isAdmin || session.staffMemberId === (await this.getOwnStaffMemberId(ctx))
+
     BotHelper.safeAnswerCbQuery(ctx)
     return BotHelper.safeEditMessageText(
       ctx,
       PersonalTrainingHelper.getAdminSessionMessage(session, this.dateTimeProvider),
-      ScheduleKeyboards.session(session, this.dateTimeProvider, UserHelper.isAdminRole(ctx)),
+      ScheduleKeyboards.session(session, this.dateTimeProvider, { canManage: isAdmin, canConfirm, isMaintainer: UserHelper.isMaintainerRole(ctx) }),
     )
   }
 

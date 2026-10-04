@@ -21,6 +21,8 @@ export const trainingSignup = table(
     trainingId: integer('training_id')
       .references(() => training.id, { onDelete: 'cascade' })
       .notNull(),
+    confirmedAt: timestamp('confirmed_at', { mode: 'string', withTimezone: true }), // null = attendance not confirmed, not paid
+    confirmedById: uuid('confirmed_by_id').references(() => userProfile.id, { onDelete: 'set null' }), // trainer or admin
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [

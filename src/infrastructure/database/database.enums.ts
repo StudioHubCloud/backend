@@ -32,3 +32,4 @@ export const PersonalTrainingSignupStatusPgEnum = pgEnum(
   'personal_training_signup_status_enum',
   enumToPgEnum(ENUMS.PersonalTrainingSignupStatusEnum),
 )
+export const StaffMemberPayoutStatusPgEnum = pgEnum('staff_member_payout_status_enum', enumToPgEnum(ENUMS.StaffMemberPayoutStatusEnum))

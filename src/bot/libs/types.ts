@@ -22,7 +22,7 @@ import {
   AuditLogServiceOperation,
   FileTypeEnum,
 } from '@app/libs'
-import { InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
+import { InlineKeyboardButton, InlineKeyboardMarkup, ReplyKeyboardMarkup } from '@telegraf/types'
 import { Scenes } from 'telegraf'
 import {
   CLIENT_STATUS_CHANGE_ACTIONS,
@@ -39,6 +39,7 @@ export type TBotStore = {
 /** Telegraf session (per user + chat): scene state plus paginated-menu state keyed by `${callbackPrefix}:${messageId}`. */
 export type TBotSession = Scenes.WizardSession & {
   menus?: Record<string, TPaginatedMenuState>
+  payoutTailMessageIds?: number[] // payout texts over Telegram's limit continue in these messages; deleted on the next step
 }
 
 export type AuthUserProfile = UserProfileSelectModel & {
@@ -60,6 +61,7 @@ export type TPaginatedMenuRenderOptions = {
   shouldEdit?: boolean
   backButtonCallbackData?: string | null
   withExitButton?: boolean
+  topButtons?: InlineKeyboardButton[][] // rows above the list (e.g. "💰 Підготовлені виплати" in "Персонал"); plain JSON, kept in the session
   context?: Record<string, any>
 }
 

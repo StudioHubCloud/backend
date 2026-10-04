@@ -154,16 +154,6 @@ export class VerifyTrainerSceneKeyboards {
   }
 }
 
-export class InitiatePayoutSceneKeyboards {
-  static enterPayoutDateKeyboard(date: string): TReplyMarkupKeyboard {
-    return KeyboardHelper.createReplyMarkupKeyboard([[date], ...KEYBOARDS_SCENE.COMMON.EXIT])
-  }
-
-  static confirmPayoutKeyboard(): TReplyMarkupKeyboard {
-    return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_SCENE.INITIATE_PAYOUT.CONFIRM)
-  }
-}
-
 export class PersonalTrainingRegisterSceneKeyboards {
   static trainerSelectInlineKeyboard(
     trainers: (UserProfileSelectModel & { staffMember: StaffMemberSelectModel | null })[],

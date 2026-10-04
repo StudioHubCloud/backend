@@ -4,6 +4,7 @@ import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyM
 import { InlineKeyboardButton } from '@telegraf/types'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { COMMON_BUTTONS } from './common-keyboards'
+import { CurrentSessionKeyboards } from './current-session-keyboards'
 
 export class TrainerKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {
@@ -15,6 +16,7 @@ export class TrainerKeyboards {
     training: GetTrainingByIdResponse,
     backButtonCallbackData?: string | null,
     origin?: string,
+    backButton?: InlineKeyboardButton, // replaces the back to the group's trainings (e.g. back to the schedule day)
   ): TReplyInlineKeyboard {
     const { id: trainingId, groupId, isCancelled } = training
 
@@ -37,9 +39,10 @@ export class TrainerKeyboards {
 
     return KeyboardHelper.createInlineKeyboard([
       [isCancelled ? canceledSignupsButton : activeSignupsButton],
+      ...(isCancelled ? [] : [[CurrentSessionKeyboards.openTrainingButton(trainingId)]]),
       [
-        {
-          text: BUTTON_PATTERNS.BACK_TO_TRAINING_LIST,
+        backButton ?? {
+          text: BUTTON_PATTERNS.BACK,
           callback_data: RegexHelper.createButtonActionCallbackData(
             backButtonCallbackData ?? CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT,
             groupId,

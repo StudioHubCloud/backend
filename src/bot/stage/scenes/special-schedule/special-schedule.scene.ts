@@ -2,13 +2,13 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { CALLBACK_PREFIX, GetGroupByIdResponse, GetTrainingByIdResponse, SCENES, TReplyMarkupKeyboard } from '@app/bot/libs'
-import { SceneHelper, BotHelper, UserHelper, KeyboardHelper } from '@app/bot/helpers'
+import { SceneHelper, BotHelper, UserHelper, KeyboardHelper, TextHelper, CurrentSessionHelper } from '@app/bot/helpers'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
-import { AdminKeyboards, CommonSceneKeyboards } from '@app/bot/keyboard/storage'
+import { AdminKeyboards, CommonSceneKeyboards, CurrentSessionKeyboards, ScheduleKeyboards } from '@app/bot/keyboard/storage'
 import { TrainingService } from '@app/domain/training'
 import { GroupService } from '@app/domain/group'
 import { TrainingSignupService } from '@app/domain/training-signup'
@@ -20,6 +20,7 @@ export interface ISpetialScheduleSceneState {
   promptMessageId: number
   fallbackUsername: string
   group: GetGroupByIdResponse
+  fromCurrentSession?: boolean // "⏱ Поточне заняття": the visitor is on site, so the signup is created confirmed (from the lead time on)
 }
 
 @Injectable()
@@ -76,15 +77,20 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
   private clientNameHandler = async (ctx: BotContext) => {
     try {
       const { textPayload } = BotHelper.getUpdatePayload(ctx)
-      const { trainingId, group } = this.specialScheduleScene.getState(ctx)
+      const { trainingId, group, fromCurrentSession } = this.specialScheduleScene.getState(ctx)
+      // On site = present, but not before attendance can be confirmed at all (CONFIRM_LEAD_MINUTES before the start)
+      const training = fromCurrentSession ? await this.trainingService.getTrainingById(+trainingId) : null
+      const confirm = !!training && CurrentSessionHelper.canConfirmYet(training.date)
 
       await this.trainingSignupService.createSpecialScheduleSignup({
         trainingId,
         fallbackUsername: textPayload,
         groupId: group.id,
+        ...(confirm && { confirmedById: UserHelper.getUser(ctx).id }),
       })
 
-      await ctx.replyWithHTML(`✅ Запис на ім'я ${textPayload} успішно створено`, this.getExitKeyboard(ctx))
+      const confirmedNote = confirm ? ', присутність підтверджено 🟢' : ''
+      await ctx.replyWithHTML(`✅ Запис на ім'я ${TextHelper.escapeHtml(textPayload)} успішно створено${confirmedNote}`, this.getExitKeyboard(ctx))
       return this.handleSceneExitAndCleanup(ctx)
     } catch (error) {
       await this.handleError(ctx, error)
@@ -105,7 +111,15 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
   }
 
   private handleSceneExitAndCleanup = async (ctx: BotContext) => {
-    const { fromUpcomingTrainingsMenu, staffUserId, trainingId, group, promptMessageId } = this.specialScheduleScene.getState(ctx)
+    const { fromUpcomingTrainingsMenu, staffUserId, trainingId, group, promptMessageId, fromCurrentSession } =
+      this.specialScheduleScene.getState(ctx)
+
+    if (fromCurrentSession) {
+      await ctx.deleteMessage(promptMessageId).catch(() => {})
+      await ctx.replyWithHTML('Повернутися до заняття 👇', CurrentSessionKeyboards.backToTraining(+trainingId))
+      return ctx.scene.leave()
+    }
+
     const training = await this.trainingService.getTrainingById(+trainingId)
 
     const backButtonCallbackData = fromUpcomingTrainingsMenu ? CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_CLOSEST_TRAINING_LIST : null
@@ -114,7 +128,7 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
     await ctx.deleteMessage(promptMessageId).catch(() => {})
     await ctx.replyWithHTML(
       MessageHelper.constructTrainingSelectMessage(training, group, this.dateTimeProvider),
-      AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer),
+      AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer, ScheduleKeyboards.backButtonForOrigin(staffUserId)),
     )
     return ctx.scene.leave()
   }
