@@ -1,9 +1,9 @@
 import { BotContext } from '@app/bot/bot.context'
 import { RulesConsentGuard } from '@app/bot/guards/rules-consent.guard'
-import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, PassHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
-import { RULES } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
+import { PassService } from '@app/domain/pass'
 import { UserProfileService } from '@app/domain/user-profile'
 import { Injectable } from '@nestjs/common'
 import { Composer } from 'telegraf'
@@ -11,7 +11,10 @@ import { Composer } from 'telegraf'
 @Injectable()
 export class RulesGuardComposer {
   private readonly composer: Composer<BotContext>
-  constructor(private readonly userProfileService: UserProfileService) {
+  constructor(
+    private readonly userProfileService: UserProfileService,
+    private readonly passService: PassService,
+  ) {
     this.composer = new Composer<BotContext>()
 
     this.initComposerActions()
@@ -36,7 +39,9 @@ export class RulesGuardComposer {
 
   initComposerHandlers() {
     this.composer.hears(BUTTON_PATTERNS.RULES, async (ctx: BotContext) => {
-      return ctx.replyWithHTML(RULES)
+      const { client } = UserHelper.getUser(ctx)
+      const pass = await this.passService.findActivePassByClientId(client?.id, { withExpired: true, withRequested: true })
+      return ctx.replyWithHTML(PassHelper.getRulesMessage(pass?.passTemplate))
     })
   }
 }

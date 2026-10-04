@@ -229,17 +229,13 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
       const state = this.scene.getState(ctx)
       const { userProfile, saleDate, passTemplate, mainMessageId, startMessageId } = state
 
-      const [newPass, logOperations] = await this.passService.createNewPassForExistingClient(
-        userProfile.client.id,
-        {
-          passTemplateId: passTemplate.id,
-          saleDate,
-          clientId: userProfile.client.id,
-          status: PassStatusEnum.ACTIVE,
-          availableSlots: passTemplate.length,
-        },
-        passTemplate.durationDays,
-      )
+      const [newPass, logOperations] = await this.passService.createNewPassForExistingClient(userProfile.client.id, {
+        passTemplateId: passTemplate.id,
+        saleDate,
+        clientId: userProfile.client.id,
+        status: PassStatusEnum.ACTIVE,
+        availableSlots: passTemplate.length,
+      })
 
       AuditLogHelper.startAction(ctx, AuditLogActions.PASS_CREATE, AuditLogTrigger.ADMIN_ACTION, logOperations)
 

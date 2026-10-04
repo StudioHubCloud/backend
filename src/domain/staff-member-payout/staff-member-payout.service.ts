@@ -176,14 +176,22 @@ export class StaffMemberPayoutService {
     })
   }
 
+  /**
+   * Group training payout: the fixed amount covers up to `fixedRule.maxSignups` people, and every person
+   * above that adds `perSignUpRule.amount` (e.g. 300 for 1–3 people, 4 → 370, 8 → 650).
+   */
   private calculateTrainingPayout(
     signUpCount: number,
     fixedRule: StudioPayoutRuleSelectModel,
     perSignUpRule: StudioPayoutRuleSelectModel,
   ): number {
-    const isWithinFixedRange = signUpCount > fixedRule.minSignups && signUpCount <= (fixedRule.maxSignups ?? Infinity)
+    if (signUpCount <= fixedRule.minSignups) {
+      return 0
+    }
 
-    return isWithinFixedRange ? Number(fixedRule.amount) : signUpCount * Number(perSignUpRule.amount)
+    const extraSignups = Math.max(0, signUpCount - (fixedRule.maxSignups ?? Infinity))
+
+    return Number(fixedRule.amount) + extraSignups * Number(perSignUpRule.amount)
   }
 
   private calculatePayoutStatistics(groups: TSalaryPayoutResult['groups'], totalPayout: number): TSalaryPayoutResult['statistics'] {

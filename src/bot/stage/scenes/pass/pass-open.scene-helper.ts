@@ -1,10 +1,6 @@
 import { UserProfileWithClient, PassTemplateWithAgeRestrictions } from '@app/bot/libs'
-import { TextHelper, MessageHelper } from '@app/bot/helpers'
-import {
-  PassSelectModel,
-  PassTemplateSelectModel,
-  UserProfileSelectModel,
-} from '@app/infrastructure/database'
+import { TextHelper, MessageHelper, PassHelper } from '@app/bot/helpers'
+import { PassSelectModel, PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 import { PassTemplateTypeEnum } from '@app/libs'
 
 export interface IPassOpenSceneState {
@@ -32,10 +28,9 @@ export class PassOpenSceneHelper {
   }
 
   static getClientInfoMessage(data: IPassOpenSceneState): string {
-    const { passTemplate, saleDate } = data
-    const { length, durationDays, name } = passTemplate
-    const passInfo = `ℹ️ Назва абонементу "${TextHelper.bold(name)}"\n🎫 Кількість: ${TextHelper.bold(`${length} тренувань`)}\n📅 Тривалість: ${TextHelper.bold(`${durationDays} днів`)}`
-    const saleDateInfo = `📅 Дата активації: ${TextHelper.bold(`${saleDate}`)}`
-    return `${TextHelper.bold('🔥🎉 Вам відкрито новий абонемент!')}\n\n${passInfo}\n\n${saleDateInfo}`
+    const { passTemplate } = data
+    const { length, name } = passTemplate
+    const passInfo = `ℹ️ Назва абонементу "${TextHelper.bold(name)}"\n🎫 Кількість: ${TextHelper.bold(`${length} тренувань`)}`
+    return `${TextHelper.bold('🔥🎉 Вам відкрито новий абонемент!')}\n\n${passInfo}\n\n${PassHelper.getActivationInfo(passTemplate)}`
   }
 }

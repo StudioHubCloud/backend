@@ -3,7 +3,6 @@ import { BotHelper, PassHelper, PersonalTrainingHelper, UserHelper } from '@app/
 import { PersonalTrainingKeyboards } from '@app/bot/keyboard/storage'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
-import { RULES_INDIVIDUAL_PASS } from '@app/bot/static/messages'
 import { PassService } from '@app/domain/pass'
 import { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
@@ -57,6 +56,8 @@ export class PassInfoComposer {
 
   private passRulesHandler = async (ctx: BotContext) => {
     BotHelper.safeAnswerCbQuery(ctx)
-    return ctx.replyWithHTML(RULES_INDIVIDUAL_PASS)
+    const { client } = UserHelper.getUser(ctx)
+    const pass = await this.passService.findActivePassByClientId(client?.id, { withExpired: true, withRequested: true })
+    return ctx.replyWithHTML(PassHelper.getRulesMessage(pass?.passTemplate))
   }
 }

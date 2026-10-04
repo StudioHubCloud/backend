@@ -1,7 +1,7 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { BotHelper, KeyboardHelper, RegexHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, PassHelper, RegexHelper } from '@app/bot/helpers'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { PassActivationRequestsInlineMenu, VerificationInlineMenu } from '@app/bot/menus'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
@@ -182,7 +182,7 @@ export class VerificationRequestComposer {
         BotHelper.safeSendMessage(
           ctx.telegram,
           passActivateRequest!.client.userProfile.telegramId,
-          `✅ Оплату за абонемент <b>${passActivateRequest!.pass.passTemplate.name}</b> підтверджено!\n\n Абонемент активується при записі на перше тренування та діятиме <b><u>30 днів</u></b>\n\n<i>Без запису впродовж 7 днів - автоактивація</i> 🔄`,
+          `✅ Оплату за абонемент <b>${passActivateRequest!.pass.passTemplate.name}</b> підтверджено!\n\n${PassHelper.getActivationInfo(passActivateRequest!.pass.passTemplate)}`,
           { ...ClientKeyboards.mainMenu() },
         ),
       ])

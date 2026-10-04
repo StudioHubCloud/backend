@@ -22,6 +22,7 @@ import {
   FileTypeEnum,
   PassActivationRequestTypeEnum,
   PassStatusEnum,
+  PassTemplateTypeEnum,
   UserProfileStatusEnum,
 } from '@app/libs'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
@@ -95,7 +96,6 @@ export class PassService {
   async createNewPassForExistingClient(
     clientId: string,
     newPassData: Omit<PassInsertModel, 'studioId'>,
-    durationDays: number,
   ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
     return await this.databaseService.drizzle.transaction(async (tx) => {
       const currentPass = await this.findActivePassByClientId(clientId, { withRequested: true })
@@ -110,15 +110,10 @@ export class PassService {
         logOperations.push(...updateLogOperation)
       }
       const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN) // todo: make if from saleDate
-      const endDateString = this.dateTimeProvider.formatDateStringInTz(
-        addDays(new Date(), durationDays).toISOString(),
-        DATE_FORMAT.DATE_MAIN,
-      )
 
-      const [pass, createLogOperaion] = await this.createNewPass(
-        { ...newPassData, saleDate: todayDateString, startDate: newPassData.saleDate, endDate: endDateString },
-        tx,
-      )
+      // Created without start/end dates, like every other pass: a group pass starts on the first signup
+      // (or after the grace period), an individual pass on its first session.
+      const [pass, createLogOperaion] = await this.createNewPass({ ...newPassData, saleDate: todayDateString }, tx)
       const allLogOperations = [...logOperations, ...createLogOperaion].map((op) => ({
         ...op,
         metadata: { serviceName: PassService.name, methodName: this.createNewPassForExistingClient.name },
@@ -136,7 +131,7 @@ export class PassService {
       DATE_FORMAT.DATE_MAIN,
     )
 
-    const passesToActivate = await this.databaseService.drizzle.query.pass.findMany({
+    const inactivePasses = await this.databaseService.drizzle.query.pass.findMany({
       where: (pass, { and, lte, isNull, eq, or }) =>
         and(
           eq(pass.studioId, this.studioId),
@@ -153,6 +148,9 @@ export class PassService {
         },
       },
     })
+
+    // Individual passes start on their first session only (PersonalTrainingSignupService.registerTraining).
+    const passesToActivate = inactivePasses.filter((pass) => pass.passTemplate.type !== PassTemplateTypeEnum.INDIVIDUAL)
 
     let count = 0
 

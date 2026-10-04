@@ -365,6 +365,34 @@
       "when": 1791060279262,
       "tag": "0078_revert-individual-pass-statuses",
       "breakpoints": true
+    },
+    {
+      "idx": 79,
+      "version": "7",
+      "when": 1791073313047,
+      "tag": "0079_tier-a-prices-schedule",
+      "breakpoints": true
+    },
+    {
+      "idx": 80,
+      "version": "7",
+      "when": 1791074342472,
+      "tag": "0080_fix-tier-a-training-times",
+      "breakpoints": true
+    },
+    {
+      "idx": 81,
+      "version": "7",
+      "when": 1791074470278,
+      "tag": "0081_deactivate-individual-pro",
+      "breakpoints": true
+    },
+    {
+      "idx": 82,
+      "version": "7",
+      "when": 1791075771650,
+      "tag": "0082_group-payout-300-plus-70",
+      "breakpoints": true
     }
   ]
 }

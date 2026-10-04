@@ -1,5 +1,6 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { and, eq, gt, sql } from 'drizzle-orm'
+import { and, eq, gt, isNull, or, sql } from 'drizzle-orm'
+import { addDays } from 'date-fns'
 import { PinoLogger } from 'nestjs-pino'
 import { TypedConfigService } from '@app/infrastructure/config'
 import {
@@ -9,11 +10,13 @@ import {
   PersonalTrainingSignupSelectModel,
   Transaction,
 } from '@app/infrastructure/database'
+import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { RedisCacheService } from '@app/infrastructure/redis'
 import {
   AuditLogEntity,
   AuditLogOperation,
   AuditLogServiceOperation,
+  DATE_FORMAT,
   PassTemplateTypeEnum,
   PersonalTrainingSignupStatusEnum,
 } from '@app/libs'
@@ -29,6 +32,7 @@ export class PersonalTrainingSignupService {
     private readonly configService: TypedConfigService,
     private readonly redisCacheService: RedisCacheService,
     private readonly passService: PassService,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     this.studioId = this.configService.getStudioId()
     this.logger.setContext(PersonalTrainingSignupService.name)
@@ -100,6 +104,29 @@ export class PersonalTrainingSignupService {
         payload: { availableSlots: decrementedPass.availableSlots },
         timestamp: new Date().toISOString(),
       })
+
+      // An individual pass starts on the date of its first registered session (no 7-day auto-activation).
+      // The null check is in the WHERE, so a concurrent registration cannot overwrite the start date.
+      const startDate = this.dateTimeProvider.formatDateStringInTz(scheduledAt, DATE_FORMAT.DATE_MAIN)
+      const endDate = this.dateTimeProvider.formatDateStringInTz(
+        addDays(startDate, activePass.passTemplate.durationDays).toISOString(),
+        DATE_FORMAT.DATE_MAIN,
+      )
+      const [startedPass] = await tx
+        .update(pass)
+        .set({ startDate, endDate })
+        .where(and(eq(pass.id, activePass.id), or(isNull(pass.startDate), isNull(pass.endDate))))
+        .returning()
+
+      if (startedPass) {
+        ops.push({
+          entity: AuditLogEntity.PASS,
+          entityId: startedPass.id,
+          operation: AuditLogOperation.UPDATE,
+          payload: { startDate, endDate },
+          timestamp: new Date().toISOString(),
+        })
+      }
 
       return [createdRow, ops] as const
     })

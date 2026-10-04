@@ -6,8 +6,32 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
 import { TextHelper } from './text.helper'
 import { BotContext } from '../bot.context'
 import { AdminKeyboards } from '../keyboard/storage'
+import { RULES } from '../static/messages'
 
 export class PassHelper {
+  /** Rules for the client's pass type and duration; group rules with the default duration when there is no pass yet. */
+  static getRulesMessage(passTemplate?: Pick<PassTemplateSelectModel, 'type' | 'durationDays'> | null): string {
+    if (passTemplate?.type === PassTemplateTypeEnum.INDIVIDUAL) {
+      return RULES.INDIVIDUAL(passTemplate.durationDays)
+    }
+
+    return RULES.GROUP(passTemplate?.durationDays)
+  }
+
+  /** How and when a not-yet-started pass activates, for client notifications. */
+  static getActivationInfo(passTemplate: Pick<PassTemplateSelectModel, 'type' | 'durationDays'>): string {
+    const duration = `📆 Після активації діятиме ${TextHelper.bold(`${passTemplate.durationDays} днів`)}`
+
+    if (passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL) {
+      return `✨ Абонемент активується з першого індивідуального тренування
+${duration}
+🤝 Дату й час тренування узгодь зі своїм тренером`
+    }
+
+    return `✨ Абонемент активується з першого тренування або автоматично через ${PASS_CONFIG.ACTIVATION_GRACE_PERIOD} днів після оплати
+${duration}`
+  }
+
   static toDisplayPrice(price: number): string {
     return price ? `${price} ₴` : '0 ₴'
   }
@@ -48,7 +72,10 @@ export class PassHelper {
   ): string {
     const isPassInactive = pass.status !== PassStatusEnum.REQUESTED && !pass.endDate
     const activationDate = addDays(pass.saleDate, PASS_CONFIG.ACTIVATION_GRACE_PERIOD).toISOString()
-    const checkDateString = dateTimeProvider.formatDateStringInTz(activationDate, 'd MMMM')
+    const checkDateString =
+      pass.passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL
+        ? 'з першого індивідуального тренування'
+        : dateTimeProvider.formatDateStringInTz(activationDate, 'd MMMM')
     const headerText = fullName ? `🎫 Абонемент клієнта ${TextHelper.bold(fullName)}:` : '🎫 Деталі абонементу:'
     const { icon, label } = PassHelper.getPassDisplayStatus(pass.status, isPassInactive)
 

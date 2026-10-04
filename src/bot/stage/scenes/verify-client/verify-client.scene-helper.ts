@@ -1,5 +1,6 @@
 import { PassHelper, UserHelper } from '@app/bot/helpers'
 import { PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
+import { PassTemplateTypeEnum } from '@app/libs'
 
 export interface IVerifyClientSceneState {
   userProfile: UserProfileSelectModel
@@ -25,6 +26,7 @@ export class VerifyClientSceneHelper {
 
   static getClientInfoMessage(data: IVerifyClientSceneState): string {
     const { userProfile, passTemplate, saleDate } = data
+    const isGroupPass = passTemplate.type === PassTemplateTypeEnum.GROUP
     return (
       `🎉 Вітаємо, ${userProfile.firstName}! 🎉\n` +
       `Твій абонемент чекає на тебе! 💫\n\n` +
@@ -32,10 +34,10 @@ export class VerifyClientSceneHelper {
       `➡️ Кількість тренувань: <b>${passTemplate.length}</b>\n` +
       `📅 Дата покупки: <b>${saleDate}</b>\n\n` +
       `Як це працює:\n` +
-      `🕐 У тебе є <b>7 днів</b>, щоб розпочати\n` +
-      `✨ Абонемент активується з першого заняття, або автоматично через тиждень\n` +
-      `📆 Після активації діятиме <b>30 днів</b>\n\n` +
-      `Обирай напрямок і вперед створювати свою найкращу версію разом з нами! 🌸`
+      `${PassHelper.getActivationInfo(passTemplate)}\n\n` +
+      (isGroupPass
+        ? `Обирай напрямок і вперед створювати свою найкращу версію разом з нами! 🌸`
+        : `Вперед створювати свою найкращу версію разом з нами! 🌸`)
     )
   }
 }

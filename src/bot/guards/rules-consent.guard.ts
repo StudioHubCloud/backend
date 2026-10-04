@@ -1,7 +1,6 @@
 import { BotContext } from '../bot.context'
-import { UserHelper } from '../helpers'
+import { PassHelper, UserHelper } from '../helpers'
 import { CommonKeyboards } from '../keyboard/storage'
-import { RULES } from '../static/messages'
 
 export const RulesConsentGuard = async (ctx: BotContext, next: () => Promise<void>) => {
   const {consentToRules} = UserHelper.getUser(ctx)
@@ -10,5 +9,5 @@ export const RulesConsentGuard = async (ctx: BotContext, next: () => Promise<voi
     return await next()
   }
 
-  return ctx.replyWithHTML(`💫 Дякуємо, що приєдналась до нас!\nПерш ніж розпочати, будь ласка, ознайомся з правилами студії та підтверди згоду на їх дотримання.\n\n` + RULES, CommonKeyboards.consentToRules())
+  return ctx.replyWithHTML(`💫 Дякуємо, що приєдналась до нас!\nПерш ніж розпочати, будь ласка, ознайомся з правилами студії та підтверди згоду на їх дотримання.\n\n` + PassHelper.getRulesMessage(), CommonKeyboards.consentToRules())
 }
