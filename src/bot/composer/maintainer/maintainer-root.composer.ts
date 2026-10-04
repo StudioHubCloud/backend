@@ -55,6 +55,27 @@ export class MaintainerRootComposer {
 
       await ctx.reply(`Головне меню оновлено для ${clients.length} клієнтів ✅`)
     })
+    // Trainers and admins of the studio get the main menu of their own role (e.g. after new staff buttons ship)
+    this.composer.hears(BUTTON_PATTERNS.RESET_STAFF_MAIN_MENU, async (ctx) => {
+      const [staffMembers, admins] = await Promise.all([
+        this.userProfileService.getAllActiveStaffMembersUserProfiles(),
+        this.userProfileService.findStudioAdmins(),
+      ])
+      const staff = [...new Map([...staffMembers, ...admins].map((userProfile) => [userProfile.id, userProfile])).values()]
+
+      await Promise.all(
+        staff.map((userProfile) =>
+          BotHelper.safeSendMessage(
+            ctx.telegram,
+            userProfile.telegramId,
+            '🔄 Оновлення головного меню',
+            KeyboardHelper.getRoleBasedMainMenuKeyboard(userProfile.role),
+          ),
+        ),
+      )
+
+      await ctx.reply(`Головне меню оновлено для ${staff.length} працівників ✅`)
+    })
   }
 
   initExternalComposers() {
