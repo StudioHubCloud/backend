@@ -64,11 +64,12 @@ export class CurrentSessionHelper {
       signups.length ? `✅ Підтверджено: ${TextHelper.bold(String(confirmed))} з ${signups.length}` : '<i>Записів немає</i>',
     ]
 
-    const hint = this.getLockHint(training.date, !!training.staffMemberPayoutId, dateTimeProvider, now)
+    const hint = this.getLockHint(training.date, !!training.staffMemberPayoutId, 'присутність', dateTimeProvider, now)
+    // A blank line sets the hint apart from the counts
     if (hint) {
-      lines.push(hint)
+      lines.push('', hint)
     } else if (signups.length) {
-      lines.push('<i>Натисніть на людину: 🟢 є на занятті, ще раз — зняти відмітку</i>')
+      lines.push('', '<i>Натисніть на людину: 🟢 є на занятті, ще раз — зняти відмітку</i>')
     }
 
     return lines.join('\n')
@@ -87,9 +88,9 @@ export class CurrentSessionHelper {
       `Статус: ${PersonalTrainingHelper.getStatusLabel(session.status, !!session.staffMemberPayoutId)}`,
     ]
 
-    const hint = this.getLockHint(session.scheduledAt, !!session.staffMemberPayoutId, dateTimeProvider, now)
+    const hint = this.getLockHint(session.scheduledAt, !!session.staffMemberPayoutId, 'заняття', dateTimeProvider, now)
     if (hint) {
-      lines.push(hint)
+      lines.push('', hint)
     }
 
     return lines.join('\n')
@@ -115,13 +116,14 @@ export class CurrentSessionHelper {
     }
   }
 
-  private static getLockHint(start: string, isPaidOut: boolean, dateTimeProvider: DateTimeProvider, now: number): string | null {
+  /** `what`: what gets confirmed, "присутність" (group) or "заняття" (individual), so the hint isn't ambiguous. */
+  private static getLockHint(start: string, isPaidOut: boolean, what: string, dateTimeProvider: DateTimeProvider, now: number): string | null {
     if (isPaidOut) {
       return '🔒 <i>Заняття вже включене у виплату тренеру — зміни заборонені</i>'
     }
     if (!this.canConfirmYet(start, now)) {
       const from = new Date(new Date(start).getTime() - TRAINING_CONFIG.CONFIRM_LEAD_MINUTES * MINUTE_MS).toISOString()
-      return `<i>Відмітити можна з ${dateTimeProvider.formatDateStringInTz(from, DATE_FORMAT.TIME_MAIN)} (за ${TRAINING_CONFIG.CONFIRM_LEAD_MINUTES} хв до початку)</i>`
+      return `<i>Підтвердити ${what} можна з ${dateTimeProvider.formatDateStringInTz(from, DATE_FORMAT.TIME_MAIN)} (за ${TRAINING_CONFIG.CONFIRM_LEAD_MINUTES} хв до початку)</i>`
     }
     return null
   }

@@ -257,6 +257,6 @@ export class CurrentSessionComposer {
   }
 
   private getTooEarlyMessage(): string {
-    return `⏳ Відмітити можна за ${TRAINING_CONFIG.CONFIRM_LEAD_MINUTES} хв до початку`
+    return `⏳ Підтверджувати можна за ${TRAINING_CONFIG.CONFIRM_LEAD_MINUTES} хв до початку`
   }
 }
