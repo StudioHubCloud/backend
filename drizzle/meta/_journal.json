@@ -449,6 +449,13 @@
       "when": 1791143526231,
       "tag": "0090_payout_rule_bonus",
       "breakpoints": true
+    },
+    {
+      "idx": 91,
+      "version": "7",
+      "when": 1791144769384,
+      "tag": "0091_release_confirm_october",
+      "breakpoints": true
     }
   ]
 }
