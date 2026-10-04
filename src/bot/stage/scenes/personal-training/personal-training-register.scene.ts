@@ -32,7 +32,7 @@ export interface IPersonalTrainingRegisterSceneState {
   staffMember: StaffMemberSelectModel & { userProfile: UserProfileSelectModel }
   scheduledDate: string
   scheduledAt: string
-  pickerMessageId: number // the open calendar / time picker, closed into a label on typed input
+  pickerMessageId: number // the open inline step (trainer list, calendar, time picker): closed into a label on typed input, deleted on exit
 }
 
 /**
@@ -69,6 +69,7 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
       const { role } = UserHelper.getUser(ctx)
+      await this.deletePicker(ctx)
       await ctx.replyWithHTML(
         MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.EXIT,
         KeyboardHelper.getRoleBasedMainMenuKeyboard(role),
@@ -126,7 +127,7 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
     if (shouldEdit) {
       await BotHelper.safeEditMessageText(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.SELECT_TRAINER, keyboard)
     } else {
-      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.SELECT_TRAINER, keyboard)
+      await this.replyWithPicker(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.SELECT_TRAINER, keyboard)
     }
     return true
   }
@@ -156,6 +157,14 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
   private async replyWithPicker(ctx: BotContext, text: string, keyboard: TReplyInlineKeyboard) {
     const message = await ctx.replyWithHTML(text, keyboard)
     this.scene.setState(ctx, { pickerMessageId: message.message_id })
+  }
+
+  /** "Вийти": the open inline step (trainer list, calendar, time) would stay with dead buttons, so it goes away. */
+  private async deletePicker(ctx: BotContext) {
+    const { pickerMessageId } = this.scene.getState(ctx)
+    if (pickerMessageId && ctx.chat) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, pickerMessageId).catch(() => {})
+    }
   }
 
   /** Typed date/time: the open picker turns into its "📅 Дата: …" / "⏰ Час: …" line (no keyboard). */

@@ -35,7 +35,7 @@ export interface IOneOffTrainingRegisterSceneState {
   scheduledDate: string
   scheduledAt: string
   participantsNote: string
-  pickerMessageId: number // the open calendar / time picker, closed into a label on typed input
+  pickerMessageId: number // the open inline step (price list, calendar, time picker): closed into a label on typed input, deleted on exit
 }
 
 /**
@@ -71,6 +71,7 @@ export class OneOffTrainingRegisterScene extends Scenes.WizardScene<BotContext> 
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
       const { role } = UserHelper.getUser(ctx)
+      await this.deletePicker(ctx)
       await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.EXIT, KeyboardHelper.getRoleBasedMainMenuKeyboard(role))
       return ctx.scene.leave()
     })
@@ -127,7 +128,7 @@ export class OneOffTrainingRegisterScene extends Scenes.WizardScene<BotContext> 
     if (shouldEdit) {
       await BotHelper.safeEditMessageText(ctx, MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.SELECT_PRICE, keyboard)
     } else {
-      await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.SELECT_PRICE, keyboard)
+      await this.replyWithPicker(ctx, MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.SELECT_PRICE, keyboard)
     }
     return true
   }
@@ -163,6 +164,14 @@ export class OneOffTrainingRegisterScene extends Scenes.WizardScene<BotContext> 
   private async closePicker(ctx: BotContext, label: string) {
     const { pickerMessageId } = this.scene.getState(ctx)
     await BotHelper.safeEditMessageTextById(ctx, ctx.chat?.id, pickerMessageId, label)
+  }
+
+  /** "Вийти": the open inline step (price list, calendar, time) would stay with dead buttons, so it goes away. */
+  private async deletePicker(ctx: BotContext) {
+    const { pickerMessageId } = this.scene.getState(ctx)
+    if (pickerMessageId && ctx.chat) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, pickerMessageId).catch(() => {})
+    }
   }
 
   /** Studio-local today in DATE_FORMAT.DATE_MAIN, as CalendarPicker expects. */
