@@ -5,6 +5,8 @@ import { MESSAGES_STAFF } from '@app/bot/static/messages'
 import { TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupManageStaffComposer } from '../common/group-manage-staff.composer'
 import { PayoutStaffComposer } from '../common/payout-staff.composer'
+import { PersonalTrainingStaffComposer } from '../common/personal-training-staff.composer'
+import { StudioScheduleComposer } from '../common/studio-schedule.composer'
 
 @Injectable()
 export class TrainerRootComposer {
@@ -13,6 +15,8 @@ export class TrainerRootComposer {
   constructor(
     private readonly groupManageComposer: GroupManageStaffComposer,
     private readonly payoutStaffComposer: PayoutStaffComposer,
+    private readonly personalTrainingStaffComposer: PersonalTrainingStaffComposer,
+    private readonly studioScheduleComposer: StudioScheduleComposer,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -30,5 +34,7 @@ export class TrainerRootComposer {
   initExternalComposers() {
     this.composer.use(this.groupManageComposer.middleware())
     this.composer.use(this.payoutStaffComposer.middleware())
+    this.composer.use(this.personalTrainingStaffComposer.middleware())
+    this.composer.use(this.studioScheduleComposer.middleware())
   }
 }

@@ -51,6 +51,20 @@ export class TextHelper {
     return text ? `<s>${text}</s>` : ''
   }
 
+  /** Ukrainian plural form: pluralize(2, ['запис', 'записи', 'записів']) → 'записи'. */
+  static pluralize(count: number, [one, few, many]: [string, string, string]): string {
+    const mod10 = count % 10
+    const mod100 = count % 100
+    if (mod10 === 1 && mod100 !== 11) return one
+    if (mod10 >= 2 && mod10 <= 4 && (mod100 < 12 || mod100 > 14)) return few
+    return many
+  }
+
+  /** For free text typed by users that goes into an HTML (parse_mode) message. */
+  static escapeHtml(text: string): string {
+    return text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+  }
+
   static capitalize(text?: string): string {
     if (!text) return ''
     return text.charAt(0).toUpperCase() + text.slice(1)

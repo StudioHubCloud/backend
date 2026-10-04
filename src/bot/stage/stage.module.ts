@@ -41,6 +41,8 @@ import { APP } from '@app/libs'
     Stage.PassOpenScene,
     Stage.AskAiScene,
     Stage.PersonalTrainingRegisterScene,
+    Stage.OneOffTrainingRegisterScene,
+    Stage.PersonalTrainingNoteEditScene,
     {
       provide: APP.PROVIDERS.DATE_TIME_PROVIDER,
       useClass: DateTimeProvider,

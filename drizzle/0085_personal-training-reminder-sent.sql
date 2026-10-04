@@ -1,0 +1,1 @@
+ALTER TABLE "personal_training_signup" ADD COLUMN "reminder_sent" boolean DEFAULT false NOT NULL;

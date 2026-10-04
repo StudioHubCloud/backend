@@ -13,55 +13,57 @@ import {
   TextHelper,
   UserHelper,
 } from '@app/bot/helpers'
-import { CALLBACK_PREFIX, SCENES, TReplyInlineKeyboard, UserProfileWithClient } from '@app/bot/libs'
+import { CALLBACK_PREFIX, SCENES, TReplyInlineKeyboard } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { CommonSceneKeyboards, PersonalTrainingRegisterSceneKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
-import { AuditLogActions, AuditLogTrigger, DATE_FORMAT, PassTemplateTypeEnum } from '@app/libs'
-import { StaffMemberSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
-import { PassService } from '@app/domain/pass'
+import { CommonSceneKeyboards, OneOffTrainingRegisterSceneKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
+import { AuditLogActions, AuditLogTrigger, DATE_FORMAT } from '@app/libs'
+import { StaffMemberSelectModel, StudioPriceSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
 import { CalendarPicker, TimePicker } from '@app/bot/menus'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
-export interface IPersonalTrainingRegisterSceneState {
-  clientUserProfile: UserProfileWithClient
-  staffMember: StaffMemberSelectModel & { userProfile: UserProfileSelectModel }
+const PARTICIPANTS_NOTE_MAX_LENGTH = 500
+
+export interface IOneOffTrainingRegisterSceneState {
+  staffUserId: string
+  staffUserProfile: UserProfileSelectModel & { staffMember: StaffMemberSelectModel }
+  studioPrice: StudioPriceSelectModel
   scheduledDate: string
   scheduledAt: string
+  participantsNote: string
   pickerMessageId: number // the open calendar / time picker, closed into a label on typed input
 }
 
 /**
- * Admin-driven registration of an individual training.
+ * Admin-driven registration of a one-off session (individual / duo / trio) for a trainer.
  *
- * The client and trainer agree offline; the trainer reports the date and time to the admin, who
- * records it here. The date may be in the past or the future — the admin is transcribing an
- * agreement, not booking a slot, so no future-date guard applies.
+ * A one-off is not a pass and is not tied to a client (the person may be a group client or not in the bot at all):
+ * it belongs to the trainer, and the admin types who came. The date may be in the past or the future.
  */
 @Injectable()
-export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext> {
-  private readonly scene = new SceneHelper<IPersonalTrainingRegisterSceneState>()
-  // "⬅️ Назад" in the pickers returns to the previous step (calendar → trainer list, hours → calendar)
+export class OneOffTrainingRegisterScene extends Scenes.WizardScene<BotContext> {
+  private readonly scene = new SceneHelper<IOneOffTrainingRegisterSceneState>()
+  // "⬅️ Назад" in the pickers returns to the previous step (calendar → price list, hours → calendar)
   private readonly pickerBaseOptions = { withBackButton: true }
   private mainTainerChatId: string
 
   constructor(
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
     private readonly configService: TypedConfigService,
-    private readonly passService: PassService,
     private readonly userProfileService: UserProfileService,
     private readonly personalTrainingSignupService: PersonalTrainingSignupService,
   ) {
     super(
-      SCENES.PERSONAL_TRAINING_REGISTER,
+      SCENES.ONE_OFF_TRAINING_REGISTER,
       (ctx) => this.enterSceneHandler(ctx),
-      (ctx) => this.trainerSelectHandler(ctx),
+      (ctx) => this.priceSelectHandler(ctx),
       (ctx) => this.dateHandler(ctx),
       (ctx) => this.timeHandler(ctx),
+      (ctx) => this.participantsHandler(ctx),
       (ctx) => this.confirmHandler(ctx),
     )
 
@@ -69,23 +71,22 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
       const { role } = UserHelper.getUser(ctx)
-      await ctx.replyWithHTML(
-        MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.EXIT,
-        KeyboardHelper.getRoleBasedMainMenuKeyboard(role),
-      )
+      await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.EXIT, KeyboardHelper.getRoleBasedMainMenuKeyboard(role))
       return ctx.scene.leave()
     })
 
     this.enter(async (ctx, next) => {
       try {
-        const { clientUserProfile } = this.scene.getState(ctx, ['clientUserProfile'])
-        const guardMessage = await this.resolveGuardFailure(clientUserProfile)
+        const { staffUserId } = this.scene.getState(ctx, ['staffUserId'])
+        const staffUserProfiles = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
+        const staffUserProfile = staffUserProfiles.find((profile) => profile.id === staffUserId)
 
-        if (guardMessage) {
-          await ctx.replyWithHTML(guardMessage)
+        if (!staffUserProfile?.staffMember) {
+          await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.NO_TRAINER)
           return ctx.scene.leave()
         }
 
+        this.scene.setState(ctx, { staffUserProfile: { ...staffUserProfile, staffMember: staffUserProfile.staffMember } })
         return await next()
       } catch (error) {
         return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
@@ -95,14 +96,14 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
   private enterSceneHandler = async (ctx: BotContext) => {
     try {
-      const { clientUserProfile } = this.scene.getState(ctx, ['clientUserProfile'])
-      // Carries the "🚪 Вийти" reply keyboard for the whole scene; the following steps use inline pickers
+      const { staffUserProfile } = this.scene.getState(ctx, ['staffUserProfile'])
+      // Carries the "🚪 Вийти" reply keyboard for the whole scene; the following steps use inline keyboards
       await ctx.replyWithHTML(
-        `${MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.START} ${TextHelper.bold(UserHelper.getDisplayName(clientUserProfile))}`,
+        `${MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.START} ${TextHelper.bold(UserHelper.getDisplayName(staffUserProfile))}\n\n${MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.START_HINT}`,
         CommonSceneKeyboards.exit(),
       )
 
-      if (!(await this.renderTrainerSelect(ctx, false))) {
+      if (!(await this.renderPriceSelect(ctx, false))) {
         return ctx.scene.leave()
       }
 
@@ -112,36 +113,36 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
     }
   }
 
-  /** Sends the trainer list, or (going back from the calendar) edits the current message into it. False when there are no trainers. */
-  private async renderTrainerSelect(ctx: BotContext, shouldEdit: boolean): Promise<boolean> {
-    const trainers = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
+  /** Sends the one-off price list, or (going back from the calendar) edits the current message into it. False when there are none. */
+  private async renderPriceSelect(ctx: BotContext, shouldEdit: boolean): Promise<boolean> {
+    const prices = await this.personalTrainingSignupService.getOneOffPrices()
 
-    if (!trainers.length) {
-      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_TRAINERS)
+    if (!prices.length) {
+      await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.NO_PRICES)
       return false
     }
 
-    const keyboard = PersonalTrainingRegisterSceneKeyboards.trainerSelectInlineKeyboard(trainers)
+    const keyboard = OneOffTrainingRegisterSceneKeyboards.priceSelectInlineKeyboard(prices)
 
     if (shouldEdit) {
-      await BotHelper.safeEditMessageText(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.SELECT_TRAINER, keyboard)
+      await BotHelper.safeEditMessageText(ctx, MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.SELECT_PRICE, keyboard)
     } else {
-      await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.SELECT_TRAINER, keyboard)
+      await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.SELECT_PRICE, keyboard)
     }
     return true
   }
 
   /** Calendar marking the trainer's busy days; built per update because it depends on this user's scene state. */
   private getCalendarOptions(ctx: BotContext) {
-    const { staffMember } = this.scene.getState(ctx)
-    return StaffAvailabilityHelper.calendarOptions(this.loadBusyIntervals(staffMember.id), this.dateTimeProvider, this.pickerBaseOptions)
+    const { staffUserProfile } = this.scene.getState(ctx)
+    return StaffAvailabilityHelper.calendarOptions(this.loadBusyIntervals(staffUserProfile.staffMember.id), this.dateTimeProvider, this.pickerBaseOptions)
   }
 
   /** Time picker disabling the trainer's busy slots on the picked date. */
   private getTimeOptions(ctx: BotContext) {
-    const { staffMember, scheduledDate } = this.scene.getState(ctx)
+    const { staffUserProfile, scheduledDate } = this.scene.getState(ctx)
     return StaffAvailabilityHelper.timeOptions(
-      this.loadBusyIntervals(staffMember.id),
+      this.loadBusyIntervals(staffUserProfile.staffMember.id),
       scheduledDate,
       this.dateTimeProvider,
       this.pickerBaseOptions,
@@ -169,23 +170,7 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
     return this.dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_MAIN)
   }
 
-  /** Returns a message when the client cannot receive an individual training, or null when they can. */
-  private async resolveGuardFailure(clientUserProfile: UserProfileWithClient): Promise<string | null> {
-    const activePass = await this.passService.findActivePassByClientId(clientUserProfile?.client?.id)
-
-    if (!activePass) {
-      return MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_ACTIVE_PASS
-    }
-    if (activePass.passTemplate.type !== PassTemplateTypeEnum.INDIVIDUAL) {
-      return MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.WRONG_PASS_TYPE
-    }
-    if (activePass.availableSlots <= 0) {
-      return MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_SLOTS
-    }
-    return null
-  }
-
-  private trainerSelectHandler = async (ctx: BotContext) => {
+  private priceSelectHandler = async (ctx: BotContext) => {
     try {
       const { textPayload, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
 
@@ -193,30 +178,28 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
         return
       }
 
-      const trainerSelectMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PERSONAL_TRAINING.TRAINER_SELECT, textPayload)
+      const priceSelectMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PERSONAL_TRAINING.PRICE_SELECT, textPayload)
 
-      if (!trainerSelectMatch) {
-        return
+      if (!priceSelectMatch) {
+        return BotHelper.safeAnswerCbQuery(ctx)
       }
 
-      const [staffMemberId] = trainerSelectMatch
+      const [studioPriceId] = priceSelectMatch
       BotHelper.safeAnswerCbQuery(ctx)
 
-      const trainers = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
-      const selectedTrainer = trainers.find((trainer) => trainer.staffMember?.id === staffMemberId)
+      const prices = await this.personalTrainingSignupService.getOneOffPrices()
+      const studioPrice = prices.find((price) => price.id === studioPriceId)
 
-      if (!selectedTrainer?.staffMember) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_TRAINERS)
+      if (!studioPrice) {
+        await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.NO_PRICES)
         return ctx.scene.leave()
       }
 
-      this.scene.setState(ctx, {
-        staffMember: { ...selectedTrainer.staffMember, userProfile: selectedTrainer },
-      })
+      this.scene.setState(ctx, { studioPrice })
 
       await BotHelper.safeEditMessageText(
         ctx,
-        `${MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.TRAINER_LABEL} ${TextHelper.bold(UserHelper.getDisplayName(selectedTrainer))}`,
+        `${MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.PRICE_LABEL} ${TextHelper.bold(TextHelper.escapeHtml(studioPrice.name))}`,
       )
       await this.replyWithPicker(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_DATE, await CalendarPicker.keyboard(this.getToday(), this.getCalendarOptions(ctx)))
 
@@ -237,8 +220,8 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
           return BotHelper.safeAnswerCbQuery(ctx) // a button from another message
         }
         if (picked.type === 'back') {
-          // The calendar message turns back into the trainer list
-          if (!(await this.renderTrainerSelect(ctx, true))) {
+          // The calendar message turns back into the price list
+          if (!(await this.renderPriceSelect(ctx, true))) {
             return ctx.scene.leave()
           }
           return ctx.wizard.back()
@@ -303,7 +286,7 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
         return
       }
 
-      const { scheduledDate, clientUserProfile, staffMember } = this.scene.getState(ctx)
+      const { scheduledDate } = this.scene.getState(ctx)
 
       // Studio-local wall clock -> UTC instant. getUtcString() would treat it as already-UTC and shift it.
       const parsedDate = parse(scheduledDate, DATE_FORMAT.DATE_INPUT, new Date())
@@ -311,16 +294,58 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
       this.scene.setState(ctx, { scheduledAt })
 
+      // A typed time skips the picker's busy slots, so the conflict is shown right away (and again on confirm)
+      const { staffUserProfile } = this.scene.getState(ctx)
       const conflictWarning = await StaffAvailabilityHelper.getConflictWarning(
-        this.loadBusyIntervals(staffMember.id),
+        this.loadBusyIntervals(staffUserProfile.staffMember.id),
+        scheduledAt,
+        this.dateTimeProvider,
+      )
+      await ctx.replyWithHTML(
+        `${MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.ENTER_PARTICIPANTS}${conflictWarning}`,
+        CommonSceneKeyboards.backWithExit(),
+      )
+
+      return ctx.wizard.next()
+    } catch (error) {
+      return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
+    }
+  }
+
+  private participantsHandler = async (ctx: BotContext) => {
+    try {
+      const { textPayload, isTextUpdate, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
+
+      if (!isTextUpdate) {
+        return isCallbackQueryUpdate ? BotHelper.safeAnswerCbQuery(ctx) : undefined // stale picker button
+      }
+
+      if (textPayload === BUTTON_PATTERNS.BACK) {
+        // Restore the exit-only reply keyboard, then show the time picker again
+        await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.BACK_TO_TIME, CommonSceneKeyboards.exit())
+        await this.replyWithPicker(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_TIME, await TimePicker.keyboard(this.getTimeOptions(ctx)))
+        return ctx.wizard.back()
+      }
+
+      const participantsNote = textPayload?.trim()
+
+      if (!participantsNote || participantsNote.length > PARTICIPANTS_NOTE_MAX_LENGTH) {
+        await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.ENTER_PARTICIPANTS_ERROR)
+        return
+      }
+
+      this.scene.setState(ctx, { participantsNote })
+      const { staffUserProfile, studioPrice, scheduledAt } = this.scene.getState(ctx)
+
+      const conflictWarning = await StaffAvailabilityHelper.getConflictWarning(
+        this.loadBusyIntervals(staffUserProfile.staffMember.id),
         scheduledAt,
         this.dateTimeProvider,
       )
       const confirmMessage =
-        PersonalTrainingHelper.getRegisterConfirmMessage(
-          UserHelper.getDisplayName(clientUserProfile),
-          UserHelper.getDisplayName(staffMember.userProfile),
-          scheduledAt,
+        PersonalTrainingHelper.getOneOffConfirmMessage(
+          UserHelper.getDisplayName(staffUserProfile),
+          { scheduledAt, participantsNote, studioPrice },
           this.dateTimeProvider,
         ) + conflictWarning
 
@@ -340,9 +365,9 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
       }
 
       if (textPayload === BUTTON_PATTERNS.BACK) {
-        // Restore the exit-only reply keyboard, then show the time picker again
-        await ctx.replyWithHTML(MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.BACK_TO_TIME, CommonSceneKeyboards.exit())
-        await this.replyWithPicker(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.ENTER_TIME, await TimePicker.keyboard(this.getTimeOptions(ctx)))
+        // Back to the participants step (its reply keyboard has Back + Exit)
+        await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.BACK_TO_PARTICIPANTS)
+        await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.ENTER_PARTICIPANTS, CommonSceneKeyboards.backWithExit())
         return ctx.wizard.back()
       }
 
@@ -350,43 +375,25 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
         return
       }
 
-      const { clientUserProfile, staffMember, scheduledAt } = this.scene.getState(ctx)
+      const { staffUserProfile, studioPrice, scheduledAt, participantsNote } = this.scene.getState(ctx)
 
-      const [created, logOperations] = await this.personalTrainingSignupService.registerTraining({
-        clientId: clientUserProfile.client.id,
-        staffMemberId: staffMember.id,
+      const [created, logOperations] = await this.personalTrainingSignupService.registerOneOffTraining({
+        staffMemberId: staffUserProfile.staffMember.id,
+        studioPriceId: studioPrice.id,
         scheduledAt,
+        participantsNote,
       })
 
       AuditLogHelper.startAction(ctx, AuditLogActions.PERSONAL_TRAINING_REGISTER, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
-      const updatedPass = created.passId ? await this.passService.getPassById(created.passId) : null
-      const remainingSlots = updatedPass?.availableSlots ?? 0
-
       await BotHelper.safeSendMessage(
         ctx.telegram,
-        clientUserProfile.telegramId,
-        PersonalTrainingHelper.getClientRegisteredMessage(
-          UserHelper.getDisplayName(staffMember.userProfile),
-          scheduledAt,
-          remainingSlots,
-          this.dateTimeProvider,
-        ),
-      )
-      await BotHelper.safeSendMessage(
-        ctx.telegram,
-        staffMember.userProfile.telegramId,
-        PersonalTrainingHelper.getTrainerRegisteredMessage(
-          { ...created, client: { userProfile: clientUserProfile }, pass: updatedPass },
-          this.dateTimeProvider,
-        ),
+        staffUserProfile.telegramId,
+        PersonalTrainingHelper.getTrainerRegisteredMessage({ ...created, studioPrice }, this.dateTimeProvider),
       )
 
       const { role } = UserHelper.getUser(ctx)
-      await ctx.replyWithHTML(
-        MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.REGISTER_SUCCESS,
-        KeyboardHelper.getRoleBasedMainMenuKeyboard(role),
-      )
+      await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.REGISTER_SUCCESS, KeyboardHelper.getRoleBasedMainMenuKeyboard(role))
 
       return ctx.scene.leave()
     } catch (error) {

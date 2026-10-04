@@ -273,22 +273,63 @@ export class MessageHelper {
           const date = dateTimeProvider.formatDateStringInTz(training.date, 'dd MMMM yyyy')
           const signups = training.trainingSignups.length
           const payout = PassHelper.toDisplayPrice(training.payout)
-          return `• ${date} | ${signups} запис${signups > 1 ? 'ів' : ''} | ${payout}`
+          return `• ${date} | ${signups} ${TextHelper.pluralize(signups, ['запис', 'записи', 'записів'])} | ${payout}`
         })
         .join('\n')
 
       return `🔹 <b><i><u>${group.groupName}</u></i></b>
-🔸 ${group.trainingCount} тренува${group.trainingCount > 4 ? 'нь' : 'ння'} • ${PassHelper.toDisplayPrice(group.groupPayout)}
+🔸 ${group.trainingCount} ${TextHelper.pluralize(group.trainingCount, ['тренування', 'тренування', 'тренувань'])} • ${PassHelper.toDisplayPrice(group.groupPayout)}
 ${trainingLines}`
     })
 
     return `${groupMessages.join('\n\n')}`
   }
 
-  static getStaffPayoutInfoMessage({ averagePayoutPerTraining, totalSignups, totalTrainings, totalPayout }: TPayoutStatistics) {
-    return `- Загальна кількість тренувань: <i>${totalTrainings}</i>
+  /** Individual sessions breakdown, sent as a separate message after the group details (Telegram 4096-char limit). */
+  static getStaffPayoutPersonalDetailsMessage(result: TSalaryPayoutResult, dateTimeProvider: DateTimeProvider): string {
+    const { personalTrainings, statistics } = result
+
+    if (!personalTrainings?.length) {
+      return ''
+    }
+
+    const sessionLines = personalTrainings
+      .map((session) => {
+        const date = dateTimeProvider.formatDateStringInTz(session.date, 'dd MMMM yyyy, HH:mm')
+        const participants = TextHelper.escapeHtml(session.participants)
+        // Participants on their own line: a one-off note can be long
+        return `• ${date} | ${TextHelper.escapeHtml(session.title)}
+    ${session.isNote ? '📝' : '👤'} <i>${participants}</i>
+    ${PassHelper.toDisplayPrice(session.price)} × ${statistics.personalPayoutPercentage}% = <b>${PassHelper.toDisplayPrice(session.payout)}</b>`
+      })
+      .join('\n')
+
+    const count = statistics.personalTrainingCount
+    return `🤝 <b><i><u>Індивідуальні заняття</u></i></b>
+🔸 ${count} ${TextHelper.pluralize(count, ['заняття', 'заняття', 'занять'])} • ${PassHelper.toDisplayPrice(statistics.personalPayout)}
+${sessionLines}`
+  }
+
+  static getStaffPayoutInfoMessage({
+    averagePayoutPerTraining,
+    totalSignups,
+    totalTrainings,
+    groupPayout,
+    personalTrainingCount,
+    personalPayout,
+    totalPayout,
+  }: TPayoutStatistics) {
+    const personalInfo = personalTrainingCount
+      ? `\n\n🤝 <b>Індивідуальні заняття</b>
+- Кількість занять: <i>${personalTrainingCount}</i>
+- Сума: <i>${PassHelper.toDisplayPrice(personalPayout)}</i>`
+      : ''
+
+    return `👥 <b>Групові тренування</b>
+- Загальна кількість тренувань: <i>${totalTrainings}</i>
 - Загальна кількість записів: <i>${totalSignups}</i>
 - Середня виплата за тренування: <i>${PassHelper.toDisplayPrice(averagePayoutPerTraining)}</i>
+- Сума: <i>${PassHelper.toDisplayPrice(groupPayout)}</i>${personalInfo}
 
 💵 <i>Сума до виплати: <b>${PassHelper.toDisplayPrice(totalPayout)}</b></i>`
   }

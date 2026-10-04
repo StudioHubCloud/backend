@@ -55,7 +55,8 @@ export class AdminKeyboards {
     ])
   }
 
-  static groupManageMenu(groupId: number, staffUserId?: string): TReplyInlineKeyboard {
+  /** `backButton` replaces "Назад до списку груп" (e.g. "Назад до дня" when opened from the studio schedule). */
+  static groupManageMenu(groupId: number, staffUserId?: string, backButton?: InlineKeyboardButton): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
@@ -64,7 +65,7 @@ export class AdminKeyboards {
         },
       ],
       [
-        {
+        backButton ?? {
           text: BUTTON_PATTERNS.BACK_TO_GROUP_LIST,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT,
@@ -251,7 +252,7 @@ export class AdminKeyboards {
       [
         {
           text: BUTTON_PATTERNS.BACK,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS, staffMemberId, 'true'),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS_BACK, staffMemberId, 'true'),
         },
       ],
     ])
@@ -269,6 +270,22 @@ export class AdminKeyboards {
         {
           text: BUTTON_PATTERNS.STAFF_GROUPS,
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.MANAGE.GROUPS_LIST, userId, 'true'),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.UPCOMING_PERSONAL_TRAININGS,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.UPCOMING, userId),
+        },
+      ],
+      [
+        {
+          text: BUTTON_PATTERNS.REGISTER_ONE_OFF_TRAINING,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.ONE_OFF_REGISTER, userId),
+        },
+        {
+          text: BUTTON_PATTERNS.CANCEL_PERSONAL_TRAINING,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.STAFF_CANCEL_LIST, userId),
         },
       ],
       [

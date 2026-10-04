@@ -101,6 +101,20 @@ export type TReplyInlineKeyboard = { reply_markup: InlineKeyboardMarkup }
 /** Bot API button `style`: primary (blue), success (green), danger (red). Older clients ignore it. */
 export type TButtonStyle = 'primary' | 'success' | 'danger'
 
+/**
+ * Per-item state of a picker button (calendar day, hour, minute slot), returned by the picker's resolver.
+ * `disabled` items are shown but can't be picked: handle() answers with `reason` instead of returning them.
+ */
+export type TPickerItemState = {
+  marker?: string // optional text prefix (e.g. an emoji); `style` is ignored by older clients
+  style?: TButtonStyle
+  disabled?: boolean
+  reason?: string // alert text when a disabled item is pressed
+}
+
+/** Resolver for a batch of picker items: dates (yyyy-MM-dd) or times (HH:mm). Missing keys = default button. */
+export type TPickerItemStateResolver = (items: string[]) => Promise<Record<string, TPickerItemState | undefined>>
+
 export interface ISelectInlineMenuConfig<T> {
   callbackPrefix: string
   onItemSelect: (ctx: T, itemId: string, context?: Record<string, any>) => any

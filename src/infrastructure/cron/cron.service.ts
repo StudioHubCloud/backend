@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common'
 import { Cron, CronExpression } from '@nestjs/schedule'
-import { add } from 'date-fns'
+import { add, format, parseISO, startOfMonth, subDays } from 'date-fns'
+import { formatInTimeZone } from 'date-fns-tz'
 import { PinoLogger } from 'nestjs-pino'
 import { BotNotificationService } from '@app/bot/services'
 import { TrainingService } from '@app/domain/training'
@@ -8,10 +9,20 @@ import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
 import { STATIC_CONFIG } from '../config/config.helper'
 import { FeedbackNotificationService } from '@app/domain/feedback-notifications'
-import { AuditLogActions, AuditLogTrigger, TrainingSignupTypeEnum } from '@app/libs'
+import { AuditLogActions, AuditLogTrigger, DATE_FORMAT, TrainingSignupTypeEnum, UserProfileStatusEnum } from '@app/libs'
 import { AuditLogService } from '../audit-log'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 import { MetricsService } from '../metrics'
+import { StaffMemberPayoutService } from '@app/domain/staff-member-payout'
+import { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
+import { TypedConfigService } from '../config'
+import { UserProfileSelectModel } from '../database'
+import { DateTimeProvider, DateTimeProviderInjector } from '../providers'
+import { PersonalTrainingHelper, UserHelper } from '@app/bot/helpers'
+import {
+  IInitiatePayoutSceneState,
+  InitiatePayoutSceneHelper,
+} from '@app/bot/stage/scenes/initiate-payout/initiate-payout.scene-helper'
 
 @Injectable()
 export class CronService {
@@ -24,6 +35,10 @@ export class CronService {
     private readonly feedbackNotificationService: FeedbackNotificationService,
     private readonly auditLogService: AuditLogService,
     private readonly metricsService: MetricsService,
+    private readonly staffMemberPayoutService: StaffMemberPayoutService,
+    private readonly configService: TypedConfigService,
+    private readonly personalTrainingSignupService: PersonalTrainingSignupService,
+    @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
     this.logger.setContext(CronService.name)
   }
@@ -68,6 +83,87 @@ export class CronService {
       const result = await this.trainingService.addTrainingsForActiveGroups()
       this.logger.debug(`ADD TRAININGS Cron job completed. Total added records: ${result.length}`)
     })
+  }
+
+  @Cron(CronExpression.EVERY_1ST_DAY_OF_MONTH_AT_NOON, {
+    name: 'monthly-staff-payouts',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
+  async monthlyStaffPayoutsCron() {
+    await this.metricsService.runJob('monthly-staff-payouts', async () => {
+      // Pays out the previous month: everything unpaid up to its last day (inclusive), dated that day
+      const todayInTz = formatInTimeZone(new Date(), STATIC_CONFIG.timeZone, DATE_FORMAT.DATE_MAIN)
+      const payoutDate = format(subDays(startOfMonth(parseISO(todayInTz)), 1), DATE_FORMAT.DATE_INPUT)
+      this.logger.debug(`Monthly staff payouts cron job executed, payout date: ${payoutDate}`)
+
+      const staffUserProfiles = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
+      const paidDescriptions: string[] = []
+      const failures: string[] = []
+
+      // One staff member's failure must not stop the others
+      for (const staffUserProfile of staffUserProfiles) {
+        try {
+          const description = await this.registerMonthlyStaffPayout(staffUserProfile, payoutDate)
+          if (description) {
+            paidDescriptions.push(description)
+          }
+        } catch (error) {
+          const errorMessage = error instanceof Error ? error.message : 'Unknown error'
+          this.logger.error(`Monthly payout failed for user profile ${staffUserProfile.id}: ${errorMessage}`)
+          failures.push(`${UserHelper.getDisplayName(staffUserProfile)}: ${errorMessage}`)
+        }
+      }
+
+      if (paidDescriptions.length > 0) {
+        const admins = await this.userProfileService.findStudioAdmins()
+        const adminMessage = `🤖 Автоматичні виплати за місяць (${payoutDate}):\n\n${paidDescriptions.join('\n')}`
+        await Promise.all(admins.map((admin) => this.botNotificationService.sendCustomNotification(admin.telegramId, adminMessage)))
+      }
+
+      if (failures.length > 0) {
+        await this.botNotificationService.sendCustomNotification(
+          this.configService.get('MAINTAINER_CHAT_ID'),
+          `❌ Monthly staff payouts (${payoutDate}) failed for:\n${failures.join('\n')}`,
+        )
+      }
+
+      this.logger.debug(`Monthly staff payouts completed: ${paidDescriptions.length} paid, ${failures.length} failed`)
+    })
+  }
+
+  /** Registers one staff member's payout and notifies them. Returns the payout description, or null when there is nothing to pay. */
+  private async registerMonthlyStaffPayout(staffUserProfile: UserProfileSelectModel, payoutDate: string) {
+    const salary = await this.staffMemberPayoutService.calculateStaffPayoutSalary(staffUserProfile.id, payoutDate)
+
+    if (salary.statistics.totalPayout <= 0) {
+      return null
+    }
+
+    const payoutState: IInitiatePayoutSceneState = {
+      staffUserProfile,
+      staffUserId: staffUserProfile.id,
+      payoutDate,
+      payoutAmount: salary.statistics.totalPayout,
+      trainingIds: salary.trainingIds,
+      personalTrainingIds: salary.personalTrainingIds,
+      payoutStatistics: salary.statistics,
+    }
+    const description = InitiatePayoutSceneHelper.getPayoutDescriptionMessage(payoutState)
+
+    await this.staffMemberPayoutService.initiateStaffPayout({
+      staffUserId: staffUserProfile.id,
+      amount: String(payoutState.payoutAmount),
+      paidAt: payoutDate,
+      description,
+      trainingIds: salary.trainingIds,
+      personalTrainingIds: salary.personalTrainingIds,
+    })
+    await this.botNotificationService.sendCustomNotification(
+      staffUserProfile.telegramId,
+      InitiatePayoutSceneHelper.getStaffInfoMessage(payoutState),
+    )
+
+    return description
   }
 
   @Cron(CronExpression.EVERY_DAY_AT_MIDNIGHT, {
@@ -189,6 +285,48 @@ export class CronService {
       }
 
       this.logger.debug(`Notify For Upcoming Training Cron job completed`)
+    })
+  }
+
+  @Cron(CronExpression.EVERY_10_MINUTES, {
+    name: 'notify-upcoming-personal-training',
+    timeZone: STATIC_CONFIG.timeZone,
+  })
+  async handleNotifyForUpcomingPersonalTrainingCron() {
+    await this.metricsService.runJob('notify-upcoming-personal-training', async () => {
+      // Same window as group trainings: individual sessions starting in the next 4 hours
+      const fourHoursFromNow = add(new Date(), { hours: 4 }).toISOString()
+      const sessions = await this.personalTrainingSignupService.getSessionsForReminder(fourHoursFromNow)
+      this.logger.debug(`Found ${sessions.length} individual sessions for reminder`)
+
+      for (const session of sessions) {
+        // Mark first: a parallel run (or a restart) must not send it twice
+        if (!(await this.personalTrainingSignupService.markReminderSent(session.id))) {
+          continue
+        }
+
+        const trainerUserProfile = session.staffMember?.userProfile
+        const clientUserProfile = session.client?.userProfile
+
+        if (clientUserProfile && clientUserProfile.status === UserProfileStatusEnum.ACTIVE) {
+          await this.botNotificationService.sendCustomNotification(
+            clientUserProfile.telegramId,
+            PersonalTrainingHelper.getClientReminderMessage(
+              clientUserProfile.firstName,
+              UserHelper.getDisplayName(trainerUserProfile ?? null),
+              session.scheduledAt,
+              this.dateTimeProvider,
+            ),
+          )
+        }
+
+        if (trainerUserProfile) {
+          await this.botNotificationService.sendCustomNotification(
+            trainerUserProfile.telegramId,
+            PersonalTrainingHelper.getTrainerReminderMessage(session, this.dateTimeProvider),
+          )
+        }
+      }
     })
   }
 }

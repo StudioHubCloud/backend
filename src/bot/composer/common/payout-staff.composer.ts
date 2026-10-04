@@ -43,7 +43,13 @@ export class PayoutStaffComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS), async (ctx: BotContext) => {
       return this.handlePaymentAction(ctx, async (userId, isAdmin) => {
-        return this.renderStaffMemberPayoutDetailsMenu(ctx, userId, isAdmin)
+        return this.renderStaffMemberPayoutDetailsMenu(ctx, userId, isAdmin, true)
+      })
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS_BACK), async (ctx: BotContext) => {
+      return this.handlePaymentAction(ctx, async (userId, isAdmin) => {
+        return this.renderStaffMemberPayoutDetailsMenu(ctx, userId, isAdmin, false)
       })
     })
 
@@ -54,7 +60,10 @@ export class PayoutStaffComposer {
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PAYOUT.INITIATE), async (ctx: BotContext) => {
-      return this.handlePaymentAction(ctx, async (userId) => {
+      return this.handlePaymentAction(ctx, async (userId, isAdmin) => {
+        if (!isAdmin) {
+          return BotHelper.safeAnswerCbQuery(ctx, '⛔️ Доступно лише адміністратору', { show_alert: true })
+        }
         return ctx.scene.enter(SCENES.INITIATE_PAYOUT, { staffUserId: userId })
       })
     })
@@ -63,7 +72,7 @@ export class PayoutStaffComposer {
   private async renderStaffMemberPayoutSummaryMenu(ctx: BotContext, userId: string, isAdmin: boolean, isEdit: boolean = true) {
     const result = await this.staffMemberPayoutService.calculateStaffPayoutSalary(userId)
 
-    const isEmpty = result.statistics.totalTrainings === 0
+    const isEmpty = result.statistics.totalTrainings === 0 && result.statistics.personalTrainingCount === 0
 
     const message = MessageHelper.getStaffPayoutInfoMessage(result.statistics)
     const keyboard = isAdmin
@@ -81,11 +90,16 @@ export class PayoutStaffComposer {
     return ctx.reply(message, { parse_mode: 'HTML', ...keyboard })
   }
 
-  private async renderStaffMemberPayoutDetailsMenu(ctx: BotContext, userId: string, isAdmin: boolean) {
+  /**
+   * Group details replace the current message; individual sessions go into a second message (Telegram 4096-char limit).
+   * `withPersonal` is false when coming back from client info, so the second message isn't sent again.
+   */
+  private async renderStaffMemberPayoutDetailsMenu(ctx: BotContext, userId: string, isAdmin: boolean, withPersonal: boolean) {
     const result = await this.staffMemberPayoutService.calculateStaffPayoutSalary(userId)
-    const message = MessageHelper.getStaffPayoutDetailsMessage(result, this.dateTimeProvider)
+    const groupMessage = MessageHelper.getStaffPayoutDetailsMessage(result, this.dateTimeProvider)
+    const personalMessage = MessageHelper.getStaffPayoutPersonalDetailsMessage(result, this.dateTimeProvider)
 
-    if (!message) {
+    if (!groupMessage && !personalMessage) {
       BotHelper.safeAnswerCbQuery(ctx, '❓ Немає даних для відображення', { show_alert: true })
       BotHelper.safeDeleteMessage(ctx)
       return
@@ -95,12 +109,27 @@ export class PayoutStaffComposer {
       ? AdminKeyboards.staffmemberPayoutDetailsMenu(userId)
       : TrainerKeyboards.staffmemberPayoutDetailsMenu(userId)
     BotHelper.safeAnswerCbQuery(ctx)
-    return BotHelper.safeEditMessageText(ctx, message, keyboard)
+
+    // Only individual sessions: show them in place of the group details
+    if (!groupMessage) {
+      return BotHelper.safeEditMessageText(ctx, personalMessage, keyboard)
+    }
+
+    await BotHelper.safeEditMessageText(ctx, groupMessage, keyboard)
+
+    if (withPersonal && personalMessage && ctx.chat) {
+      await BotHelper.safeSendMessage(ctx.telegram, ctx.chat.id, personalMessage)
+    }
   }
 
   private async renderStaffMemberPayoutClientInfoMenu(ctx: BotContext, userId: string, isAdmin: boolean) {
     const result = await this.staffMemberPayoutService.calculateStaffPayoutSalary(userId)
     const message = MessageHelper.getStaffPayoutClientInfoMessage(result, this.dateTimeProvider)
+
+    if (!message) {
+      return BotHelper.safeAnswerCbQuery(ctx, '❓ Немає групових тренувань для відображення', { show_alert: true })
+    }
+
     const keyboard = isAdmin
       ? AdminKeyboards.staffmemberPayoutClientInfoMenu(userId)
       : TrainerKeyboards.staffmemberPayoutClientInfoMenu(userId)
@@ -108,14 +137,25 @@ export class PayoutStaffComposer {
     return BotHelper.safeEditMessageText(ctx, message, keyboard)
   }
 
+  /**
+   * The role comes from the session, never from the callback data (its ":true" only picks the admin keyboard layout):
+   * a trainer may only look at their own payout, whatever the button says.
+   */
   private async handlePaymentAction(ctx: BotContext, action: (userId: string, isAdmin: boolean) => Promise<any>) {
-    const [userId, isAdmin] = RegexHelper.getMatchGroupValue(ctx)
+    const [userId] = RegexHelper.getMatchGroupValue(ctx)
 
     if (!userId) {
       BotHelper.safeAnswerCbQuery(ctx, '❓ Відсутня інформація про користувача', { show_alert: true })
       BotHelper.safeDeleteMessage(ctx)
       return
     }
-    return action(userId, !!isAdmin)
+
+    const isAdmin = UserHelper.isAdminRole(ctx)
+
+    if (!isAdmin && userId !== UserHelper.getUser(ctx).id) {
+      return BotHelper.safeAnswerCbQuery(ctx, '⛔️ Можна переглядати лише власні нарахування', { show_alert: true })
+    }
+
+    return action(userId, isAdmin)
   }
 }

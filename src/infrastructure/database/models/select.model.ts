@@ -26,3 +26,4 @@ export type StudioPayoutRuleSelectModel = InferSelectModel<typeof schemas.studio
 export type FeedbackNotificationSelectModel = InferSelectModel<typeof schemas.feedbackNotification>
 export type PassActivationRequestSelectModel = InferSelectModel<typeof schemas.passActivationRequest>
 export type PersonalTrainingSignupSelectModel = InferSelectModel<typeof schemas.personalTrainingSignup>
+export type StudioPriceSelectModel = InferSelectModel<typeof schemas.studioPrice>

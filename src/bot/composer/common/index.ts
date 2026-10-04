@@ -4,6 +4,8 @@ import { PaymentComposer } from './payment.composer'
 import { RulesGuardComposer } from './rules-guard.composer'
 import { GroupManageStaffComposer } from './group-manage-staff.composer'
 import { PayoutStaffComposer } from './payout-staff.composer'
+import { PersonalTrainingStaffComposer } from './personal-training-staff.composer'
+import { StudioScheduleComposer } from './studio-schedule.composer'
 
 export default [
   SchedulerComposer,
@@ -12,4 +14,6 @@ export default [
   RulesGuardComposer,
   GroupManageStaffComposer,
   PayoutStaffComposer,
+  PersonalTrainingStaffComposer,
+  StudioScheduleComposer,
 ]

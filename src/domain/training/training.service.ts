@@ -318,13 +318,15 @@ export class TrainingService {
     })
   }
 
-  async getAllTrainingsForStaffMemberSalary(staffMemberId: string, startDate: string, endDate: string) {
-    const endDateBoundary = endOfDay(new Date(endDate)).toISOString()
+  /**
+   * Every unpaid training of the staff member up to `endDateBoundary` (UTC ISO). There is no lower bound:
+   * `staff_member_payout_id IS NULL` alone decides what is unpaid, so trainings recorded after the fact are not lost.
+   */
+  async getAllTrainingsForStaffMemberSalary(staffMemberId: string, endDateBoundary: string) {
     return this.databaseService.drizzle.query.training.findMany({
       where: (training, helpers) => {
-        const { and, gte, eq, exists, inArray, isNull } = helpers
+        const { and, eq, exists, inArray, isNull } = helpers
         return and(
-          gte(training.date, startDate),
           lte(training.date, endDateBoundary),
           eq(training.isCancelled, false),
           isNull(training.staffMemberPayoutId),
@@ -354,6 +356,52 @@ export class TrainingService {
           },
         },
       },
+      orderBy: (training, { asc }) => asc(training.date),
+    })
+  }
+
+  /**
+   * All of the studio's group trainings (cancelled ones too, marked in the UI) starting in [fromIso, toIso], with the
+   * group's trainer, a substitute trainer if any, and the active signups (ids only, for the count).
+   */
+  async getStudioTrainingsInRange(fromIso: string, toIso: string) {
+    return this.databaseService.drizzle.query.training.findMany({
+      where: (training, { and, gte, lte, exists, eq }) =>
+        and(
+          gte(training.date, fromIso),
+          lte(training.date, toIso),
+          exists(
+            this.databaseService.drizzle
+              .select()
+              .from(group)
+              .where(and(eq(group.id, training.groupId), eq(group.studioId, this.configService.getStudioId()))),
+          ),
+        ),
+      with: {
+        group: { with: { trainer: { with: { userProfile: true } } } },
+        trainer: { with: { userProfile: true } },
+        trainingSignups: {
+          where: (signup, { eq }) => eq(signup.status, TrainingSignupStatusEnum.ACTIVE),
+          columns: { id: true },
+        },
+      },
+      orderBy: (training, { asc }) => asc(training.date),
+    })
+  }
+
+  /** Not cancelled trainings the staff member runs (own or as the group's trainer) starting in [fromIso, toIso]. */
+  async getStaffMemberTrainingsInRange(staffMemberId: string, fromIso: string, toIso: string) {
+    return this.databaseService.drizzle.query.training.findMany({
+      where: (training, helpers) => {
+        const { and, eq, gte, lte } = helpers
+        return and(
+          gte(training.date, fromIso),
+          lte(training.date, toIso),
+          eq(training.isCancelled, false),
+          this.staffMemberTrainingFilter(staffMemberId)(training, helpers),
+        )
+      },
+      with: { group: true },
       orderBy: (training, { asc }) => asc(training.date),
     })
   }

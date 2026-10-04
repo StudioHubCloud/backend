@@ -27,7 +27,6 @@ import {
   AuditLogTrigger,
   PassStatusEnum,
   PassTemplateTypeEnum,
-  PersonalTrainingSignupStatusEnum,
   UserProfileStatusEnum,
 } from '@app/libs'
 import { ClientHelper } from '@app/bot/helpers/client.helper'
@@ -259,27 +258,15 @@ export class ClientManageComposer {
       return BotHelper.safeDeleteMessage(ctx)
     }
 
-    const signup = await this.personalTrainingSignupService.findById(signupId)
+    const signup = await PersonalTrainingHelper.cancelByAdmin(
+      ctx,
+      signupId,
+      { personalTrainingSignupService: this.personalTrainingSignupService, passService: this.passService },
+      this.dateTimeProvider,
+    )
 
-    if (!signup || signup.status !== PersonalTrainingSignupStatusEnum.SCHEDULED) {
-      BotHelper.safeAnswerCbQuery(ctx, '⚠️ Це тренування більше недоступне або вже було скасоване', { show_alert: true })
-      return BotHelper.safeDeleteMessage(ctx)
-    }
-
-    const [canceled, logOperations] = await this.personalTrainingSignupService.cancelTraining(signupId)
-    AuditLogHelper.startAction(ctx, AuditLogActions.PERSONAL_TRAINING_CANCEL, AuditLogTrigger.ADMIN_ACTION, logOperations)
-
-    const updatedPass = canceled.passId ? await this.passService.getPassById(canceled.passId) : null
-    const remainingSlots = updatedPass?.availableSlots ?? 0
-
-    BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.CANCEL_SUCCESS, { show_alert: true })
-
-    if (signup.client?.userProfile) {
-      await BotHelper.safeSendMessage(
-        ctx.telegram,
-        signup.client.userProfile.telegramId,
-        PersonalTrainingHelper.getClientCanceledMessage(canceled.scheduledAt, remainingSlots, this.dateTimeProvider),
-      )
+    if (!signup) {
+      return
     }
 
     const clientUserProfile = await this.userProfileService.getUserProfileById(signup.client!.userProfileId)

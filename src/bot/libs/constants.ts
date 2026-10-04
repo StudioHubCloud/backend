@@ -26,6 +26,8 @@ export const SCENES = {
   PASS_OPEN: 'pass_open',
   ASK_AI: 'ask_ai',
   PERSONAL_TRAINING_REGISTER: 'personal_training_register',
+  ONE_OFF_TRAINING_REGISTER: 'one_off_training_register',
+  PERSONAL_TRAINING_NOTE_EDIT: 'personal_training_note_edit',
 } as const
 
 export const CALLBACK_DATA = {
@@ -81,16 +83,31 @@ export const CALLBACK_PREFIX = {
     },
     PAYOUT: {
       DETAILS: 'p.i.st',
+      DETAILS_BACK: 'p.i.st.b', // back from client info: group details only, the individual one is already sent
       SUMMARY: 'p.d.st',
       INITIATE: 'p.init.st',
       CLIENT_INFO: 'p.i.cl',
       BACK_TO_STAFF_MANAGE: 'p.b.s.st.m',
       BACK_TO_STAFF_LIST: 'p.b.s.st.l',
     },
+    // Admin "Розклад студії": calendar → day → groups / individual sessions
+    SCHEDULE: {
+      CALENDAR: 'sch.cal', // value: yyyy-MM (month to show)
+      DAY: 'sch.d', // value: yyyy-MM-dd
+      GROUP: 'sch.g', // value: groupId, subvalue: yyyy-MM-dd (for "back to the day")
+      PERSONAL: 'sch.p', // value: signup id
+      PERSONAL_CANCEL: 'sch.pc', // value: signup id
+      PERSONAL_NOTE: 'sch.pn', // value: signup id
+    },
     PERSONAL_TRAINING: {
       REGISTER: 'pt.reg.st',
       CANCEL_LIST: 'pt.cl.st',
       CANCEL_SELECT: 'pt.cxl.st',
+      UPCOMING: 'pt.up.st', // staff member's upcoming individual sessions
+      ONE_OFF_REGISTER: 'pt.oo.reg.st',
+      // "Персонал" → trainer: cancel any of the trainer's individual sessions (one-off or pass)
+      STAFF_CANCEL_LIST: 'pt.st.cl.st',
+      STAFF_CANCEL_SELECT: 'pt.st.cxl.st',
     },
     MANAGE: {
       LIST: 'm.l.st',
@@ -154,6 +171,7 @@ export const CALLBACK_PREFIX = {
     },
     PERSONAL_TRAINING: {
       TRAINER_SELECT: 'sc.pt.tr.sel',
+      PRICE_SELECT: 'sc.pt.pr.sel',
     },
   },
   COMMON: {

@@ -2,6 +2,7 @@ import { uniqueIndex, smallint, pgTable as table, uuid, varchar, timestamp } fro
 import { relations } from 'drizzle-orm'
 import { studio } from './studio.schema'
 import { StudioPriceTypePgEnum } from '../database.enums'
+import { personalTrainingSignup } from './personal-training-signup.schema'
 
 export const studioPrice = table(
   'studio_price',
@@ -16,6 +17,7 @@ export const studioPrice = table(
   (table) => [uniqueIndex().on(table.studioId, table.name), uniqueIndex().on(table.studioId, table.type)],
 )
 
-export const studio_price_relations = relations(studioPrice, ({ one }) => ({
+export const studio_price_relations = relations(studioPrice, ({ one, many }) => ({
   studio: one(studio, { fields: [studioPrice.studioId], references: [studio.id] }),
+  personalTrainingSignups: many(personalTrainingSignup),
 }))

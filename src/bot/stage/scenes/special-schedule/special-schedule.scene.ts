@@ -25,7 +25,6 @@ export interface ISpetialScheduleSceneState {
 @Injectable()
 export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
   private readonly specialScheduleScene = new SceneHelper<ISpetialScheduleSceneState>()
-  private exitKeyboard: TReplyMarkupKeyboard
 
   constructor(
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
@@ -41,7 +40,7 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
     )
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
-      await ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.EXIT, this.exitKeyboard)
+      await ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.EXIT, this.getExitKeyboard(ctx))
       return this.handleSceneExitAndCleanup(ctx)
     })
 
@@ -49,19 +48,16 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
       const { trainingId } = this.specialScheduleScene.getState(ctx)
 
       const training = await this.trainingService.getTrainingById(+trainingId)
-      const role = UserHelper.getUserRole(ctx)
-      const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
-      this.exitKeyboard = keyboard
 
       if (!training) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.NO_TRAINING_FOUND, this.exitKeyboard)
+        await ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.NO_TRAINING_FOUND, this.getExitKeyboard(ctx))
         return this.handleSceneExitAndCleanup(ctx)
       }
 
       const group = await this.groupService.getGroupById(training.groupId)
 
       if (!group) {
-        await ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.NO_GROUP_FOUND, this.exitKeyboard)
+        await ctx.replyWithHTML(MESSAGES_SCENE.SPECIAL_SCHEDULE.NO_GROUP_FOUND, this.getExitKeyboard(ctx))
         return this.handleSceneExitAndCleanup(ctx)
       }
 
@@ -88,7 +84,7 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
         groupId: group.id,
       })
 
-      await ctx.replyWithHTML(`✅ Запис на ім'я ${textPayload} успішно створено`, this.exitKeyboard)
+      await ctx.replyWithHTML(`✅ Запис на ім'я ${textPayload} успішно створено`, this.getExitKeyboard(ctx))
       return this.handleSceneExitAndCleanup(ctx)
     } catch (error) {
       await this.handleError(ctx, error)
@@ -103,7 +99,7 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
     )
     await ctx.replyWithHTML(
       `❌ Виникла помилка: ${error?.message}. Спробуйте ще раз або зверніться до адміністратора.`,
-      this.exitKeyboard,
+      this.getExitKeyboard(ctx),
     )
     return ctx.scene.leave()
   }
@@ -121,5 +117,10 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
       AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer),
     )
     return ctx.scene.leave()
+  }
+
+  /** Main menu for this user's role. Computed per update: the scene instance is shared by all users. */
+  private getExitKeyboard(ctx: BotContext): TReplyMarkupKeyboard {
+    return KeyboardHelper.getRoleBasedMainMenuKeyboard(UserHelper.getUserRole(ctx))
   }
 }

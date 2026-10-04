@@ -12,7 +12,7 @@ import {
 } from '@app/bot/menus'
 import { CALLBACK_PREFIX, SCENES, TPaginatedMenuRenderOptions } from '@app/bot/libs'
 import { PinoLogger } from 'nestjs-pino'
-import { AdminKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
+import { AdminKeyboards, ScheduleKeyboards, TrainerKeyboards } from '@app/bot/keyboard/storage'
 import { GroupService } from '@app/domain/group'
 import { UserProfileService } from '@app/domain/user-profile'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
@@ -21,6 +21,9 @@ import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { API, PassStatusEnum, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs'
+
+const ADMIN_ONLY_MESSAGE = '⛔️ Доступно лише адміністратору'
+const NOT_YOUR_GROUP_MESSAGE = '👀 Це не ваша група'
 
 @Injectable()
 export class GroupManageStaffComposer {
@@ -109,7 +112,9 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECT),
       async (ctx: BotContext) => {
-        const [_, staffMemberId] = RegexHelper.getMatchGroupValue(ctx)
+        const [_, slotValue] = RegexHelper.getMatchGroupValue(ctx)
+        // Another trainer's group list is for admins only ("Персонал" → trainer → groups)
+        const staffMemberId = UserHelper.isAdminRole(ctx) ? slotValue : null
 
         let backButtonCallbackData: string | null = null
 
@@ -127,6 +132,9 @@ export class GroupManageStaffComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.MANAGE.GROUPS_LIST), async (ctx: BotContext) => {
       const [userId, isAdmin] = RegexHelper.getMatchGroupValue(ctx)
+      if (!UserHelper.isAdminRole(ctx)) {
+        return BotHelper.safeAnswerCbQuery(ctx, ADMIN_ONLY_MESSAGE, { show_alert: true })
+      }
       if (!userId) {
         BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка при виборі тренера. Спробуйте ще раз.')
         BotHelper.safeDeleteMessage(ctx)
@@ -165,7 +173,7 @@ export class GroupManageStaffComposer {
     )
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.CANCEL), async (ctx: BotContext) => {
-      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+      return this.handleAdminTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         const { training, signups } = await this.trainingService.cancelTrainingById(+trainingId)
 
         await Promise.all(
@@ -188,7 +196,7 @@ export class GroupManageStaffComposer {
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.ACTIVATE), async (ctx: BotContext) => {
-      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+      return this.handleAdminTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         const { training, signups } = await this.trainingService.activateTrainingById(+trainingId)
         await Promise.all(
           signups
@@ -252,7 +260,7 @@ export class GroupManageStaffComposer {
     )
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN), async (ctx: BotContext) => {
-      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+      return this.handleAdminTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         const activeClients = await this.userProfileService.getActiveClientsForSignIn(+trainingId)
         const data = activeClients.map((client) => {
           const activePass = client.client?.pass.find((p) => p.status === PassStatusEnum.ACTIVE)
@@ -284,7 +292,7 @@ export class GroupManageStaffComposer {
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.SIGN_OUT), async (ctx: BotContext) => {
-      return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+      return this.handleAdminTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
         const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(+trainingId)
         const data = activeSignUps.map((signup) => ({
           name: `${UserHelper.getSignupDisplayName(signup)}`,
@@ -313,7 +321,7 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.CUSTOM_SIGN_IN),
       async (ctx: BotContext) => {
-        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+        return this.handleAdminTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
           const context = { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId, trainingId }
           await ctx.deleteMessage().catch(() => {})
           return ctx.scene.enter(SCENES.SPECIAL_SCHEDULE, context)
@@ -324,7 +332,7 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.ASSIGN_SUBSTITUTE_LIST),
       async (ctx: BotContext) => {
-        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+        return this.handleAdminTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
           const backButtonCbData = RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.TRAINING.BACK_TO_MANAGE,
             trainingId,
@@ -361,7 +369,7 @@ export class GroupManageStaffComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.TRAINING.DEASSIGN_SUBSTITUTE_LIST),
       async (ctx: BotContext) => {
-        return this.handleTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
+        return this.handleAdminTrainingAction(ctx, async (trainingId, backButtonCallbackData, staffUserId) => {
           await this.trainingService.deassignSubstituteTrainer(+trainingId)
           await this.notifyClientsAboutSubstituteTrainer(ctx, trainingId, 'deassign')
           BotHelper.safeAnswerCbQuery(ctx, '✅ Заміна тренера скасована.')
@@ -427,6 +435,11 @@ export class GroupManageStaffComposer {
       return
     }
     const group = await this.groupService.getGroupById(+groupId)
+
+    if (!(await this.canViewGroup(ctx, group))) {
+      return BotHelper.safeAnswerCbQuery(ctx, NOT_YOUR_GROUP_MESSAGE, { show_alert: true })
+    }
+
     const backButtonCallbackData = RegexHelper.createButtonActionCallbackData(
       CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_SELECTED_GROUP,
       groupId,
@@ -440,9 +453,14 @@ export class GroupManageStaffComposer {
   }
 
   private renderTrainingManageMenu = async (ctx: BotContext, trainingId: string, context: Record<string, any> = {}) => {
-    await BotHelper.safeAnswerCbQuery(ctx)
     const training = await this.trainingService.getTrainingById(+trainingId)
     const group = await this.groupService.getGroupById(training.groupId)
+
+    if (!(await this.canViewGroup(ctx, group, training.trainerId))) {
+      return BotHelper.safeAnswerCbQuery(ctx, NOT_YOUR_GROUP_MESSAGE, { show_alert: true })
+    }
+
+    await BotHelper.safeAnswerCbQuery(ctx)
 
     const hasSubstituteTrainer = !!training.trainer
 
@@ -458,23 +476,32 @@ export class GroupManageStaffComposer {
       {
         ...(isAdmin
           ? AdminKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId, hasSubstituteTrainer)
-          : TrainerKeyboards.trainingManageMenu(training, backButtonCallbackData)),
+          : TrainerKeyboards.trainingManageMenu(training, backButtonCallbackData, staffUserId)),
       },
     )
   }
 
   private renderGroupManageMenu = async (ctx: BotContext, groupId: string, context: Record<string, any> = {}) => {
-    BotHelper.safeAnswerCbQuery(ctx)
     const group = await this.groupService.getGroupById(+groupId)
+
+    if (!(await this.canViewGroup(ctx, group))) {
+      return BotHelper.safeAnswerCbQuery(ctx, NOT_YOUR_GROUP_MESSAGE, { show_alert: true })
+    }
+
+    BotHelper.safeAnswerCbQuery(ctx)
 
     return BotHelper.safeEditMessageText(
       ctx,
       MessageHelper.constructGroupSelectMessage(group),
-      AdminKeyboards.groupManageMenu(+groupId, context.staffUserId),
+      AdminKeyboards.groupManageMenu(+groupId, context.staffUserId, ScheduleKeyboards.backButtonForOrigin(context.staffUserId)),
     )
   }
 
   private handleClientSignOutPaginatedSelect = async (ctx: BotContext, signupId: string, context: Record<string, any> = {}) => {
+    if (!UserHelper.isAdminRole(ctx)) {
+      return BotHelper.safeAnswerCbQuery(ctx, ADMIN_ONLY_MESSAGE, { show_alert: true })
+    }
+
     const response = await this.trainingSignupService.signOutFromTrainingAsAdminViaTelegram(signupId)
 
     if (response.status === API.RESPONSE.ERROR_STRING) {
@@ -536,6 +563,10 @@ export class GroupManageStaffComposer {
   }
 
   private handleClientSignInPaginatedSelect = async (ctx: BotContext, userId: string, context: Record<string, any> = {}) => {
+    if (!UserHelper.isAdminRole(ctx)) {
+      return BotHelper.safeAnswerCbQuery(ctx, ADMIN_ONLY_MESSAGE, { show_alert: true })
+    }
+
     const { trainingId } = context
 
     if (!trainingId) {
@@ -579,6 +610,10 @@ export class GroupManageStaffComposer {
   }
 
   private handleStaffSelectPaginatedSelect = async (ctx: BotContext, staffUserId: string, context: Record<string, any> = {}) => {
+    if (!UserHelper.isAdminRole(ctx)) {
+      return BotHelper.safeAnswerCbQuery(ctx, ADMIN_ONLY_MESSAGE, { show_alert: true })
+    }
+
     if (!context.trainingId) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
       BotHelper.safeDeleteMessage(ctx)
@@ -605,7 +640,9 @@ export class GroupManageStaffComposer {
   ) {
     const [trainingId, backButtonCallbackData] = RegexHelper.getMatchGroupValue(ctx)
 
-    const staffUserId = RegexHelper.isValidUuid(backButtonCallbackData) ? backButtonCallbackData : undefined
+    // The slot holds a staff user id or a studio schedule origin (both travel the same way), else a back-button prefix
+    const isOrigin = RegexHelper.isValidUuid(backButtonCallbackData) || !!ScheduleKeyboards.parseOrigin(backButtonCallbackData)
+    const staffUserId = isOrigin ? backButtonCallbackData : undefined
 
     if (!trainingId) {
       BotHelper.safeAnswerCbQuery(ctx, '⚠️ Не вдалося повернутися до тренування.', { show_alert: true })
@@ -613,7 +650,36 @@ export class GroupManageStaffComposer {
       return
     }
 
+    if (!UserHelper.isAdminRole(ctx)) {
+      const training = await this.trainingService.getTrainingById(+trainingId)
+      const group = await this.groupService.getGroupById(training.groupId)
+      if (!(await this.canViewGroup(ctx, group, training.trainerId))) {
+        return BotHelper.safeAnswerCbQuery(ctx, NOT_YOUR_GROUP_MESSAGE, { show_alert: true })
+      }
+    }
+
     return action(trainingId, staffUserId ? null : backButtonCallbackData, staffUserId)
+  }
+
+  /** Training actions that change data. Trainers only get read-only keyboards; a forged callback is refused here. */
+  private async handleAdminTrainingAction(
+    ctx: BotContext,
+    action: (trainingId: string, backButtonCallbackData?: string | null, staffUserId?: string | null) => Promise<any>,
+  ) {
+    if (!UserHelper.isAdminRole(ctx)) {
+      return BotHelper.safeAnswerCbQuery(ctx, ADMIN_ONLY_MESSAGE, { show_alert: true })
+    }
+    return this.handleTrainingAction(ctx, action)
+  }
+
+  /** Admins see every group; a trainer sees their own groups, and a training of another group they substitute in. */
+  private async canViewGroup(ctx: BotContext, group: { staffMemberId: string | null }, substituteTrainerId?: string | null) {
+    if (UserHelper.isAdminRole(ctx)) {
+      return true
+    }
+    const userProfile = await this.userProfileService.getUserProfileById(UserHelper.getUser(ctx).id)
+    const ownStaffMemberId = userProfile?.staffMember?.id
+    return !!ownStaffMemberId && (group.staffMemberId === ownStaffMemberId || substituteTrainerId === ownStaffMemberId)
   }
 
   private async notifyClientsAboutSubstituteTrainer(ctx: BotContext, trainingId: string, action: 'assign' | 'deassign') {

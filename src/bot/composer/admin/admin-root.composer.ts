@@ -6,6 +6,8 @@ import { StaffManageComposer } from './staff-manage/staff-manage.composer'
 import { VerificationRequestComposer } from './verification-request/verification-request.composer'
 import { GroupManageStaffComposer } from '../common/group-manage-staff.composer'
 import { PayoutStaffComposer } from '../common/payout-staff.composer'
+import { PersonalTrainingStaffComposer } from '../common/personal-training-staff.composer'
+import { StudioScheduleComposer } from '../common/studio-schedule.composer'
 import { MESSAGES_STAFF } from '@app/bot/static/messages'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { AskAiComposer } from './ask-ai/ask-ai.composer'
@@ -19,6 +21,8 @@ export class AdminRootComposer {
     private readonly staffManageComposer: StaffManageComposer,
     private readonly requestVerificationComposer: VerificationRequestComposer,
     private readonly payoutStaffComposer: PayoutStaffComposer,
+    private readonly personalTrainingStaffComposer: PersonalTrainingStaffComposer,
+    private readonly studioScheduleComposer: StudioScheduleComposer,
     private readonly groupManageStaffComposer: GroupManageStaffComposer,
     private readonly askAiComposer: AskAiComposer,
   ) {
@@ -43,6 +47,8 @@ export class AdminRootComposer {
     //common staff
     this.composer.use(this.groupManageStaffComposer.middleware())
     this.composer.use(this.payoutStaffComposer.middleware())
+    this.composer.use(this.personalTrainingStaffComposer.middleware())
+    this.composer.use(this.studioScheduleComposer.middleware())
     this.composer.use(this.askAiComposer.middleware())
   }
 }

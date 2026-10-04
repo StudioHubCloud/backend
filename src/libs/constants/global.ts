@@ -17,6 +17,10 @@ export const DATE_FORMAT = {
   TRAINING_DISPLAY: 'EEEE, d MMMM, HH:mm',
 } as const
 
+export const TRAINING_CONFIG = {
+  DURATION_MINUTES: 60, // group trainings and individual sessions alike (no per-training duration in the DB)
+} as const
+
 export const ENVIRONMENTS = {
   DEV: 'development',
   PRODUCTION: 'production',

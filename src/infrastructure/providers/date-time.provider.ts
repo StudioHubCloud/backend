@@ -96,6 +96,11 @@ export class DateTimeProvider {
     return endOfDate.toISOString()
   }
 
+  /** End of a `yyyy-MM-dd` day in the studio time zone, as a UTC ISO string (not the server's time zone). */
+  toEndOfDateTimeStampInTz(date: string): string {
+    return fromZonedTime(`${date}T23:59:59.999`, this.time_zone).toISOString()
+  }
+
   toStartOfDateTimeStamp(date?: string): string {
     const startOfDate = date ? startOfDay(new Date(date)) : startOfDay(new Date())
     return startOfDate.toISOString()

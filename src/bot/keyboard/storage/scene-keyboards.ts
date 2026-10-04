@@ -2,7 +2,13 @@ import { KeyboardHelper, RegexHelper } from '@app/bot/helpers'
 import { KEYBOARDS_SCENE } from '@app/bot/static/keyboards'
 import { TReplyMarkupKeyboard, TReplyInlineKeyboard, CALLBACK_PREFIX } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
-import { GroupSelectModel, PassTemplateSelectModel, StaffMemberSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
+import {
+  GroupSelectModel,
+  PassTemplateSelectModel,
+  StaffMemberSelectModel,
+  StudioPriceSelectModel,
+  UserProfileSelectModel,
+} from '@app/infrastructure/database'
 import { PassTemplateTypeEnum } from '@app/libs'
 import { InlineKeyboardButton } from '@telegraf/types'
 
@@ -174,6 +180,20 @@ export class PersonalTrainingRegisterSceneKeyboards {
             ),
           },
         ]),
+    )
+  }
+}
+
+export class OneOffTrainingRegisterSceneKeyboards {
+  /** "DUO — 1400 ₴" per one-off price. */
+  static priceSelectInlineKeyboard(prices: StudioPriceSelectModel[]): TReplyInlineKeyboard {
+    return KeyboardHelper.createInlineKeyboard(
+      prices.map((price) => [
+        {
+          text: `${price.name} — ${price.price} ₴`,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.PERSONAL_TRAINING.PRICE_SELECT, price.id),
+        },
+      ]),
     )
   }
 }

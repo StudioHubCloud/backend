@@ -1,12 +1,19 @@
 import { TypedConfigService } from '@app/infrastructure/config'
-import { DatabaseService, StudioPayoutRuleSelectModel, training, Transaction } from '@app/infrastructure/database'
+import {
+  DatabaseService,
+  personalTrainingSignup,
+  StudioPayoutRuleSelectModel,
+  training,
+  Transaction,
+} from '@app/infrastructure/database'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { BadRequestException, Injectable } from '@nestjs/common'
+import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
 import { TrainingService } from '../training'
 import { RedisCacheService, StaffMemberPayoutCacheKey } from '@app/infrastructure/redis'
 import { StudioPayoutRuleService } from '../studio-payout-rule'
 import { StaffMemberService } from '../staff-member/staff-member.service'
+import { PersonalTrainingSignupService } from '../personal-training-signup'
 import { API, DATE_FORMAT, TSalaryPayoutResult } from '@app/libs'
 import { staffMemberPayout } from '@app/infrastructure/database/schemas/staff-member-payout.schema'
 import { inArray } from 'drizzle-orm'
@@ -22,18 +29,21 @@ export class StaffMemberPayoutService {
     private readonly redisCacheService: RedisCacheService,
     private readonly studioPayoutRuleService: StudioPayoutRuleService,
     private readonly staffMemberService: StaffMemberService,
+    private readonly personalTrainingSignupService: PersonalTrainingSignupService,
   ) {}
 
   async calculateStaffPayoutSalary(staffUserId: string, payoutDate?: string) {
     const staffMember = await this.staffMemberService.findStaffMemberByCondition({ userProfileId: staffUserId })
 
-    const startPeriodDate = (await this.getStaffMemberLastPayoutDate(staffMember.id)) || API.LOWES_DATE
-    const endPeriodDate = this.dateTimeProvider.formatDateStringInTz(
-      payoutDate ? this.dateTimeProvider.parseAndFormatDate({ date: payoutDate }) : new Date().toISOString(),
-      DATE_FORMAT.DATE_MAIN,
-    )
+    // The period is everything unpaid up to the end of the payout day (studio time zone). The last payout date
+    // is not a lower bound, it only keys the cache so a new payout invalidates the previous result.
+    const lastPayoutDate = (await this.getStaffMemberLastPayoutDate(staffMember.id)) || API.LOWES_DATE
+    const endPeriodDate = payoutDate
+      ? this.dateTimeProvider.parseAndFormatDate({ date: payoutDate })
+      : this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
+    const endDateBoundary = this.dateTimeProvider.toEndOfDateTimeStampInTz(endPeriodDate)
 
-    const cacheKey = StaffMemberPayoutCacheKey.staffPayoutSalary(staffMember.id, startPeriodDate, endPeriodDate)
+    const cacheKey = StaffMemberPayoutCacheKey.staffPayoutSalary(staffMember.id, lastPayoutDate, endPeriodDate)
 
     const cachedSalaryResults = await this.redisCacheService.get<TSalaryPayoutResult>(cacheKey)
 
@@ -41,18 +51,24 @@ export class StaffMemberPayoutService {
       return cachedSalaryResults
     }
 
-    const [allTrainings, staffMemberRules] = await Promise.all([
-      this.trainingService.getAllTrainingsForStaffMemberSalary(staffMember.id, startPeriodDate, endPeriodDate),
+    const [allTrainings, allPersonalTrainings, staffMemberRules] = await Promise.all([
+      this.trainingService.getAllTrainingsForStaffMemberSalary(staffMember.id, endDateBoundary),
+      this.personalTrainingSignupService.getUnpaidForStaffMemberSalary(staffMember.id, endDateBoundary),
       this.studioPayoutRuleService.getStaffmemberApplicablePayoutRules(staffMember.id),
     ])
 
-    const { fixedRule: FIXED_RULE, perSignUpRule: PER_SIGNUP_RULE } = staffMemberRules
+    const { fixedRule: FIXED_RULE, perSignUpRule: PER_SIGNUP_RULE, percentageRule: PERCENTAGE_RULE } = staffMemberRules
+
+    if (allPersonalTrainings.length > 0 && !PERCENTAGE_RULE) {
+      throw new NotFoundException('No percentage payout rule found, cannot calculate individual sessions payout')
+    }
+    const personalPayoutPercentage = Number(PERCENTAGE_RULE?.amount ?? 0)
 
     const groups: TSalaryPayoutResult['groups'] = {}
 
     const trainingIds: number[] = []
 
-    let totalPayout = 0
+    let groupPayout = 0
 
     for (const training of allTrainings) {
       const signUpCount = training.trainingSignups?.length || 0
@@ -76,7 +92,7 @@ export class StaffMemberPayoutService {
 
       groups[groupName].groupPayout += payout
       groups[groupName].trainingCount += 1
-      totalPayout += payout
+      groupPayout += payout
 
       trainingIds.push(training.id)
 
@@ -88,12 +104,24 @@ export class StaffMemberPayoutService {
       group.trainings.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime())
     })
 
-    const statistics = this.calculatePayoutStatistics(groups, totalPayout)
+    const personalTrainings: TSalaryPayoutResult['personalTrainings'] = allPersonalTrainings.map((session) => ({
+      date: session.scheduledAt,
+      title: session.studioPrice?.name ?? session.pass?.passTemplate.name ?? 'Індивідуальне',
+      participants: session.participantsNote ?? this.getClientName(session.client?.userProfile),
+      isNote: !!session.participantsNote,
+      price: session.price,
+      payout: Math.round((session.price * personalPayoutPercentage) / 100),
+    }))
+    const personalTrainingIds = allPersonalTrainings.map((session) => session.id)
+
+    const statistics = this.calculatePayoutStatistics(groups, groupPayout, personalTrainings, personalPayoutPercentage)
 
     const salaryResults: TSalaryPayoutResult = {
       groups,
+      personalTrainings,
       statistics,
       trainingIds,
+      personalTrainingIds,
     }
 
     await this.redisCacheService.set(cacheKey, salaryResults)
@@ -133,7 +161,15 @@ export class StaffMemberPayoutService {
       paidAt,
       description,
       trainingIds = [],
-    }: { staffUserId: string; amount: string; paidAt: string; description: string; trainingIds: number[] },
+      personalTrainingIds = [],
+    }: {
+      staffUserId: string
+      amount: string
+      paidAt: string
+      description: string
+      trainingIds: number[]
+      personalTrainingIds: string[]
+    },
     tx?: Transaction,
   ) {
     const dbProvider = tx || this.databaseService.drizzle
@@ -170,6 +206,14 @@ export class StaffMemberPayoutService {
         this.logger.info(`Linked ${trainingIds.length} trainings to payout ${payout.id}`)
       }
 
+      if (personalTrainingIds.length > 0) {
+        await transaction
+          .update(personalTrainingSignup)
+          .set({ staffMemberPayoutId: payout.id })
+          .where(inArray(personalTrainingSignup.id, personalTrainingIds))
+        this.logger.info(`Linked ${personalTrainingIds.length} individual sessions to payout ${payout.id}`)
+      }
+
       await this.redisCacheService.delete(StaffMemberPayoutCacheKey.lastStaffPayoutDate(staffMember.id))
 
       return payout
@@ -191,22 +235,39 @@ export class StaffMemberPayoutService {
 
     const extraSignups = Math.max(0, signUpCount - (fixedRule.maxSignups ?? Infinity))
 
-    return Number(fixedRule.amount) + extraSignups * Number(perSignUpRule.amount)
+    return Math.round(Number(fixedRule.amount) + extraSignups * Number(perSignUpRule.amount))
   }
 
-  private calculatePayoutStatistics(groups: TSalaryPayoutResult['groups'], totalPayout: number): TSalaryPayoutResult['statistics'] {
+  private calculatePayoutStatistics(
+    groups: TSalaryPayoutResult['groups'],
+    groupPayout: number,
+    personalTrainings: TSalaryPayoutResult['personalTrainings'],
+    personalPayoutPercentage: number,
+  ): TSalaryPayoutResult['statistics'] {
     const totalTrainings = Object.values(groups).reduce((sum, group) => sum + group.trainingCount, 0)
     const totalSignups = Object.values(groups).reduce(
       (sum, group) => sum + group.trainings.reduce((trainingSum, training) => trainingSum + training.trainingSignups.length, 0),
       0,
     )
-    const averagePayoutPerTraining = totalTrainings > 0 ? totalPayout / totalTrainings : 0
+    const averagePayoutPerTraining = totalTrainings > 0 ? Math.round(groupPayout / totalTrainings) : 0
+    const personalPayout = personalTrainings.reduce((sum, session) => sum + session.payout, 0)
 
     return {
       totalSignups,
       totalTrainings,
+      groupPayout,
       averagePayoutPerTraining,
-      totalPayout,
+      personalTrainingCount: personalTrainings.length,
+      personalPayoutPercentage,
+      personalPayout,
+      totalPayout: groupPayout + personalPayout,
     }
+  }
+
+  private getClientName(userProfile?: { firstName: string | null; lastName: string | null; fullName: string | null } | null) {
+    if (!userProfile) {
+      return '—'
+    }
+    return userProfile.fullName || [userProfile.firstName, userProfile.lastName].filter(Boolean).join(' ') || '—'
   }
 }

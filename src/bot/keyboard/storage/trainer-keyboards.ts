@@ -3,13 +3,19 @@ import { KEYBOARDS_TRAINER } from '@app/bot/static/keyboards'
 import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 import { InlineKeyboardButton } from '@telegraf/types'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
+import { COMMON_BUTTONS } from './common-keyboards'
 
 export class TrainerKeyboards {
   static mainMenu(): TReplyMarkupKeyboard {
     return KeyboardHelper.createReplyMarkupKeyboard(KEYBOARDS_TRAINER.MAIN_MENU)
   }
 
-  static trainingManageMenu(training: GetTrainingByIdResponse, backButtonCallbackData?: string | null): TReplyInlineKeyboard {
+  /** `origin`: where the flow came from (e.g. a studio schedule day), kept by every button like the admin's staffUserId. */
+  static trainingManageMenu(
+    training: GetTrainingByIdResponse,
+    backButtonCallbackData?: string | null,
+    origin?: string,
+  ): TReplyInlineKeyboard {
     const { id: trainingId, groupId, isCancelled } = training
 
     const activeSignupsButton = {
@@ -17,7 +23,7 @@ export class TrainerKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_ACTIVE,
         trainingId,
-        backButtonCallbackData,
+        origin ?? backButtonCallbackData,
       ),
     }
     const canceledSignupsButton = {
@@ -25,7 +31,7 @@ export class TrainerKeyboards {
       callback_data: RegexHelper.createButtonActionCallbackData(
         CALLBACK_PREFIX.STAFF.TRAINING.SIGNUPS_CANCELED,
         trainingId,
-        backButtonCallbackData,
+        origin ?? backButtonCallbackData,
       ),
     }
 
@@ -37,6 +43,7 @@ export class TrainerKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(
             backButtonCallbackData ?? CALLBACK_PREFIX.STAFF.GROUP.BACK_TO_TRAININGS_SELECT,
             groupId,
+            origin,
           ),
         },
       ],
@@ -54,6 +61,7 @@ export class TrainerKeyboards {
         },
       ])
     }
+    keyboard.push([COMMON_BUTTONS.CLOSE]) // root menu ("💰 Нарахування оплати")
     return KeyboardHelper.createInlineKeyboard(keyboard)
   }
 
@@ -79,7 +87,7 @@ export class TrainerKeyboards {
       [
         {
           text: BUTTON_PATTERNS.BACK,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS, staffMemberId),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.PAYOUT.DETAILS_BACK, staffMemberId),
         },
       ],
     ])

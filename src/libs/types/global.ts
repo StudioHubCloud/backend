@@ -23,15 +23,28 @@ export interface TSalaryPayoutResult {
       trainingCount: number
     }
   >
+  personalTrainings: Array<{
+    date: string
+    title: string // one-off price name (e.g. "Дуо") or the pass template name
+    participants: string // one-off participants note or the client's name
+    isNote: boolean // participants is a one-off's free-text note (names, wishes, anything)
+    price: number
+    payout: number
+  }>
   statistics: TPayoutStatistics
   trainingIds: number[]
+  personalTrainingIds: string[]
 }
 
 export type TPayoutStatistics = {
   totalSignups: number
-  totalTrainings: number
+  totalTrainings: number // group trainings
+  groupPayout: number
+  averagePayoutPerTraining: number // group trainings only
+  personalTrainingCount: number
+  personalPayoutPercentage: number // share of an individual session's price
+  personalPayout: number
   totalPayout: number
-  averagePayoutPerTraining: number
 }
 
 export interface AuditLogPayload {
