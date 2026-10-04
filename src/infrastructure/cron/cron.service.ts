@@ -174,8 +174,9 @@ export class CronService {
 
   /**
    * The evening before the monthly payouts are prepared (last day of the month, 18:00): each trainer with individual
-   * sessions nobody confirmed gets a reminder, since the payout closes them with 0 (group attendance is marked before
-   * the start, no reminder). Runs daily, acts only when tomorrow is the 1st.
+   * sessions nobody confirmed gets a reminder, and the admins one summary, since the payout closes them with 0.
+   * Group attendance has no "pending" (a person came or not), so no reminder for it. Runs daily, acts only when
+   * tomorrow is the 1st.
    */
   @Cron(CronExpression.EVERY_DAY_AT_6PM, {
     name: 'remind-unconfirmed-sessions',
@@ -190,6 +191,7 @@ export class CronService {
     await this.metricsService.runJob('remind-unconfirmed-sessions', async () => {
       const payoutDate = format(parseISO(todayInTz), DATE_FORMAT.DATE_INPUT)
       const staffUserProfiles = await this.userProfileService.getAllActiveStaffMembersUserProfiles()
+      const unconfirmedByTrainer: { name: string; count: number }[] = []
 
       for (const staffUserProfile of staffUserProfiles) {
         try {
@@ -201,6 +203,7 @@ export class CronService {
           const unconfirmedSessions = salary.statistics.pendingPersonalCount ?? 0
 
           if (unconfirmedSessions) {
+            unconfirmedByTrainer.push({ name: UserHelper.getDisplayName(staffUserProfile), count: unconfirmedSessions })
             await this.botNotificationService.sendCustomNotification(
               staffUserProfile.telegramId,
               MessageHelper.getUnconfirmedSessionsReminder(unconfirmedSessions),
@@ -211,6 +214,15 @@ export class CronService {
           const errorMessage = error instanceof Error ? error.message : 'Unknown error'
           this.logger.error(`Unconfirmed sessions reminder failed for user profile ${staffUserProfile.id}: ${errorMessage}`)
         }
+      }
+
+      if (unconfirmedByTrainer.length) {
+        // Same recipients as the prepared payouts list (maintainers only in the test studio)
+        const admins = await this.userProfileService.findStudioAdmins({ withMaintainers: !this.configService.isProduction() })
+        const message = MessageHelper.getUnconfirmedSessionsAdminReminder(unconfirmedByTrainer)
+        await Promise.all(
+          admins.map((admin) => this.botNotificationService.sendCustomNotification(admin.telegramId, message, { parse_mode: 'HTML' })),
+        )
       }
     })
   }

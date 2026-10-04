@@ -373,6 +373,16 @@ ${sessionLines}`
     )
   }
 
+  /** The admins' summary on the last day of the month: trainers with individual sessions nobody confirmed yet. */
+  static getUnconfirmedSessionsAdminReminder(trainers: { name: string; count: number }[]): string {
+    const lines = trainers.map(({ name, count }) => `- ${TextHelper.escapeHtml(name)}: ${count}`).join('\n')
+    return (
+      `⏳ <b>Завтра о 12:00 — виплати за місяць</b>\n\n` +
+      `Непідтверджені індивідуальні заняття:\n${lines}\n\n` +
+      `Виплата закриє їх з 0 ₴. Тренерам надіслано нагадування; підтвердити може і адмін: «📅 Розклад студії» → день → заняття.`
+    )
+  }
+
   /** Text of the list of payouts the monthly cron prepared (the cron's message to admins, and the list in the bot). */
   static getPendingPayoutsListMessage(): string {
     return (
