@@ -10,33 +10,45 @@ import { DATE_FORMAT } from '@app/libs'
 import { COMMON_BUTTONS } from './common-keyboards'
 
 const PREFIX = CALLBACK_PREFIX.STAFF.SCHEDULE
+const ITEMS_PER_ROW = 3
 
 /** "📅 Розклад студії": the day timeline → group menu / session menu. Dates are yyyy-MM-dd (studio time zone). */
 export class ScheduleKeyboards {
   /**
-   * The day's items two per row (a group → its group menu, an individual session → its menu), then
-   * ◀️ previous day · Сьогодні · next day ▶️, "📅 Обрати дату" and "✖️ Закрити" (a root menu).
+   * The day's items (a group → its group menu, an individual session → its menu): one row per group style
+   * (the same direction at different hours, up to ITEMS_PER_ROW), individual sessions in their own rows,
+   * rows in time order; then ◀️ previous day · Сьогодні · next day ▶️, "📅 Обрати дату" and "✖️ Закрити" (a root menu).
    */
   static day(date: string, items: TScheduleItem[], dateTimeProvider: DateTimeProvider): TReplyInlineKeyboard {
-    const itemButtons: InlineKeyboardButton[] = items.map((item) => {
+    // Items are already in time order, so a Map keeps the rows ordered by each style's first item
+    const buttonsByRow = new Map<string, InlineKeyboardButton[]>()
+
+    for (const item of items) {
       const time = dateTimeProvider.formatDateStringInTz(item.start, DATE_FORMAT.TIME_MAIN)
-
-      if (item.training) {
-        return {
-          text: `${item.training.isCancelled ? '❌ ' : ''}${time} ${item.training.group.name}`,
-          callback_data: RegexHelper.createButtonActionCallbackData(PREFIX.GROUP, item.training.groupId, date),
-        }
-      }
-
-      return {
-        text: `🤝 ${time} ${PersonalTrainingHelper.getSessionTitle(item.session)}`,
-        callback_data: RegexHelper.createButtonActionCallbackData(PREFIX.PERSONAL, item.session.id),
-      }
-    })
+      const [rowKey, button]: [string, InlineKeyboardButton] = item.training
+        ? [
+            `style:${item.training.group.groupStyleId}`,
+            {
+              // The group name's own schedule "(Пн/Чт 17:00)" is dropped: the time is already there
+              text: `${item.training.isCancelled ? '❌ ' : ''}${time} ${item.training.group.name.replace(/\s*\([^)]*\)\s*$/, '')}`,
+              callback_data: RegexHelper.createButtonActionCallbackData(PREFIX.GROUP, item.training.groupId, date),
+            },
+          ]
+        : [
+            'personal',
+            {
+              text: `🤝 ${time} ${PersonalTrainingHelper.getSessionTitle(item.session)}`,
+              callback_data: RegexHelper.createButtonActionCallbackData(PREFIX.PERSONAL, item.session.id),
+            },
+          ]
+      buttonsByRow.set(rowKey, [...(buttonsByRow.get(rowKey) ?? []), button])
+    }
 
     const rows: InlineKeyboardButton[][] = []
-    for (let i = 0; i < itemButtons.length; i += 2) {
-      rows.push(itemButtons.slice(i, i + 2))
+    for (const buttons of buttonsByRow.values()) {
+      for (let i = 0; i < buttons.length; i += ITEMS_PER_ROW) {
+        rows.push(buttons.slice(i, i + ITEMS_PER_ROW))
+      }
     }
 
     const day = parse(date, DATE_FORMAT.DATE_MAIN, new Date())
