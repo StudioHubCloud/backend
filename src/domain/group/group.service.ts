@@ -78,18 +78,36 @@ export class GroupService {
   }
 
   async getAllUserAgeResctictedActiveGroups({ userId }: { userId: string }) {
-    const [groups, userProfile] = await Promise.all([this.getAllActiveGroups(), this.userProfileService.getUserProfileById(userId)])
+    const userProfile = await this.userProfileService.getUserProfileById(userId)
+    return this.getAgeAppropriateActiveGroups(userProfile?.dateOfBirth ?? null)
+  }
+
+  /** Admin picks a pass's group: groups for the client's age, or all active ones when none fits (never stuck). */
+  async getGroupsForClientPass(dateOfBirth: string | null) {
+    const ageGroups = await this.getAgeAppropriateActiveGroups(dateOfBirth)
+    if (ageGroups.length) {
+      return { groups: ageGroups, isAgeFiltered: true }
+    }
+    return { groups: await this.getAllActiveGroups(), isAgeFiltered: false }
+  }
+
+  /**
+   * Active studio groups that fit a date of birth (`yyyy-MM-dd`), with the allowed threshold. Takes the date itself, so
+   * it works before the profile is saved (registration). Without a date only groups without restrictions fit.
+   */
+  async getAgeAppropriateActiveGroups(dateOfBirth: string | null) {
+    const groups = await this.getAllActiveGroups()
 
     const ageAppropriateGroups = groups.filter((group) => {
       if (!group.groupAgeRestrictions) {
         return true
       }
 
-      if (!userProfile || !userProfile.dateOfBirth) {
+      if (!dateOfBirth) {
         return false
       }
 
-      const userAge = this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth)
+      const userAge = this.dateTimeProvider.getAgeFromBirthday(dateOfBirth)
       const { allowedThreshold, maxAge, minAge } = group.groupAgeRestrictions
 
       const adjustedMinAge = minAge !== null ? minAge - (allowedThreshold ?? 0) : null

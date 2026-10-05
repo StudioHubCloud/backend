@@ -53,7 +53,10 @@ export class PersonalTrainingSignupService {
   }): Promise<[PersonalTrainingSignupSelectModel, AuditLogServiceOperation[]]> {
     const { clientId, staffMemberId, scheduledAt } = data
 
-    const activePass = await this.passService.findActivePassByClientId(clientId)
+    // The individual pass even when another pass is the client's current one; without one, the current pass
+    // (a group pass) so the type check below explains the refusal
+    const activePass =
+      (await this.passService.findActiveIndividualPass(clientId)) ?? (await this.passService.findActivePassByClientId(clientId))
 
     if (!activePass) {
       throw new BadRequestException('У клієнта немає активного абонементу')

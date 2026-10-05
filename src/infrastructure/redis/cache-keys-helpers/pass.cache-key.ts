@@ -7,8 +7,8 @@ export class PassCacheKey {
     return `${this.cache_key_prefix}:id:${passId}:${studioId}`
   }
 
-  static passByClientId(clientId: string, studioId: string): string {
-    return `${this.cache_key_prefix}:${clientId}:${studioId}`
+  static activePassesByClientId(clientId: string, studioId: string): string {
+    return `${this.cache_key_prefix}:active:${clientId}:${studioId}`
   }
 
   static passActivationRequests(studioId: string): string {

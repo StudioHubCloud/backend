@@ -88,6 +88,7 @@ export class PassActivationRequestService {
         pass: {
           with: {
             passTemplate: true,
+            group: { columns: { name: true } },
           },
         },
       },

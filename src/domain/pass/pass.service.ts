@@ -28,6 +28,10 @@ import {
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { PASS_CONFIG } from '@app/bot/libs'
 import { PassActivationRequestService } from '../pass-activation-request'
+import { PassSelectionHelper } from './pass-selection.helper'
+
+/** A new pass always gets its scope from the template (`passTemplate.groupMode`), never the column default. */
+type TNewPassData = Omit<PassInsertModel, 'studioId'> & Required<Pick<PassInsertModel, 'groupMode'>>
 
 @Injectable()
 export class PassService {
@@ -44,7 +48,7 @@ export class PassService {
   }
 
   async createNewPass(
-    data: Omit<PassInsertModel, 'studioId'>,
+    data: TNewPassData,
     tx?: Transaction,
   ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
     const dbProvider = tx || this.databaseService.drizzle
@@ -70,7 +74,7 @@ export class PassService {
   }
 
   async createPassWithActivationRequest(
-    data: Omit<PassInsertModel, 'studioId'> & {
+    data: TNewPassData & {
       fileId: string
       fileType: FileTypeEnum
       type: PassActivationRequestTypeEnum
@@ -95,26 +99,22 @@ export class PassService {
 
   async createNewPassForExistingClient(
     clientId: string,
-    newPassData: Omit<PassInsertModel, 'studioId'>,
+    newPassData: TNewPassData,
   ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
     return await this.databaseService.drizzle.transaction(async (tx) => {
-      const currentPass = await this.findActivePassByClientId(clientId, { withRequested: true })
-      const logOperations: AuditLogServiceOperation[] = []
+      const requestedPass = await this.findPassByConditions({ clientId, studioId: this.studioId, status: PassStatusEnum.REQUESTED })
 
-      if (currentPass && currentPass.status === PassStatusEnum.REQUESTED) {
+      if (requestedPass) {
         throw new BadRequestException('Cannot create a new pass when there is a requested pass')
       }
 
-      if (currentPass) {
-        const [_, updateLogOperation] = await this.updatePass(currentPass.id, { status: PassStatusEnum.EXPIRED }, tx)
-        logOperations.push(...updateLogOperation)
-      }
+      // The client's other active passes stay: a renewal or another group lives next to them (2026-10-05)
       const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN) // todo: make if from saleDate
 
       // Created without start/end dates, like every other pass: a group pass starts on the first signup
       // (or after the grace period), an individual pass on its first session.
       const [pass, createLogOperaion] = await this.createNewPass({ ...newPassData, saleDate: todayDateString }, tx)
-      const allLogOperations = [...logOperations, ...createLogOperaion].map((op) => ({
+      const allLogOperations = createLogOperaion.map((op) => ({
         ...op,
         metadata: { serviceName: PassService.name, methodName: this.createNewPassForExistingClient.name },
       }))
@@ -193,37 +193,106 @@ export class PassService {
       where: (pass, { and }) => and(...whereConditions),
       with: {
         passTemplate: true,
+        group: { columns: { name: true } },
       },
     })
     return passFound
   }
 
+  /** The client's current pass (see getCurrentPass); without one, optionally a requested pass, then the last expired one. */
   async findActivePassByClientId(clientId?: string, { withExpired = false, withRequested = false } = {}) {
     if (!clientId) {
       return null
     }
-    const cacheKey = PassCacheKey.passByClientId(clientId, this.studioId)
-    const cachedPass = await this.redisCacheService.get<typeof pass>(cacheKey)
 
-    if (cachedPass) {
-      return cachedPass
+    const currentPass = await this.getCurrentPass(clientId)
+    if (currentPass) {
+      return currentPass
     }
-    const pass =
-      (await this.findPassByConditions({ clientId, status: PassStatusEnum.ACTIVE, studioId: this.studioId }, { withRequested })) ??
-      null
 
-    if (!pass && withExpired) {
-      const expiredPass = await this.findLastExpiredPassByClientId(clientId)
-      if (expiredPass) {
-        return expiredPass
+    if (withRequested) {
+      const requestedPass = await this.findPassByConditions({ clientId, studioId: this.studioId, status: PassStatusEnum.REQUESTED })
+      if (requestedPass) {
+        return requestedPass
       }
     }
 
-    if (pass) {
-      this.redisCacheService.set(cacheKey, pass)
+    if (withExpired) {
+      return this.findLastExpiredPassByClientId(clientId)
     }
 
-    return pass
+    return null
+  }
+
+  /** All active passes of the client (group and individual) with templates, plus the chosen current pass id. */
+  async findActivePassesByClientId(clientId: string) {
+    const cacheKey = PassCacheKey.activePassesByClientId(clientId, this.studioId)
+    const cached = await this.redisCacheService.get<typeof result>(cacheKey)
+
+    if (cached) {
+      return cached
+    }
+
+    const found = await this.databaseService.drizzle.query.client.findFirst({
+      where: (client, { eq }) => eq(client.id, clientId),
+      columns: { currentPassId: true },
+      with: {
+        pass: {
+          where: (pass, { and, eq }) => and(eq(pass.studioId, this.studioId), eq(pass.status, PassStatusEnum.ACTIVE)),
+          with: { passTemplate: true, group: { columns: { id: true, name: true } } },
+        },
+      },
+    })
+    const result = { passes: found?.pass ?? [], currentPassId: found?.currentPassId ?? null }
+
+    this.redisCacheService.set(cacheKey, result)
+    return result
+  }
+
+  /** The pass the client works with: the chosen one while valid, else the oldest valid active pass (PassSelectionHelper). */
+  async getCurrentPass(clientId: string) {
+    const { passes, currentPassId } = await this.findActivePassesByClientId(clientId)
+    return PassSelectionHelper.getCurrentPass(passes, currentPassId, this.getTodayDateString())
+  }
+
+  /**
+   * The client's active individual pass, whatever the current pass is (a client may hold a group pass next to it):
+   * the one that ends first, with free sessions before used-up ones.
+   */
+  async findActiveIndividualPass(clientId: string) {
+    const { passes } = await this.findActivePassesByClientId(clientId)
+    const individual = PassSelectionHelper.sortByExpiry(
+      passes.filter((p) => p.passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL),
+      this.getTodayDateString(),
+    )
+    return individual.find((p) => p.availableSlots > 0) ?? individual[0] ?? null
+  }
+
+  /**
+   * Client's switcher in "🎫 Інформація про абонемент": only an active pass of this client in this studio. A view
+   * preference, not audited (there is no audit action for it).
+   */
+  async setCurrentPass(clientId: string, passId: string) {
+    const { passes } = await this.findActivePassesByClientId(clientId)
+    const passToSelect = passes.find((p) => p.id === passId)
+
+    if (!passToSelect) {
+      throw new BadRequestException(`Pass ${passId} is not an active pass of client ${clientId}`)
+    }
+
+    await this.databaseService.drizzle.update(client).set({ currentPassId: passId }).where(eq(client.id, clientId))
+    await this.redisCacheService.reset()
+
+    return passToSelect
+  }
+
+  getTodayDateString(): string {
+    return this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
+  }
+
+  /** A pass of this studio by id (admin actions take the pass id from callback data). */
+  async findStudioPassById(passId: string) {
+    return this.findPassByConditions({ id: passId, studioId: this.studioId })
   }
 
   async findLastExpiredPassByClientId(clientId: string) {
@@ -235,6 +304,7 @@ export class PassService {
       orderBy: (pass, { desc }) => desc(pass.endDate),
       with: {
         passTemplate: true,
+        group: { columns: { name: true } },
       },
     })
     return pass || null
@@ -370,10 +440,8 @@ export class PassService {
   async acceptPassActivateRequest(
     passId: string,
     passActivationRequestId: string,
-    isRenewRequest: boolean,
   ): Promise<[boolean, AuditLogServiceOperation[]]> {
     const passToActivate = await this.getPassById(passId)
-    const logOperations: AuditLogServiceOperation[] = []
     if (!passToActivate) {
       throw new BadRequestException(`Pass with id ${passId} not found`)
     }
@@ -382,23 +450,7 @@ export class PassService {
       throw new BadRequestException(`Pass with id ${passId} activation request is already processed`)
     }
 
-    if (isRenewRequest) {
-      const [updatedPass] = await this.databaseService.drizzle
-        .update(pass)
-        .set({ status: PassStatusEnum.EXPIRED })
-        .where(and(eq(pass.clientId, passToActivate.clientId), eq(pass.status, PassStatusEnum.ACTIVE)))
-        .returning()
-
-      console.log(updatedPass, 'updatedPass')
-      logOperations.push({
-        entity: AuditLogEntity.PASS,
-        entityId: updatedPass?.id,
-        operation: AuditLogOperation.UPDATE,
-        payload: { status: PassStatusEnum.EXPIRED },
-        timestamp: new Date().toISOString(),
-      })
-    }
-
+    // A renewal lives next to the client's current pass (2026-10-05): nothing is expired here
     const transactionLogOperations = await this.databaseService.drizzle.transaction(async (tx) => {
       const todayDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
       const [[_, passUpdateLogOperations], [__, deleteActivationResultLogOperations]] = await Promise.all([
@@ -408,7 +460,7 @@ export class PassService {
       return [...passUpdateLogOperations, ...deleteActivationResultLogOperations]
     })
 
-    const allLogOperations = [...transactionLogOperations, ...logOperations].map((op) => ({
+    const allLogOperations = transactionLogOperations.map((op) => ({
       ...op,
       metadata: { serviceName: PassService.name, methodName: this.acceptPassActivateRequest.name },
     }))

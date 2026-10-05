@@ -10,10 +10,20 @@ import {
   client,
   trainingSignup,
   PassSelectModel,
+  userRegisterRequest,
 } from '@app/infrastructure/database'
 import { RedisCacheService, UserProfileCacheKey } from '@app/infrastructure/redis'
 import { TypedConfigService } from '@app/infrastructure/config'
-import { AuditLogServiceOperation, DATE_FORMAT, PassStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import {
+  AuditLogServiceOperation,
+  DATE_FORMAT,
+  FileTypeEnum,
+  PassGroupModeEnum,
+  PassStatusEnum,
+  PassTemplateTypeEnum,
+  UserProfileRoleEnum,
+  UserProfileStatusEnum,
+} from '@app/libs'
 import { ClientService } from '../client/client.service'
 import { PassService } from '../pass/pass.service'
 import { IVerifyClientSceneState } from '@app/bot/stage/scenes/verify-client/verify-client.scene-helper'
@@ -110,6 +120,15 @@ export class UserProfileService {
     return user
   }
 
+  /** The client's profile (this studio's) by client id, e.g. from a pass. */
+  async getUserProfileByClientId(clientId: string) {
+    const found = await this.databaseService.drizzle.query.client.findFirst({
+      where: (c, { eq }) => eq(c.id, clientId),
+      columns: { userProfileId: true },
+    })
+    return found ? this.findUserProfileByCondition({ id: found.userProfileId, studioId: this.studioId }) : null
+  }
+
   async createUserProfile(data: UserProfileInsertModel, tx?: Transaction) {
     const cacheKey = UserProfileCacheKey.telegramAuthUser(this.studioId, data.telegramId)
     const dbProvider = tx || this.databaseService.drizzle
@@ -148,8 +167,40 @@ export class UserProfileService {
     return true
   }
 
+  /**
+   * A client's registration request: the group picked at registration (and the payment file), read on verification.
+   * One per user: a repeated registration replaces the previous request.
+   */
+  async saveRegisterRequest(data: {
+    userProfileId: string
+    groupId: number | null
+    fileId: string | null
+    fileType: FileTypeEnum | null
+  }) {
+    return this.databaseService.drizzle.transaction(async (tx) => {
+      await tx.delete(userRegisterRequest).where(eq(userRegisterRequest.userProfileId, data.userProfileId))
+      const [row] = await tx
+        .insert(userRegisterRequest)
+        .values({ ...data, studioId: this.studioId })
+        .returning()
+      return row
+    })
+  }
+
+  async getRegisterRequest(userProfileId: string) {
+    return this.databaseService.drizzle.query.userRegisterRequest.findFirst({
+      where: (request, { and, eq }) => and(eq(request.userProfileId, userProfileId), eq(request.studioId, this.studioId)),
+    })
+  }
+
   async verifyClient(data: IVerifyClientSceneState | IPassOpenSceneState): Promise<[boolean, AuditLogServiceOperation[]]> {
     const { userProfile, passTemplate, saleDate } = data
+    const groupId = 'groupId' in data ? (data.groupId ?? null) : null
+
+    // A FIXED group pass is always bound to a group (the scene asks for it)
+    if (passTemplate.type === PassTemplateTypeEnum.GROUP && passTemplate.groupMode === PassGroupModeEnum.FIXED && !groupId) {
+      throw new BadRequestException('A FIXED group pass needs a group')
+    }
 
     const user = await this.getUserProfileById(userProfile.id)
 
@@ -167,6 +218,8 @@ export class UserProfileService {
             passTemplateId: passTemplate.id,
             status: PassStatusEnum.ACTIVE,
             availableSlots: passTemplate.length,
+            groupMode: passTemplate.groupMode,
+            groupId,
           },
           tx,
         ),

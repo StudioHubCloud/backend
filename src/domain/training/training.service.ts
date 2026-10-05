@@ -11,7 +11,7 @@ import {
   trainingSignup,
   userProfile,
 } from '@app/infrastructure/database'
-import { API, TrainingSignupStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
+import { API, PassTemplateTypeEnum, TrainingSignupStatusEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
 import { RedisCacheService, TrainingCacheKey } from '@app/infrastructure/redis'
 import { COMMON, GetTrainingByIdResponse, PASS_CONFIG } from '@app/bot/libs'
 import { PassService } from '../pass'
@@ -132,15 +132,23 @@ export class TrainingService {
       return cachedTrainings
     }
 
-    const pass = await this.passService.findActivePassByClientId(clientId)
-    if (!pass) {
+    if (!clientId) {
+      return []
+    }
+
+    // Up to the furthest end date of the client's active group passes (a not started one: the next 7 days). Any
+    // group is listed; whether a pass covers it is checked at signup, so other groups' trainings get an explanation.
+    const { passes } = await this.passService.findActivePassesByClientId(clientId)
+    const groupPasses = passes.filter((pass) => pass.passTemplate.type === PassTemplateTypeEnum.GROUP)
+    if (!groupPasses.length) {
       return []
     }
 
     const startDateBoundary = new Date().toISOString()
-    const endDateBoundary = endOfDay(
-      new Date(pass.endDate || addDays(startDateBoundary, PASS_CONFIG.ACTIVATION_GRACE_PERIOD)),
-    ).toISOString()
+    const endDates = groupPasses.map((pass) =>
+      new Date(pass.endDate || addDays(startDateBoundary, PASS_CONFIG.ACTIVATION_GRACE_PERIOD)).getTime(),
+    )
+    const endDateBoundary = endOfDay(new Date(Math.max(...endDates))).toISOString()
 
     const trainings = await this.databaseService.drizzle.query.training.findMany({
       where: (training, { eq, and, lte, gte }) =>
@@ -258,6 +266,7 @@ export class TrainingService {
         group: {
           columns: {
             status: true,
+            name: true,
           },
         },
         groupSchedule: {

@@ -1,7 +1,7 @@
 import { BadRequestException, forwardRef, Inject, Injectable } from '@nestjs/common'
 import { and, eq, exists, isNull, ne } from 'drizzle-orm'
 import { PinoLogger } from 'nestjs-pino'
-import { addDays, isAfter, isBefore, subHours } from 'date-fns'
+import { addDays, format, isAfter, isBefore, parseISO, subHours } from 'date-fns'
 import {
   DatabaseService,
   group,
@@ -26,13 +26,19 @@ import {
 } from '@app/libs/constants'
 import { AuditLogServiceOperation, AuditLogServiceResponse, TCustomApiResponse } from '@app/libs/types'
 import { PassService } from '../pass/pass.service'
+import { PassSelectionHelper } from '../pass/pass-selection.helper'
 import { TrainingService } from '../training/training.service'
 import { GroupAgeRestrictionService } from '../group-age-restriction/group-age-restriction.service'
 import { RedisCacheService, TrainingSignupCacheKey } from '@app/infrastructure/redis'
 import { COMMON } from '@app/bot/libs'
+import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { UserProfileService } from '../user-profile'
 import { TypedConfigService } from '@app/infrastructure/config'
+
+const BUTTON_CREATE_SPECIAL_RECORD = BUTTON_PATTERNS.CREATE_CUSTOM_SCHEDULE_RECORD
+
+type TActivePass = Awaited<ReturnType<PassService['findActivePassesByClientId']>>['passes'][number]
 
 @Injectable()
 export class TrainingSignupService {
@@ -102,19 +108,24 @@ export class TrainingSignupService {
     return signups
   }
 
+  /**
+   * Client signup from "Розклад". The pass is picked by the rules in PassSelectionHelper (a client may hold several
+   * active passes): FIXED of this group first, then FLEX, the one that ends first. `passNote` is set when the pass
+   * used is not the client's current one, so the bot can say which pass paid for it.
+   */
   async signUpForTrainingAsClientViaTelegram(values: {
     trainingId: number
     userProfileId: string
-    passId: string
-  }): Promise<TCustomApiResponse<AuditLogServiceResponse> & { availableSlots?: number }> {
-    const { passId, trainingId, userProfileId } = values
+    clientId: string
+  }): Promise<TCustomApiResponse<AuditLogServiceResponse> & { availableSlots?: number; passNote?: string }> {
+    const { clientId, trainingId, userProfileId } = values
     try {
       const logOperations: AuditLogServiceOperation[] = []
 
-      const [pass, training, isAlreadySignedUp] = await Promise.all([
-        this.passService.findPassByConditions({ id: passId, status: PassStatusEnum.ACTIVE }),
+      const [training, isAlreadySignedUp, { passes, currentPassId }] = await Promise.all([
         this.trainingService.getTrainingById(trainingId),
         this.checkIfAlreadySignedUpForTraining(userProfileId, trainingId),
+        this.passService.findActivePassesByClientId(clientId),
       ])
 
       const ageRestrictionPassed = await this.groupAgeRestrictionService.checkIfUserPassedAgeRestriction({
@@ -151,52 +162,6 @@ export class TrainingSignupService {
         return { status: API.RESPONSE.ERROR_STRING, message: `Ти вже записана на це тренування💝\nГотуй форму і гарний настрій!` }
       }
 
-      if (!pass) {
-        this.logger.warn('Pass %s is not found or inactive', passId)
-        return {
-          status: API.RESPONSE.ERROR_STRING,
-          message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент ❤️‍🔥`,
-        }
-      }
-
-      const isPassInactive = !pass.endDate || !pass.startDate
-
-      if (isPassInactive) {
-        const startDateString = this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
-        const endDate = addDays(startDateString, pass.passTemplate.durationDays)
-
-        if (endDate < new Date()) {
-          this.logger.warn('Pass %s is expired', passId)
-          return {
-            status: API.RESPONSE.ERROR_STRING,
-            message: `Упс! 🤸‍♀️ Термін дії абонемента закінчився 💥\nСаме час поновити абонемент ❤️‍🔥`,
-          }
-        }
-
-        const endDateString = this.dateTimeProvider.formatDateStringInTz(endDate.toISOString(), DATE_FORMAT.DATE_MAIN)
-
-        const [_, updatePassLogOperations] = await this.passService.updatePass(passId, {
-          startDate: startDateString,
-          endDate: endDateString,
-        })
-        logOperations.push(...updatePassLogOperations)
-      }
-
-      if (pass.availableSlots <= 0) {
-        this.logger.warn('User %s has no available slots in pass %s', userProfileId, passId)
-        return {
-          status: API.RESPONSE.ERROR_STRING,
-          message: `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент ❤️‍🔥`,
-        }
-      }
-
-      if (pass.passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL) {
-        this.logger.warn('User %s tried to sign up for a group training with an individual pass %s', userProfileId, passId)
-        return {
-          status: API.RESPONSE.ERROR_STRING,
-          message: `Це індивідуальний абонемент — ним не можна записатись на групове тренування 😔\nДату індивідуального тренування узгодь зі своїм тренером 🤝`,
-        }
-      }
       if (training.isCancelled) {
         this.logger.warn('Training %s is cancelled', trainingId)
         return {
@@ -205,8 +170,26 @@ export class TrainingSignupService {
         }
       }
 
+      const today = this.passService.getTodayDateString()
+      const trainingDay = this.dateTimeProvider.formatDateStringInTz(training.date, DATE_FORMAT.DATE_MAIN)
+      const pass = PassSelectionHelper.pickForTraining(passes, training.groupId, trainingDay, today)
+
+      if (!pass) {
+        this.logger.warn('Client %s has no pass for training %s (group %s)', clientId, trainingId, training.groupId)
+        return { status: API.RESPONSE.ERROR_STRING, message: this.getNoPassForTrainingMessage(passes, training.groupId, trainingDay, today) }
+      }
+
+      if (!PassSelectionHelper.isStarted(pass)) {
+        // Starts on the day of the signup action (owner, 2026-10-05)
+        const endDateString = format(addDays(parseISO(today), pass.passTemplate.durationDays), DATE_FORMAT.DATE_MAIN)
+        const [_, updatePassLogOperations] = await this.passService.updatePass(pass.id, { startDate: today, endDate: endDateString })
+        logOperations.push(...updatePassLogOperations)
+      }
+
       const signupPayload = {
-        ...values,
+        trainingId,
+        userProfileId,
+        passId: pass.id,
         groupId: training.groupId,
         type: TrainingSignupTypeEnum.MAIN,
       }
@@ -215,10 +198,10 @@ export class TrainingSignupService {
 
       await this.redisCacheService.reset()
 
-      const updatedPass = await this.passService.findPassByConditions({ id: passId, status: PassStatusEnum.ACTIVE })
+      const updatedPass = await this.passService.findPassByConditions({ id: pass.id, status: PassStatusEnum.ACTIVE })
 
       if (!updatedPass) {
-        this.logger.warn('Updated pass %s is not found after signup', passId)
+        this.logger.warn('Updated pass %s is not found after signup', pass.id)
         return {
           status: API.RESPONSE.ERROR_STRING,
           message: `Виникла помилка при записі на тренування 😔\nВідсутній активний абонемент`,
@@ -228,6 +211,7 @@ export class TrainingSignupService {
       return {
         status: API.RESPONSE.SUCCESS_STRING,
         availableSlots: updatedPass.availableSlots,
+        passNote: this.getOtherPassNote(passes, currentPassId, pass, training.groupId, trainingDay, today),
         message: '✅ Ти успішно записана на тренування в групі!\nЧекаємо на тебе🫶🏻',
         data: {
           logOperations: logOperations.map((op) => ({
@@ -243,6 +227,56 @@ export class TrainingSignupService {
         message: 'Виникла помилка при записі на тренування 😔',
       }
     }
+  }
+
+  /** Why none of the client's passes can pay for this training, for the client. */
+  private getNoPassForTrainingMessage(passes: TActivePass[], groupId: number, trainingDay: string, today: string): string {
+    const groupPasses = passes.filter((pass) => pass.passTemplate.type === PassTemplateTypeEnum.GROUP)
+
+    if (!passes.length) {
+      return `Ой-ой! 🤸‍♀️\n\nПоки що не бачу твого активного абонементу 😔`
+    }
+
+    if (!groupPasses.length) {
+      return `Це індивідуальний абонемент — ним не можна записатись на групове тренування 😔\nДату індивідуального тренування узгодь зі своїм тренером 🤝`
+    }
+
+    const coveringPasses = groupPasses.filter((pass) => PassSelectionHelper.coversGroup(pass, groupId))
+
+    if (!coveringPasses.length) {
+      const groupNames = [...new Set(groupPasses.map((pass) => pass.group?.name).filter(Boolean))].map((name) => `«${name}»`)
+      const where = groupNames.length > 1 ? `в групах ${groupNames.join(', ')}` : `в групі ${groupNames[0]}`
+      return `Твій абонемент діє лише ${where} 😔\nЩоб відвідувати тренування в іншій групі, звернись до адміністратора 🫶🏻`
+    }
+
+    const isExpired = coveringPasses.every(
+      (pass) => PassSelectionHelper.getRefusal(pass, groupId, trainingDay, today) === 'expired',
+    )
+    return isExpired
+      ? `Упс! 🤸‍♀️ Термін дії абонемента закінчився 💥\nСаме час поновити абонемент ❤️‍🔥`
+      : `Упс! 🤸‍♀️ Усі тренування за цим абонементом використано 💥\nСаме час поновити абонемент ❤️‍🔥`
+  }
+
+  /** Set when the signup used a pass other than the client's current one. */
+  private getOtherPassNote(
+    passes: TActivePass[],
+    currentPassId: string | null,
+    usedPass: TActivePass,
+    groupId: number,
+    trainingDay: string,
+    today: string,
+  ): string | undefined {
+    const currentPass = PassSelectionHelper.getCurrentPass(passes, currentPassId, today)
+
+    if (!currentPass || currentPass.id === usedPass.id) {
+      return undefined
+    }
+
+    // "it ends first" is the reason only when the current pass could have paid too
+    const currentCouldPay = PassSelectionHelper.getRefusal(currentPass, groupId, trainingDay, today) === null
+    const reason = currentCouldPay ? ' — він закінчується раніше, тож використаємо його першим' : ''
+
+    return `✨ Це тренування піде з абонемента ${PassSelectionHelper.getLabel(usedPass)}${reason} 🫶🏻`
   }
 
   //unused
@@ -368,10 +402,20 @@ export class TrainingSignupService {
     }
   }
 
+  /**
+   * Admin (and AI) signs a client in. The pass must be valid and pays one training: a pass covering the group is
+   * used silently; without one the admin picks one of the client's other valid group passes (`passChoice`, then
+   * again with `passId`). No valid group pass at all → refused (a walk-in goes through "Створити спеціальний запис").
+   */
   async signInToTrainingAsAdminViaTelegram(
     clientUserId: string,
     trainingId: number,
-  ): Promise<TCustomApiResponse<{ groupId: number; userProfile: UserProfileSelectModel | null }>> {
+    passId?: string,
+  ): Promise<
+    TCustomApiResponse<{ groupId: number; userProfile: UserProfileSelectModel | null; logOperations: AuditLogServiceOperation[] }> & {
+      passChoice?: { id: string; name: string }[]
+    }
+  > {
     try {
       const [training, isAlreadySignedUp, userProfile] = await Promise.all([
         this.trainingService.getTrainingById(trainingId),
@@ -399,30 +443,76 @@ export class TrainingSignupService {
         return { status: API.RESPONSE.ERROR_STRING, message: `Клієнт вже записаний на це тренування 💝` }
       }
 
-      const pass = await this.passService.findActivePassByClientId(userProfile.client?.id)
+      const clientId = userProfile.client?.id
+      const { passes, currentPassId } = clientId
+        ? await this.passService.findActivePassesByClientId(clientId)
+        : { passes: [], currentPassId: null }
+      const today = this.passService.getTodayDateString()
+      const trainingDay = this.dateTimeProvider.formatDateStringInTz(training.date, DATE_FORMAT.DATE_MAIN)
+      // Valid group passes regardless of the group, the ones that end first first
+      const validPasses = PassSelectionHelper.getValidIgnoringGroup(passes, trainingDay, today)
+
+      let pass: TActivePass | null
+      if (passId) {
+        // Chosen in the bot or by the AI: re-checked here, never trusted from the callback
+        pass = validPasses.find((p) => p.id === passId) ?? null
+        if (!pass) {
+          return { status: API.RESPONSE.ERROR_STRING, message: `Цей абонемент більше не підходить для запису 🥲 Спробуйте ще раз.` }
+        }
+      } else {
+        pass = PassSelectionHelper.pickForTraining(passes, training.groupId, trainingDay, today)
+      }
 
       if (!pass) {
-        return { status: API.RESPONSE.ERROR_STRING, message: `У клієнта немає активного абонемента 🥲` }
+        if (!validPasses.length) {
+          return {
+            status: API.RESPONSE.ERROR_STRING,
+            message: `У клієнта немає дійсного групового абонемента з вільними тренуваннями 🥲\nЯкщо клієнт платить на місці — «${BUTTON_CREATE_SPECIAL_RECORD}».`,
+          }
+        }
+
+        return {
+          status: API.RESPONSE.ERROR_STRING,
+          message: `⚠️ У клієнта немає абонемента для групи «${training.group?.name ?? ''}».\nЗ якого абонемента списати тренування?`,
+          passChoice: validPasses.map((p) => ({ id: p.id, name: PassSelectionHelper.getLabel(p, { withSlots: true }) })),
+        }
       }
 
-      if (!pass.availableSlots || pass.availableSlots < 1) {
-        return { status: API.RESPONSE.ERROR_STRING, message: `У клієнта немає доступних тренувань в абонементі 🥲` }
+      const logOperations: AuditLogServiceOperation[] = []
+
+      if (!PassSelectionHelper.isStarted(pass)) {
+        // Starts on the day of the signup action, like a client's own signup
+        const endDateString = format(addDays(parseISO(today), pass.passTemplate.durationDays), DATE_FORMAT.DATE_MAIN)
+        const [_, updatePassLogOperations] = await this.passService.updatePass(pass.id, { startDate: today, endDate: endDateString })
+        logOperations.push(...updatePassLogOperations)
       }
 
-      await this.signUpForTraining({
+      const [__, signUpLogOperations] = await this.signUpForTraining({
         trainingId,
         userProfileId: clientUserId,
         groupId: training.groupId,
         type: TrainingSignupTypeEnum.MAIN,
         passId: pass.id,
       })
+      logOperations.push(...signUpLogOperations)
 
       await this.redisCacheService.reset()
 
+      // Paid by a pass other than the client's current one (e.g. the current one is individual): say which
+      const currentPass = PassSelectionHelper.getCurrentPass(passes, currentPassId, today)
+      const passNote = currentPass && currentPass.id !== pass.id ? `\nℹ️ Списано з абонемента ${PassSelectionHelper.getLabel(pass)}` : ''
+
       return {
         status: API.RESPONSE.SUCCESS_STRING,
-        message: '✅ Клієнта успішно записано на тренування',
-        data: { groupId: training.groupId, userProfile },
+        message: `✅ Клієнта успішно записано на тренування${passNote}`,
+        data: {
+          groupId: training.groupId,
+          userProfile,
+          logOperations: logOperations.map((op) => ({
+            ...op,
+            metadata: { serviceName: TrainingSignupService.name, methodName: this.signInToTrainingAsAdminViaTelegram.name },
+          })),
+        },
       }
     } catch (error) {
       this.logger.error(`Error signing in to training %s for user %s: %j`, clientUserId, trainingId, error.stack)

@@ -28,7 +28,7 @@ import {
 import { staffMemberPayout } from '@app/infrastructure/database/schemas/staff-member-payout.schema'
 import { and, eq, inArray, isNull } from 'drizzle-orm'
 
-export const PENDING_PAYOUT_EXISTS_MESSAGE = 'Спершу оплати або відміни підготовлену виплату цього тренера'
+export const PENDING_PAYOUT_EXISTS_MESSAGE = 'Спершу оплатіть або відмініть підготовлену виплату цього тренера'
 
 @Injectable()
 export class StaffMemberPayoutService {
