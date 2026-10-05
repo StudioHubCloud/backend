@@ -17,11 +17,12 @@ import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { AuditLogActions, AuditLogTrigger, DATE_FORMAT, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
+import { AuditLogActions, AuditLogTrigger, DATE_FORMAT, PassGroupModeEnum, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
 import { IPassOpenSceneState, PassOpenSceneHelper } from './pass-open.scene-helper'
 import { PassTemplateService } from '@app/domain/pass-template'
 import { PassService } from '@app/domain/pass'
 import { TrainingSignupService } from '@app/domain/training-signup'
+import { GroupService } from '@app/domain/group'
 
 @Injectable()
 export class PassOpenScene extends Scenes.WizardScene<BotContext> {
@@ -34,6 +35,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
     private readonly passTemplateService: PassTemplateService,
     private readonly passService: PassService,
     private readonly trainingSignupService: TrainingSignupService,
+    private readonly groupService: GroupService,
   ) {
     super(
       SCENES.PASS_OPEN,
@@ -99,6 +101,8 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
       const backToTemplateListActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.BACK_TO_LIST, textPayload)
       const backToTypeSelectActionMatch = textPayload === CALLBACK_PREFIX.SCENES.PASS.BACK_TO_TYPE_SELECT
       const confirmOpenActionMatch = textPayload === CALLBACK_PREFIX.SCENES.PASS.CONFIRM_OPEN
+      const groupSelectActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.GROUP_SELECT, textPayload)
+      const backFromGroupActionMatch = textPayload === CALLBACK_PREFIX.SCENES.PASS.GROUP_BACK
 
       switch (true) {
         case !!backToTypeSelectActionMatch: {
@@ -127,6 +131,17 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
           BotHelper.safeAnswerCbQuery(ctx)
           return this.handlePassOpenConfirmAction(ctx)
         }
+        case !!groupSelectActionMatch: {
+          const [groupId] = groupSelectActionMatch
+          return this.handleGroupSelectAction(ctx, Number(groupId))
+        }
+        case !!backFromGroupActionMatch: {
+          BotHelper.safeAnswerCbQuery(ctx)
+          return this.renderPassTemplateSelectMenu(ctx)
+        }
+        default:
+          // Unknown or stale button: answer it so Telegram doesn't keep showing a spinner
+          return BotHelper.safeAnswerCbQuery(ctx)
       }
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)
@@ -220,14 +235,61 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
 
     BotHelper.safeAnswerCbQuery(ctx)
 
-    this.scene.setState(ctx, { passTemplate: passTemplateData })
+    this.scene.setState(ctx, { passTemplate: passTemplateData, groupId: null, groupName: undefined })
+
+    if (passTemplateData.type === PassTemplateTypeEnum.GROUP && passTemplateData.groupMode === PassGroupModeEnum.FIXED) {
+      return this.renderGroupSelectMenu(ctx)
+    }
+    return this.renderConfirmMenu(ctx)
+  }
+
+  /**
+   * FIXED group pass: the group it is bound to. The client's current pass's group (a renewal) is first and green;
+   * groups for the client's age, or all active ones when none fits.
+   */
+  private renderGroupSelectMenu = async (ctx: BotContext) => {
+    const { userProfile } = this.scene.getState(ctx)
+    const [{ groups, isAgeFiltered }, currentPass] = await Promise.all([
+      this.groupService.getGroupsForClientPass(userProfile?.dateOfBirth ?? null),
+      this.passService.getCurrentPass(userProfile.client.id),
+    ])
+    const suggestedGroupId = currentPass?.groupMode === PassGroupModeEnum.FIXED ? currentPass.groupId : null
+
+    return BotHelper.safeEditMessageText(
+      ctx,
+      isAgeFiltered ? MESSAGES_SCENE.PASS_GROUP.SELECT : MESSAGES_SCENE.PASS_GROUP.SELECT_ALL,
+      PassRelatedKeyboards.passGroupSelectInlineKeyboard(groups, {
+        suggestedGroupId,
+        backCallbackData: CALLBACK_PREFIX.SCENES.PASS.GROUP_BACK,
+      }),
+    )
+  }
+
+  private handleGroupSelectAction = async (ctx: BotContext, groupId: number) => {
+    // Re-checked: the button may be from an old list
+    const { userProfile } = this.scene.getState(ctx)
+    const { groups } = await this.groupService.getGroupsForClientPass(userProfile?.dateOfBirth ?? null)
+    const group = groups.find((g) => g.id === groupId)
+
+    if (!group) {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.HINT, { show_alert: true })
+    }
+
+    BotHelper.safeAnswerCbQuery(ctx)
+    this.scene.setState(ctx, { groupId: group.id, groupName: group.name })
     return this.renderConfirmMenu(ctx)
   }
 
   private handlePassOpenConfirmAction = async (ctx: BotContext) => {
     try {
       const state = this.scene.getState(ctx)
-      const { userProfile, saleDate, passTemplate, mainMessageId, startMessageId } = state
+      const { userProfile, saleDate, passTemplate, mainMessageId, startMessageId, groupId } = state
+      const isFixedGroupPass = passTemplate.type === PassTemplateTypeEnum.GROUP && passTemplate.groupMode === PassGroupModeEnum.FIXED
+
+      if (isFixedGroupPass && !groupId) {
+        // Stale confirm button from before the group step
+        return this.renderGroupSelectMenu(ctx)
+      }
 
       const [newPass, logOperations] = await this.passService.createNewPassForExistingClient(userProfile.client.id, {
         passTemplateId: passTemplate.id,
@@ -235,6 +297,8 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
         clientId: userProfile.client.id,
         status: PassStatusEnum.ACTIVE,
         availableSlots: passTemplate.length,
+        groupMode: passTemplate.groupMode,
+        groupId: isFixedGroupPass ? groupId : null,
       })
 
       AuditLogHelper.startAction(ctx, AuditLogActions.PASS_CREATE, AuditLogTrigger.ADMIN_ACTION, logOperations)
@@ -266,7 +330,10 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
       return ctx.scene.leave()
     }
 
-    const trainingSignups = await this.trainingSignupService.getTrainingSignupByPassId(pass.id)
+    const [trainingSignups, { passes: activePasses }] = await Promise.all([
+      this.trainingSignupService.getTrainingSignupByPassId(pass.id),
+      this.passService.findActivePassesByClientId(pass.clientId),
+    ])
 
     await PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
       pass: pass as typeof originalPass,
@@ -274,6 +341,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
       clientUserId: userProfile.id,
       shouldEdit: false,
       trainingSignups,
+      activePasses,
     })
   }
 }

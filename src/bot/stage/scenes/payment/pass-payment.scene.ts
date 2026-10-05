@@ -16,6 +16,7 @@ import {
   DATE_FORMAT,
   FileTypeEnum,
   PassActivationRequestTypeEnum,
+  PassGroupModeEnum,
   PassStatusEnum,
   PassTemplateTypeEnum,
 } from '@app/libs'
@@ -23,6 +24,7 @@ import { Injectable } from '@nestjs/common'
 import { Scenes } from 'telegraf'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PassService } from '@app/domain/pass'
+import { GroupService } from '@app/domain/group'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 interface IPassPaymentSceneState {
@@ -36,6 +38,9 @@ interface IPassPaymentSceneState {
   startMessageId: number | null
   menuMessageId: number | null
   selectedPassType: PassTemplateTypeEnum | null
+  /** Group a FIXED group pass is bound to */
+  groupId?: number | null
+  groupName?: string
 }
 
 @Injectable()
@@ -48,6 +53,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     private readonly passTemplateService: PassTemplateService,
     private readonly userProfileService: UserProfileService,
     private readonly passService: PassService,
+    private readonly groupService: GroupService,
   ) {
     super(
       SCENES.PASS_PAYMENT,
@@ -118,6 +124,8 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       const templateSelectActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.TEMPLATE_SELECT, textPayload)
       const backToTemplateListActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.BACK_TO_LIST, textPayload)
       const backToTypeSelectActionMatch = textPayload === CALLBACK_PREFIX.SCENES.PASS.BACK_TO_TYPE_SELECT
+      const groupSelectActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.GROUP_SELECT, textPayload)
+      const backFromGroupActionMatch = textPayload === CALLBACK_PREFIX.SCENES.PASS.GROUP_BACK
 
       switch (true) {
         case !!backToTypeSelectActionMatch: {
@@ -142,6 +150,17 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
           const [templateId] = templateSelectActionMatch
           return this.handlePassTemplateSelectAction(ctx, templateId)
         }
+        case !!groupSelectActionMatch: {
+          const [groupId] = groupSelectActionMatch
+          return this.handleGroupSelectAction(ctx, Number(groupId))
+        }
+        case !!backFromGroupActionMatch: {
+          BotHelper.safeAnswerCbQuery(ctx)
+          return this.renderPassTemplateSelectMenu(ctx)
+        }
+        default:
+          // Unknown or stale button: answer it so Telegram doesn't keep showing a spinner
+          return BotHelper.safeAnswerCbQuery(ctx)
       }
     } catch (error) {
       await this.handleError(ctx, error)
@@ -197,7 +216,9 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       BotHelper.safeAnswerCbQuery(ctx)
       switch (textPayload) {
         case CALLBACK_PREFIX.SCENES.FILE.BACK: {
-          await this.renderPassTemplateSelectMenu(ctx)
+          // A FIXED pass goes back to its group list, other passes to the templates
+          const { passTemplate } = this.passPaymentScene.getState(ctx)
+          await (this.isFixedGroupPass(passTemplate) ? this.renderGroupSelectMenu(ctx) : this.renderPassTemplateSelectMenu(ctx))
           return ctx.wizard.selectStep(1)
         }
         case CALLBACK_PREFIX.SCENES.FILE.CONFIRM: {
@@ -254,14 +275,67 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       }
     }
 
+    if (this.isFixedGroupPass(passTemplateData)) {
+      // A FIXED pass is used only in its group: without a group for the client's age it can't be bought here
+      if (!(await this.getGroupsForClient(ctx)).length) {
+        return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PAYMENT.NO_GROUP_FOR_AGE, { show_alert: true })
+      }
+      BotHelper.safeAnswerCbQuery(ctx)
+      this.passPaymentScene.setState(ctx, { passTemplate: passTemplateData, groupId: null, groupName: undefined })
+      return this.renderGroupSelectMenu(ctx)
+    }
+
     BotHelper.safeAnswerCbQuery(ctx)
 
-    this.passPaymentScene.setState(ctx, { passTemplate: passTemplateData })
+    this.passPaymentScene.setState(ctx, { passTemplate: passTemplateData, groupId: null, groupName: undefined })
 
     const message_id = await this.renderFileUploadMenu(ctx)
 
     this.passPaymentScene.setState(ctx, { menuMessageId: message_id ?? null })
     return ctx.wizard.next()
+  }
+
+  private isFixedGroupPass(passTemplate?: Pick<PassTemplateSelectModel, 'type' | 'groupMode'> | null): boolean {
+    return passTemplate?.type === PassTemplateTypeEnum.GROUP && passTemplate.groupMode === PassGroupModeEnum.FIXED
+  }
+
+  private async getGroupsForClient(ctx: BotContext) {
+    const { userProfile } = this.passPaymentScene.getState(ctx)
+    return this.groupService.getAgeAppropriateActiveGroups(userProfile?.dateOfBirth ?? null)
+  }
+
+  /** Groups for the client's age; the current pass's group (a renewal) first and green. "⬅️ Назад" → templates. */
+  private renderGroupSelectMenu = async (ctx: BotContext) => {
+    const { userProfile } = this.passPaymentScene.getState(ctx)
+    const [groups, currentPass] = await Promise.all([
+      this.getGroupsForClient(ctx),
+      userProfile.client ? this.passService.getCurrentPass(userProfile.client.id) : null,
+    ])
+    const suggestedGroupId = currentPass?.groupMode === PassGroupModeEnum.FIXED ? currentPass.groupId : null
+
+    return BotHelper.safeEditMessageText(
+      ctx,
+      MESSAGES_SCENE.PAYMENT.SELECT_GROUP,
+      PassRelatedKeyboards.passGroupSelectInlineKeyboard(groups, {
+        suggestedGroupId,
+        backCallbackData: CALLBACK_PREFIX.SCENES.PASS.GROUP_BACK,
+      }),
+    )
+  }
+
+  private handleGroupSelectAction = async (ctx: BotContext, groupId: number) => {
+    // Re-checked against the age filter: the button may be from an old list
+    const group = (await this.getGroupsForClient(ctx)).find((g) => g.id === groupId)
+    if (!group) {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PAYMENT.NO_GROUP_FOR_AGE, { show_alert: true })
+    }
+
+    BotHelper.safeAnswerCbQuery(ctx)
+    this.passPaymentScene.setState(ctx, { groupId: group.id, groupName: group.name })
+
+    const message_id = await this.renderFileUploadMenu(ctx)
+    this.passPaymentScene.setState(ctx, { menuMessageId: message_id ?? null })
+    return ctx.wizard.selectStep(2)
   }
 
   private handleFileConfirmAction = async (ctx: BotContext) => {
@@ -272,7 +346,15 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       passTemplate,
       fileType,
       requestType,
+      groupId,
+      groupName,
     } = this.passPaymentScene.getState(ctx)
+
+    if (this.isFixedGroupPass(passTemplate) && !groupId) {
+      // Stale screen from before the group step
+      await this.renderGroupSelectMenu(ctx)
+      return ctx.wizard.selectStep(1)
+    }
 
     const messagesToDelete = this.getSceneMessageIds(ctx)
     const fileId = fileIds[0]
@@ -283,6 +365,8 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       passTemplateId: passTemplate.id,
       status: PassStatusEnum.REQUESTED,
       availableSlots: passTemplate.length,
+      groupMode: passTemplate.groupMode,
+      groupId: this.isFixedGroupPass(passTemplate) ? groupId : null,
       fileId,
       fileType,
       type: requestType,
@@ -296,8 +380,8 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
 
     for (const admin of studioAdmins) {
       await ctx.telegram[method](admin.telegramId, fileId, {
-        caption: MessageHelper.getClientPassPaymentRequestMessage(userProfile, passTemplate, requestType),
-        ...AdminKeyboards.verifyPassActions(activationRequest.id),
+        caption: MessageHelper.getClientPassPaymentRequestMessage(userProfile, passTemplate, requestType, groupName),
+        ...AdminKeyboards.verifyPassActions(activationRequest.id, { withGroupChange: this.isFixedGroupPass(passTemplate) }),
         parse_mode: 'HTML',
       })
     }
@@ -354,7 +438,10 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
 
   private renderFileUploadMenu = async (ctx: BotContext, shouldEdit: boolean = true): Promise<number | undefined> => {
     const { passTemplate, fileIds } = this.passPaymentScene.getState(ctx, ['passTemplate', 'fileIds'])
-    let message = `✅ Обраний абонемент: <b>${passTemplate.name}</b>\n💰 Вартість: <b>${PassHelper.toDisplayPrice(passTemplate.price)}</b>\n\n`
+    const { groupName } = this.passPaymentScene.getState(ctx)
+    let message =
+      `✅ Обраний абонемент: <b>${passTemplate.name}</b>\n💰 Вартість: <b>${PassHelper.toDisplayPrice(passTemplate.price)}</b>\n` +
+      `${PassHelper.getGroupLine(passTemplate, groupName, { forClient: true })}\n`
 
     if (fileIds.length) {
       message += `📸 Файл успішно отримано\n\n`

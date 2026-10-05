@@ -21,7 +21,7 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { CommonSceneKeyboards, PersonalTrainingRegisterSceneKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
 import { AuditLogActions, AuditLogTrigger, DATE_FORMAT, PassTemplateTypeEnum } from '@app/libs'
 import { StaffMemberSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
-import { PassService } from '@app/domain/pass'
+import { PassSelectionHelper, PassService } from '@app/domain/pass'
 import { UserProfileService } from '@app/domain/user-profile'
 import { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
 import { CalendarPicker, TimePicker } from '@app/bot/menus'
@@ -180,7 +180,11 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
 
   /** Returns a message when the client cannot receive an individual training, or null when they can. */
   private async resolveGuardFailure(clientUserProfile: UserProfileWithClient): Promise<string | null> {
-    const activePass = await this.passService.findActivePassByClientId(clientUserProfile?.client?.id)
+    const clientId = clientUserProfile?.client?.id
+    // Same choice as PersonalTrainingSignupService.registerTraining: the individual pass, else the current one
+    const activePass =
+      (clientId ? await this.passService.findActiveIndividualPass(clientId) : null) ??
+      (await this.passService.findActivePassByClientId(clientId))
 
     if (!activePass) {
       return MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.NO_ACTIVE_PASS
@@ -360,6 +364,8 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
       }
 
       const { clientUserProfile, staffMember, scheduledAt } = this.scene.getState(ctx)
+      // Read before registering: the registration may start the pass and resets the cache
+      const currentPass = await this.passService.getCurrentPass(clientUserProfile.client.id)
 
       const [created, logOperations] = await this.personalTrainingSignupService.registerTraining({
         clientId: clientUserProfile.client.id,
@@ -391,9 +397,15 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
         ),
       )
 
+      // The client's current pass is another one (e.g. a group pass): say which pass paid
+      const passNote =
+        updatedPass && currentPass && currentPass.id !== updatedPass.id
+          ? `\n\nℹ️ Списано з абонемента ${TextHelper.escapeHtml(PassSelectionHelper.getLabel(updatedPass))}`
+          : ''
+
       const { role } = UserHelper.getUser(ctx)
       await ctx.replyWithHTML(
-        MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.REGISTER_SUCCESS,
+        MESSAGES_SCENE.PERSONAL_TRAINING_REGISTER.REGISTER_SUCCESS + passNote,
         KeyboardHelper.getRoleBasedMainMenuKeyboard(role),
       )
 

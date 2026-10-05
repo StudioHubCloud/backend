@@ -1,5 +1,5 @@
 import { PassSelectModel, PassTemplateSelectModel } from '@app/infrastructure/database'
-import { PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
+import { PassGroupModeEnum, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
 import { addDays } from 'date-fns'
 import { GetTrainingSignupsByPassIdResponse, PASS_CONFIG } from '../libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
@@ -7,6 +7,7 @@ import { TextHelper } from './text.helper'
 import { BotContext } from '../bot.context'
 import { AdminKeyboards } from '../keyboard/storage'
 import { RULES } from '../static/messages'
+import { PassSelectionHelper, TLabelPass } from '@app/domain/pass'
 
 export class PassHelper {
   /** Rules for the client's pass type and duration; group rules with the default duration when there is no pass yet. */
@@ -30,6 +31,23 @@ ${duration}
 
     return `✨ Абонемент активується з першого тренування або автоматично через ${PASS_CONFIG.ACTIVATION_GRACE_PERIOD} днів після оплати
 ${duration}`
+  }
+
+  /**
+   * "👯‍♀️ Група: …" for a group pass: the bound group, or any group for a FLEX one; '' for an individual pass.
+   * Clients don't see the staff term "FLEX".
+   */
+  static getGroupLine(
+    passTemplate: Pick<PassTemplateSelectModel, 'type' | 'groupMode'>,
+    groupName?: string | null,
+    { forClient = false } = {},
+  ): string {
+    if (passTemplate.type !== PassTemplateTypeEnum.GROUP) {
+      return ''
+    }
+    return passTemplate.groupMode === PassGroupModeEnum.FLEX
+      ? `👯‍♀️ Група: ${TextHelper.bold(forClient ? 'будь-яка ✨' : 'будь-яка (FLEX)')}\n`
+      : `👯‍♀️ Група: ${TextHelper.bold(TextHelper.escapeHtml(groupName ?? ''))}\n`
   }
 
   static toDisplayPrice(price: number): string {
@@ -66,10 +84,14 @@ ${duration}`
   }
 
   static getPassInfoMessage(
-    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel },
+    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel; group?: { name: string } | null },
     dateTimeProvider: DateTimeProvider,
     fullName: string = '',
   ): string {
+    // The pass's own scope (a snapshot), not the template's: passes sold before 2026-10-05 are FLEX
+    const groupLine = this.getGroupLine({ type: pass.passTemplate.type, groupMode: pass.groupMode }, pass.group?.name, {
+      forClient: !fullName,
+    })
     const isPassInactive = pass.status !== PassStatusEnum.REQUESTED && !pass.endDate
     const activationDate = addDays(pass.saleDate, PASS_CONFIG.ACTIVATION_GRACE_PERIOD).toISOString()
     const checkDateString =
@@ -81,7 +103,7 @@ ${duration}`
 
     const text = `${headerText}\n
 🏷️ ${TextHelper.bold('Тип:')} ${PassHelper.getPassTemplateTypeLabel(pass.passTemplate.type)} «${pass.passTemplate.name}»
-${icon} ${TextHelper.bold('Статус:')} ${label}
+${groupLine}${icon} ${TextHelper.bold('Статус:')} ${label}
 📌 ${TextHelper.bold('Доступно тренувань:')} ${pass.availableSlots}/${pass.lengthOverride ?? pass.passTemplate.length}\n
 ${!isPassInactive ? `📅 ${TextHelper.bold('Активований:')} ${dateTimeProvider.formatDateStringInTz(pass.startDate!, 'd MMMM')}` : ''}
 ${TextHelper.bold(isPassInactive ? '📅 Автоматично активується:' : pass.endDate ? '📅 Дійсний до:' : '')} ${isPassInactive ? checkDateString : (dateTimeProvider.formatDateStringInTz(pass.endDate!, 'd MMMM') ?? '')}`
@@ -135,6 +157,8 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
       trainingSignups?: GetTrainingSignupsByPassIdResponse[]
       /** Pre-rendered individual-training history; supplied instead of trainingSignups for individual passes. */
       personalTrainingsBlock?: string
+      /** The client's active passes: with 2+ the card gets a row per pass to switch the shown one */
+      activePasses?: TLabelPass[]
     },
   ) {
     const { pass, fullName, clientUserId, shouldEdit = true, trainingSignups = [], personalTrainingsBlock } = data
@@ -146,7 +170,8 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
         : PassHelper.getPassWithSignupsInfoMessage(pass, dateTimeProvider, fullName, trainingSignups)
 
       const isPassActivated = PassHelper.isPassActivated(pass)
-      const keyboard = AdminKeyboards.passManageMenu(clientUserId, isPassActivated, isIndividualPass)
+      const passChoices = (data.activePasses ?? []).map((p) => ({ id: p.id, label: PassSelectionHelper.getLabel(p) }))
+      const keyboard = AdminKeyboards.passManageMenu(clientUserId, pass.id, isPassActivated, isIndividualPass, passChoices)
 
       if (!shouldEdit) {
         if (data.editMessageId) {

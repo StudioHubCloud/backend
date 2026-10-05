@@ -42,12 +42,12 @@ export class MessageHelper {
     data: Partial<IRegisterSceneState>,
     { completed = false, role }: { completed?: boolean; role: UserProfileRoleEnum },
   ) {
-    const { firstName, date_of_birth, lastName, phone, telegramUsername, isCashPayment } = data
+    const { firstName, date_of_birth, lastName, phone, telegramUsername, isCashPayment, groupName } = data
     const modeText = completed
       ? `${role === UserProfileRoleEnum.CLIENT ? 'Клієнт' : 'Тренер'} відправив запит на реєстрацію: ✅\n\n`
       : `🔍 Перевір, чи все вірно:\n\n`
 
-    const mainContent = `👤 Ім'я: ${TextHelper.bold(`${UserHelper.getFullName(firstName!, lastName)}\n`)}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${telegramUsername ? `\n➡️ Telegram: ${TextHelper.bold(`@${telegramUsername}`)}` : ''}${isCashPayment ? `\n\n💵 <b>Оплата готівкою</b>` : ''}`
+    const mainContent = `👤 Ім'я: ${TextHelper.bold(`${UserHelper.getFullName(firstName!, lastName)}\n`)}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${telegramUsername ? `\n➡️ Telegram: ${TextHelper.bold(`@${telegramUsername}`)}` : ''}${groupName ? `\n👯‍♀️ Група: ${TextHelper.bold(TextHelper.escapeHtml(groupName))}` : ''}${isCashPayment ? `\n\n💵 <b>Оплата готівкою</b>` : ''}`
 
     return !completed
       ? `${modeText}${mainContent}\n\n👌 Якщо все правильно — тисни “✅ Підтвердити”\n❌ А якщо щось хочеш змінити — просто натисни “⬅️ Назад”`
@@ -58,11 +58,12 @@ export class MessageHelper {
     userProfile: UserProfileSelectModel,
     passTemplate: PassTemplateSelectModel,
     requestType: PassActivationRequestTypeEnum,
+    groupName?: string | null,
   ) {
     const fullName = UserHelper.getDisplayName(userProfile)
     const price = PassHelper.toDisplayPrice(passTemplate.price)
     const requestTypeText = requestType === PassActivationRequestTypeEnum.PURCHASE ? 'Активацію' : 'Поновлення'
-    return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}`
+    return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}\n${PassHelper.getGroupLine(passTemplate, groupName)}`
   }
 
   static constructPassSelectMessage(data: PassTemplateWithAgeRestrictions, withoutHeader?: boolean) {
@@ -387,8 +388,8 @@ ${sessionLines}`
   static getPendingPayoutsListMessage(): string {
     return (
       `💰 <b>Підготовлені виплати</b>\n\n` +
-      `Дані зафіксовані, заняття цих виплат заблоковані. Відкрий тренера і перевір: ` +
-      `<b>💸 Оплатити</b> або <b>❌ Відмінити</b> (тоді виплату робиш вручну).`
+      `Дані зафіксовані, заняття цих виплат заблоковані. Відкрийте тренера й перевірте: ` +
+      `<b>💸 Оплатити</b> або <b>❌ Відмінити</b> (тоді виплату робите вручну).`
     )
   }
 

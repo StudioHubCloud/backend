@@ -40,7 +40,8 @@ export class AdminKeyboards {
     ])
   }
 
-  static verifyPassActions(userProfileId: string): TReplyInlineKeyboard {
+  /** Pass activation request (value: the request id); a FIXED group pass can get another group before approval. */
+  static verifyPassActions(userProfileId: string, { withGroupChange = false } = {}): TReplyInlineKeyboard {
     return KeyboardHelper.createInlineKeyboard([
       [
         {
@@ -52,7 +53,45 @@ export class AdminKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_REJECT, userProfileId),
         },
       ],
+      ...(withGroupChange
+        ? [
+            [
+              {
+                text: BUTTON_PATTERNS.CHANGE_GROUP,
+                callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_GROUP, userProfileId),
+              },
+            ],
+          ]
+        : []),
       [COMMON_BUTTONS.CLOSE],
+    ])
+  }
+
+  /** Groups for a requested FIXED pass: the client's pick first and green; "⬅️ Назад" restores the request buttons. */
+  static passRequestGroupSelect(
+    requestId: string,
+    groups: { id: number; name: string; groupStyle?: { emoji: string } | null }[],
+    currentGroupId: number | null,
+  ): TReplyInlineKeyboard {
+    const sorted = [...groups].sort((a, b) => Number(b.id === currentGroupId) - Number(a.id === currentGroupId))
+    return KeyboardHelper.createInlineKeyboard([
+      ...sorted.map((group) => {
+        const button: InlineKeyboardButton = {
+          text: [group.groupStyle?.emoji, group.name].filter(Boolean).join(' '),
+          callback_data: RegexHelper.createButtonActionCallbackData(
+            CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_GROUP_SELECT,
+            requestId,
+            group.id,
+          ),
+        }
+        return [group.id === currentGroupId ? KeyboardHelper.withStyle(button, 'success') : button]
+      }),
+      [
+        {
+          text: BUTTON_PATTERNS.BACK,
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_GROUP_BACK, requestId),
+        },
+      ],
     ])
   }
 
@@ -456,16 +495,34 @@ export class AdminKeyboards {
     ])
   }
 
+  /**
+   * Pass card actions. Actions on the pass carry its id (a client may hold several active passes); client actions
+   * (new pass, individual sessions, back) carry the client's user id. `passChoices` (2+): a row per active pass,
+   * the shown one ✅ and green.
+   */
   static passManageMenu(
     clientUserId: string,
+    passId: string,
     isPassActivated: boolean,
     isIndividualPass: boolean = false,
+    passChoices: { id: string; label: string }[] = [],
   ): TReplyInlineKeyboard {
+    const choiceRows: InlineKeyboardButton[][] =
+      passChoices.length > 1
+        ? passChoices.map(({ id, label }) => {
+            const button: InlineKeyboardButton = {
+              text: `${id === passId ? '✅ ' : ''}${label}`,
+              callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.VIEW, id),
+            }
+            return [id === passId ? KeyboardHelper.withStyle(button, 'success') : button]
+          })
+        : []
+
     const activateButton = !isPassActivated
       ? [
           {
             text: BUTTON_PATTERNS.ACTIVATE,
-            callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE, clientUserId),
+            callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE, passId),
           },
         ]
       : []
@@ -495,6 +552,7 @@ export class AdminKeyboards {
       : []
 
     return KeyboardHelper.createInlineKeyboard([
+      ...choiceRows,
       [...activateButton],
       ...individualTrainingButtons,
       [
@@ -506,7 +564,7 @@ export class AdminKeyboards {
       [
         {
           text: BUTTON_PATTERNS.PASS_EDIT_LENGTH,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_LENGTH, clientUserId),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_LENGTH, passId),
         },
       ],
       [
@@ -514,14 +572,14 @@ export class AdminKeyboards {
           text: BUTTON_PATTERNS.PASS_EDIT_START_DATE,
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_START_DATE,
-            clientUserId,
+            passId,
           ),
         },
       ],
       [
         {
           text: BUTTON_PATTERNS.PASS_EDIT_END_DATE,
-          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_END_DATE, clientUserId),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_END_DATE, passId),
         },
       ],
       [

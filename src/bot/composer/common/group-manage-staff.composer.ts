@@ -7,6 +7,7 @@ import {
   GroupSelectPaginatedMenu,
   TrainingSelectStaffPaginatedMenu,
   StaffSelectPaginatedMenu,
+  PassSelectPaginatedMenu,
   CLIENT_SIGNOUT_MENU,
   CLIENT_SIGNIN_MENU,
 } from '@app/bot/menus'
@@ -20,7 +21,8 @@ import { BotHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { TrainingService } from '@app/domain/training'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { TrainingSignupService } from '@app/domain/training-signup'
-import { API, PassStatusEnum, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs'
+import { API, AuditLogActions, AuditLogTrigger, PassStatusEnum, TrainingSignupStatusEnum, TrainingSignupTypeEnum } from '@app/libs'
+import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 const ADMIN_ONLY_MESSAGE = '⛔️ Доступно лише адміністратору'
 const NOT_YOUR_GROUP_MESSAGE = '👀 Це не ваша група'
@@ -37,6 +39,7 @@ export class GroupManageStaffComposer {
     private readonly staffSelectPaginatedMenu: StaffSelectPaginatedMenu,
     @Inject(CLIENT_SIGNOUT_MENU) private readonly clientSelectSignOutPaginatedMenu: ClientSelectPaginatedMenu,
     @Inject(CLIENT_SIGNIN_MENU) private readonly clientSelectSignInPaginatedMenu: ClientSelectPaginatedMenu,
+    private readonly passSelectPaginatedMenu: PassSelectPaginatedMenu,
     private readonly groupService: GroupService,
     private readonly trainingService: TrainingService,
     private readonly trainingSignupService: TrainingSignupService,
@@ -83,6 +86,13 @@ export class GroupManageStaffComposer {
         promptMessage: '👤 Оберіть клієнта для запису на тренування:',
         noOptionsMessage: '👤 Немає доступних клієнтів для запису',
         onItemSelect: this.handleClientSignInPaginatedSelect,
+      }),
+    )
+    this.composer.use(
+      this.passSelectPaginatedMenu.middleware({
+        callbackPrefix: CALLBACK_PREFIX.STAFF.TRAINING.SIGN_IN_PASS_SELECT,
+        noOptionsMessage: '🥲 У клієнта немає абонементів для запису',
+        onItemSelect: this.handleSignInPassSelect,
       }),
     )
 
@@ -285,7 +295,7 @@ export class GroupManageStaffComposer {
           {
             backButtonCallbackData: backBtnCbData,
             shouldEdit: true,
-            context: { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId, trainingId },
+            context: { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId, trainingId, backBtnCbData },
           },
         )
       })
@@ -576,38 +586,69 @@ export class GroupManageStaffComposer {
       return
     }
 
-    const response = await this.trainingSignupService.signInToTrainingAsAdminViaTelegram(userId, trainingId)
+    return this.signInClient(ctx, userId, trainingId, context)
+  }
+
+  /** Admin picked the pass for a client without a pass covering the training's group (warning shown before). */
+  private handleSignInPassSelect = async (ctx: BotContext, passId: string, context: Record<string, any> = {}) => {
+    if (!UserHelper.isAdminRole(ctx)) {
+      return BotHelper.safeAnswerCbQuery(ctx, ADMIN_ONLY_MESSAGE, { show_alert: true })
+    }
+
+    const { trainingId, userId } = context
+
+    if (!trainingId || !userId) {
+      await BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Спробуйте ще раз.', { show_alert: true })
+      return BotHelper.safeDeleteMessage(ctx)
+    }
+
+    return this.signInClient(ctx, userId, trainingId, context, passId)
+  }
+
+  private signInClient = async (
+    ctx: BotContext,
+    userId: string,
+    trainingId: string,
+    context: Record<string, any>,
+    passId?: string,
+  ) => {
+    const response = await this.trainingSignupService.signInToTrainingAsAdminViaTelegram(userId, +trainingId, passId)
+
+    if (response.passChoice) {
+      return this.passSelectPaginatedMenu.initMenu(
+        ctx,
+        { prompt: response.message, data: response.passChoice },
+        { shouldEdit: true, backButtonCallbackData: context.backBtnCbData, context: { ...context, userId } },
+      )
+    }
 
     if (response.status === API.RESPONSE.ERROR_STRING) {
       return BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
     }
-    if (response.status === API.RESPONSE.SUCCESS_STRING) {
-      BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
 
-      const { userProfile, groupId } = response.data || {}
+    await BotHelper.safeAnswerCbQuery(ctx, response.message, { show_alert: true })
+    AuditLogHelper.startAction(ctx, AuditLogActions.TRAINING_SIGNUP_CREATE, AuditLogTrigger.ADMIN_ACTION, response.data?.logOperations)
 
-      if (userProfile?.telegramId && groupId) {
-        const [group, training] = await Promise.all([
-          this.groupService.getGroupById(groupId),
-          this.trainingService.getTrainingById(+trainingId),
-        ])
+    const { userProfile, groupId } = response.data || {}
 
-        const now = new Date()
-        const trainingDate = new Date(training.date)
+    if (userProfile?.telegramId && groupId) {
+      const [group, training] = await Promise.all([
+        this.groupService.getGroupById(groupId),
+        this.trainingService.getTrainingById(+trainingId),
+      ])
 
-        if (now < trainingDate) {
-          BotHelper.safeSendMessage(
-            ctx.telegram,
-            String(userProfile.telegramId),
-            MessageHelper.constructTrainingSigninByAdminMessage(
-              { date: training.date, groupName: group.name },
-              this.dateTimeProvider,
-            ),
-          )
-        }
+      const now = new Date()
+      const trainingDate = new Date(training.date)
+
+      if (now < trainingDate) {
+        BotHelper.safeSendMessage(
+          ctx.telegram,
+          String(userProfile.telegramId),
+          MessageHelper.constructTrainingSigninByAdminMessage({ date: training.date, groupName: group.name }, this.dateTimeProvider),
+        )
       }
-      return this.renderTrainingManageMenu(ctx, trainingId, context)
     }
+    return this.renderTrainingManageMenu(ctx, trainingId, context)
   }
 
   private handleStaffSelectPaginatedSelect = async (ctx: BotContext, staffUserId: string, context: Record<string, any> = {}) => {

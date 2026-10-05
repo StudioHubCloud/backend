@@ -10,7 +10,9 @@ import { ClientKeyboards, CommonKeyboards, TrainerKeyboards } from '@app/bot/key
 import {
   AuditLogActions,
   AuditLogTrigger,
-  PassActivationRequestTypeEnum,
+  PassGroupModeEnum,
+  PassStatusEnum,
+  PassTemplateTypeEnum,
   UserProfileRoleEnum,
   UserProfileStatusEnum,
 } from '@app/libs'
@@ -19,6 +21,8 @@ import { MESSAGES_STAFF } from '@app/bot/static/messages'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { PassActivationRequestService } from '@app/domain/pass-activation-request'
 import { PassService } from '@app/domain/pass'
+import { GroupService } from '@app/domain/group'
+import { AdminKeyboards } from '@app/bot/keyboard/storage/admin-keyboards'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 @Injectable()
@@ -31,6 +35,7 @@ export class VerificationRequestComposer {
     private readonly userProfileService: UserProfileService,
     private readonly passActivationRequestService: PassActivationRequestService,
     private readonly passService: PassService,
+    private readonly groupService: GroupService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -63,6 +68,15 @@ export class VerificationRequestComposer {
     this.composer.action(
       RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_REJECT),
       this.handleRejectPassActivationRequest,
+    )
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_GROUP), this.handleRequestGroupList)
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_GROUP_SELECT),
+      this.handleRequestGroupSelect,
+    )
+    this.composer.action(
+      RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_GROUP_BACK),
+      this.handleRequestGroupBack,
     )
   }
 
@@ -162,12 +176,9 @@ export class VerificationRequestComposer {
 
   private handleConfirmPassPaymentRequest = async (ctx: BotContext) => {
     return this.handleActivatePassAction(ctx, async (passActivateRequest) => {
-      const isRenewRequest = passActivateRequest?.type === PassActivationRequestTypeEnum.RENEW
-
       const [success, logOperations] = await this.passService.acceptPassActivateRequest(
         passActivateRequest!.passId,
         passActivateRequest!.id,
-        isRenewRequest,
       )
 
       if (!success) {
@@ -182,7 +193,14 @@ export class VerificationRequestComposer {
         BotHelper.safeSendMessage(
           ctx.telegram,
           passActivateRequest!.client.userProfile.telegramId,
-          `✅ Оплату за абонемент <b>${passActivateRequest!.pass.passTemplate.name}</b> підтверджено!\n\n${PassHelper.getActivationInfo(passActivateRequest!.pass.passTemplate)}`,
+          `✅ Оплату за абонемент <b>${passActivateRequest!.pass.passTemplate.name}</b> підтверджено!\n` +
+            // The group may have been changed by the admin: the client sees where the pass works
+            PassHelper.getGroupLine(
+              { type: passActivateRequest!.pass.passTemplate.type, groupMode: passActivateRequest!.pass.groupMode },
+              passActivateRequest!.pass.group?.name,
+              { forClient: true },
+            ) +
+            `\n${PassHelper.getActivationInfo(passActivateRequest!.pass.passTemplate)}`,
           { ...ClientKeyboards.mainMenu() },
         ),
       ])
@@ -225,6 +243,71 @@ export class VerificationRequestComposer {
     }
 
     await action(userProfile)
+  }
+
+  /** "👯‍♀️ Змінити групу" on a request for a FIXED group pass: groups for the client's age, the client's pick first. */
+  private handleRequestGroupList = async (ctx: BotContext) => {
+    return this.handleActivatePassAction(ctx, async (request) => {
+      if (!this.isFixedGroupRequest(request)) {
+        return BotHelper.safeAnswerCbQuery(ctx, '⚠️ Групу можна змінити лише для абонемента однієї групи', { show_alert: true })
+      }
+
+      const { groups } = await this.groupService.getGroupsForClientPass(request!.client.userProfile.dateOfBirth ?? null)
+      await BotHelper.safeAnswerCbQuery(ctx)
+      return BotHelper.safeEditMessageReplyMarkup(
+        ctx,
+        AdminKeyboards.passRequestGroupSelect(request!.id, groups, request!.pass.groupId).reply_markup,
+      )
+    })
+  }
+
+  /** The admin's pick replaces the client's (the pass is still requested); the caption and buttons are refreshed. */
+  private handleRequestGroupSelect = async (ctx: BotContext) => {
+    return this.handleActivatePassAction(ctx, async (request) => {
+      const [, groupId] = RegexHelper.getMatchGroupValue(ctx)
+      const { groups } = await this.groupService.getGroupsForClientPass(request!.client.userProfile.dateOfBirth ?? null)
+      const group = groups.find((g) => g.id === Number(groupId))
+
+      if (!this.isFixedGroupRequest(request) || !group) {
+        return BotHelper.safeAnswerCbQuery(ctx, '⚠️ Цю групу не можна обрати, оновіть запит', { show_alert: true })
+      }
+
+      const [, logOperations] = await this.passService.updatePass(request!.pass.id, { groupId: group.id })
+      AuditLogHelper.startAction(ctx, AuditLogActions.PASS_EDIT, AuditLogTrigger.ADMIN_ACTION, logOperations)
+      await BotHelper.safeAnswerCbQuery(ctx, `👯‍♀️ Група: ${group.name}`)
+
+      const caption = MessageHelper.getClientPassPaymentRequestMessage(
+        request!.client.userProfile,
+        request!.pass.passTemplate,
+        request!.type,
+        group.name,
+      )
+      return ctx
+        .editMessageCaption(caption, {
+          parse_mode: 'HTML',
+          ...AdminKeyboards.verifyPassActions(request!.id, { withGroupChange: true }),
+        })
+        .catch(() => BotHelper.safeEditMessageReplyMarkup(ctx, AdminKeyboards.verifyPassActions(request!.id, { withGroupChange: true }).reply_markup))
+    })
+  }
+
+  private handleRequestGroupBack = async (ctx: BotContext) => {
+    return this.handleActivatePassAction(ctx, async (request) => {
+      await BotHelper.safeAnswerCbQuery(ctx)
+      return BotHelper.safeEditMessageReplyMarkup(
+        ctx,
+        AdminKeyboards.verifyPassActions(request!.id, { withGroupChange: this.isFixedGroupRequest(request) }).reply_markup,
+      )
+    })
+  }
+
+  private isFixedGroupRequest(request: Awaited<ReturnType<typeof this.passActivationRequestService.findById>>): boolean {
+    return (
+      !!request &&
+      request.pass.status === PassStatusEnum.REQUESTED &&
+      request.pass.passTemplate.type === PassTemplateTypeEnum.GROUP &&
+      request.pass.groupMode === PassGroupModeEnum.FIXED
+    )
   }
 
   private async handleActivatePassAction(

@@ -108,6 +108,30 @@ export class PassRelatedKeyboards {
     ])
   }
 
+  /**
+   * Group a FIXED pass is bound to. The suggested group (picked at registration, or the current pass's group on a
+   * renewal) comes first and green.
+   */
+  static passGroupSelectInlineKeyboard(
+    groups: (GroupSelectModel & { groupStyle?: { emoji: string } | null })[],
+    { suggestedGroupId, backCallbackData }: { suggestedGroupId?: number | null; backCallbackData?: string } = {},
+  ): TReplyInlineKeyboard {
+    const sorted = [...groups].sort((a, b) => Number(b.id === suggestedGroupId) - Number(a.id === suggestedGroupId))
+    const rows: InlineKeyboardButton[][] = sorted.map((group) => {
+      const button: InlineKeyboardButton = {
+        text: [group.groupStyle?.emoji, group.name].filter(Boolean).join(' '),
+        callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.PASS.GROUP_SELECT, String(group.id)),
+      }
+      return [group.id === suggestedGroupId ? KeyboardHelper.withStyle(button, 'success') : button]
+    })
+
+    if (backCallbackData) {
+      rows.push([{ text: BUTTON_PATTERNS.BACK, callback_data: backCallbackData }])
+    }
+
+    return KeyboardHelper.createInlineKeyboard(rows)
+  }
+
   static passPurchaseFileUploadInlineKeyboard(hasFiles?: boolean): TReplyInlineKeyboard {
     const buttons: InlineKeyboardButton[][] = []
 

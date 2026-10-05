@@ -56,7 +56,8 @@ export type PassTemplateWithAgeRestrictions = PassTemplateSelectModel & {
 
 export type TNextFunction = () => Promise<void>
 
-export type TNormalizedOption = { label: string; value: string | number }
+// `style`: optional button colour (e.g. the client's own groups green in "Розклад")
+export type TNormalizedOption = { label: string; value: string | number; style?: TButtonStyle }
 export type TPaginatedMenuRenderOptions = {
   shouldEdit?: boolean
   backButtonCallbackData?: string | null
@@ -135,6 +136,13 @@ export interface IRegisterSceneState {
   fileId?: string
   fileType: FileTypeEnum
   isCashPayment?: boolean
+  /** Group the client picked (null: no group fits the age, the admin picks one on verification) */
+  groupId?: number | null
+  groupName?: string
+  /** Groups exist for the client's age; false skips the group step both ways */
+  hasGroupsForAge?: boolean
+  /** Open inline group list, removed on leaving the step (no dead buttons) */
+  pickerMessageId?: number | null
 }
 
 export interface GetGroupByIdResponse extends GroupSelectModel {
@@ -146,7 +154,7 @@ export interface GetGroupByIdResponse extends GroupSelectModel {
 
 export interface GetTrainingByIdResponse extends TrainingSelectModel {
   trainer: (StaffMemberSelectModel & { userProfile: UserProfileSelectModel | null }) | null
-  group: Pick<GroupSelectModel, 'status'>
+  group: Pick<GroupSelectModel, 'status' | 'name'>
   trainingSignups: (TrainingSignupSelectModel & { userProfile: UserProfileSelectModel | null })[]
   groupSchedule:
     | (GroupScheduleSelectModel & {

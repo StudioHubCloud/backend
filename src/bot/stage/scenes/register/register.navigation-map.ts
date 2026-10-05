@@ -9,8 +9,9 @@ export const REGISTER_SCENE_CURSOR_MAP = {
   NAME_HANDLER: 1,
   PHONE_HANDLER: 2,
   DOB_HANDLER: 3,
-  FILE_UPLOAD_HANDLER: 4,
-  COMPLETE_HANDLER: 5,
+  GROUP_HANDLER: 4,
+  FILE_UPLOAD_HANDLER: 5,
+  COMPLETE_HANDLER: 6,
 } as const
 
 export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneState> = {
@@ -68,13 +69,9 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
   [REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER]: {
     default: {
       next: {
-        cursor: REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER,
-        message:
-          '📸 <b>Завантаж фото</b> або 📄 <b>файл підтвердження оплати</b>\n\n' +
-          'Це може бути скріншот, фото чеку або будь-який документ, що підтверджує оплату.\n\n' +
-          'Після завантаження файлу тобі буде показано всі введені дані для остаточного підтвердження. Якщо все вірно — тисни <b>Підтвердити</b>. Якщо потрібно щось змінити — скористайся кнопкою "Назад".\n\n' +
-          'Якщо виникли питання — звертайся до тренера чи адміна! 😊',
-        keyboard: CommonSceneKeyboards.backExitWithCash(),
+        cursor: REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER,
+        message: MESSAGES_SCENE.REGISTER.SELECT_GROUP,
+        keyboard: CommonSceneKeyboards.backWithExit(),
       },
       prev: {
         cursor: REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER,
@@ -107,6 +104,24 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
       },
     },
   },
+  [REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER]: {
+    default: {
+      next: {
+        cursor: REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER,
+        message:
+          '📸 <b>Завантаж фото</b> або 📄 <b>файл підтвердження оплати</b>\n\n' +
+          'Це може бути скріншот, фото чеку або будь-який документ, що підтверджує оплату.\n\n' +
+          'Після завантаження файлу тобі буде показано всі введені дані для остаточного підтвердження. Якщо все вірно — тисни <b>Підтвердити</b>. Якщо потрібно щось змінити — скористайся кнопкою "Назад".\n\n' +
+          'Якщо виникли питання — звертайся до тренера чи адміна! 😊',
+        keyboard: CommonSceneKeyboards.backExitWithCash(),
+      },
+      prev: {
+        cursor: REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER,
+        message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,
+        keyboard: CommonSceneKeyboards.backWithExit(),
+      },
+    },
+  },
   [REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER]: {
     default: {
       next: {
@@ -115,8 +130,8 @@ export const REGISTER_SCENE_NAVIGATION_MAP: ISceneNavigationMap<IRegisterSceneSt
         keyboard: CommonSceneKeyboards.backExitConfirm(),
       },
       prev: {
-        cursor: REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER,
-        message: MESSAGES_SCENE.REGISTER.PROVIDE_DOB,
+        cursor: REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER,
+        message: MESSAGES_SCENE.REGISTER.SELECT_GROUP,
         keyboard: CommonSceneKeyboards.backWithExit(),
       },
     },

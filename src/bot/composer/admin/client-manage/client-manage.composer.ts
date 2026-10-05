@@ -36,6 +36,8 @@ import { PersonalTrainingKeyboards } from '@app/bot/keyboard/storage'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
+type TClientPass = NonNullable<Awaited<ReturnType<PassService['findStudioPassById']>>>
+
 @Injectable()
 export class ClientManageComposer {
   private readonly composer: Composer<BotContext>
@@ -84,8 +86,12 @@ export class ClientManageComposer {
       return this.withClientIdAction(ctx, (clientUserProfile) => this.handleAddNewPassAction(ctx, clientUserProfile))
     })
 
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.VIEW), (ctx) => {
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) => this.renderPassManageMenu(ctx, clientUserProfile, pass.id))
+    })
+
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE), (ctx) => {
-      return this.withClientIdAction(ctx, (clientUserProfile) => this.handleActivatePassAction(ctx, clientUserProfile))
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) => this.handleActivatePassAction(ctx, clientUserProfile, pass))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.REGISTER), (ctx) => {
@@ -102,20 +108,20 @@ export class ClientManageComposer {
     )
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_LENGTH), (ctx) => {
-      return this.withClientIdAction(ctx, (clientUserProfile) =>
-        this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_LENGTH),
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) =>
+        this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_LENGTH, pass),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_END_DATE), (ctx) => {
-      return this.withClientIdAction(ctx, (clientUserProfile) =>
-        this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_END_DATE),
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) =>
+        this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_END_DATE, pass),
       )
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.EDIT_START_DATE), (ctx) => {
-      return this.withClientIdAction(ctx, (clientUserProfile) =>
-        this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_START_DATE),
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) =>
+        this.handlePassEditAction(ctx, clientUserProfile, EDIT_PASS_SCENE_ACTIONS.EDIT_START_DATE, pass),
       )
     })
 
@@ -192,8 +198,12 @@ export class ClientManageComposer {
     return ClientHelper.renderClientManageMenu(ctx, userProfile as UserProfileWithClient)
   }
 
-  private renderPassManageMenu = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
-    const clientPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
+  /** The chosen pass (`passId`), else the client's current one; with several active passes the card switches between them. */
+  private renderPassManageMenu = async (ctx: BotContext, clientUserProfile: UserProfileWithClient, passId?: string | null) => {
+    const clientPass = passId
+      ? await this.passService.findStudioPassById(passId)
+      : await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
+    const { passes: activePasses } = await this.passService.findActivePassesByClientId(clientUserProfile.client.id)
 
     if (!clientPass) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ У клієнта немає активних абонементів.', { show_alert: true })
@@ -213,6 +223,7 @@ export class ClientManageComposer {
         fullName: UserHelper.getDisplayName(clientUserProfile),
         clientUserId: clientUserProfile.id,
         personalTrainingsBlock: PersonalTrainingHelper.getAdminHistoryBlock(personalTrainings, this.dateTimeProvider),
+        activePasses,
       })
     }
 
@@ -223,6 +234,7 @@ export class ClientManageComposer {
       fullName: UserHelper.getDisplayName(clientUserProfile),
       clientUserId: clientUserProfile.id,
       trainingSignups,
+      activePasses,
     })
   }
 
@@ -273,21 +285,15 @@ export class ClientManageComposer {
     }
 
     const clientUserProfile = await this.userProfileService.getUserProfileById(signup.client!.userProfileId)
-    return this.renderPassManageMenu(ctx, clientUserProfile as UserProfileWithClient)
+    return this.renderPassManageMenu(ctx, clientUserProfile as UserProfileWithClient, signup.passId)
   }
 
   private handlePassEditAction = async (
     ctx: BotContext,
     clientUserProfile: UserProfileWithClient,
     action: TEditPassSceneAction,
+    originalPass: TClientPass,
   ) => {
-    const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
-
-    if (!originalPass) {
-      BotHelper.safeAnswerCbQuery(ctx, '❗️ У клієнта немає активних абонементів.', { show_alert: true })
-      return
-    }
-
     BotHelper.safeAnswerCbQuery(ctx)
     BotHelper.safeDeleteMessage(ctx)
 
@@ -353,14 +359,7 @@ export class ClientManageComposer {
     return BotHelper.safeEditMessageText(ctx, message, AdminKeyboards.userProfileEditMenu(clientUserProfile.id))
   }
 
-  private handleActivatePassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
-    const originalPass = await this.passService.findActivePassByClientId(clientUserProfile.client.id, { withExpired: true })
-
-    if (!originalPass) {
-      BotHelper.safeAnswerCbQuery(ctx, '❗️ У клієнта немає активних абонементів.', { show_alert: true })
-      BotHelper.safeDeleteMessage(ctx)
-      return
-    }
+  private handleActivatePassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient, originalPass: TClientPass) => {
     if (PassHelper.isPassActivated(originalPass)) {
       BotHelper.safeAnswerCbQuery(ctx, '❗️ Абонемент вже активований.', { show_alert: true })
       BotHelper.safeDeleteMessage(ctx)
@@ -370,7 +369,7 @@ export class ClientManageComposer {
     const [_, logOperations] = await this.passService.activatePass(originalPass.id)
     AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_CONFIRM, AuditLogTrigger.ADMIN_ACTION, logOperations)
     BotHelper.safeAnswerCbQuery(ctx, '✅ Абонемент успішно активовано.')
-    return this.renderPassManageMenu(ctx, clientUserProfile)
+    return this.renderPassManageMenu(ctx, clientUserProfile, originalPass.id)
   }
 
   private handleAddNewPassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {
@@ -398,5 +397,30 @@ export class ClientManageComposer {
     }
 
     return action(userProfile as UserProfileWithClient)
+  }
+
+  /** Actions on one pass: the pass (this studio's) comes from the callback, its client from the pass. */
+  private withPassIdAction = async (
+    ctx: BotContext,
+    action: (userProfile: UserProfileWithClient, pass: TClientPass) => Promise<any>,
+  ) => {
+    const [passId] = RegexHelper.getMatchGroupValue(ctx)
+    const pass = passId ? await this.passService.findStudioPassById(passId) : null
+
+    if (!pass) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Абонемент не знайдено.', { show_alert: true })
+      BotHelper.safeDeleteMessage(ctx)
+      return
+    }
+
+    const clientUserProfile = await this.userProfileService.getUserProfileByClientId(pass.clientId)
+
+    if (!clientUserProfile?.client) {
+      BotHelper.safeAnswerCbQuery(ctx, '❗️ Помилка. Користувач не є клієнтом.', { show_alert: true })
+      BotHelper.safeDeleteMessage(ctx)
+      return
+    }
+
+    return action(clientUserProfile as UserProfileWithClient, pass)
   }
 }

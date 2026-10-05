@@ -80,5 +80,6 @@ export const BUTTON_PATTERNS = {
   STUDIO_SCHEDULE: '📅 Розклад студії',
   CURRENT_SESSION: '⏱ Поточне заняття',
   EDIT_NOTE: '✏️ Редагувати нотатку',
+  CHANGE_GROUP: '👯‍♀️ Змінити групу',
   INDIVIDUAL_PASS_RULES: "📋 Пам'ятка",
 } as const

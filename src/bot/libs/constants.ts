@@ -42,7 +42,8 @@ export const CALLBACK_DATA = {
 export const CALLBACK_PREFIX = {
   PICKER: {
     // PREVIOUS_STEP: the optional "⬅️ Назад" that leaves the picker (handle() returns { type: 'back' })
-    CALENDAR: { NAV: 'pk.cal.n', DAY: 'pk.cal.d', NOOP: 'pk.cal.x', PREVIOUS_STEP: 'pk.cal.p' },
+    // YEARS: a page of years (value: its first year), MONTHS: a year's months (value: yyyy); only with `yearRange`
+    CALENDAR: { NAV: 'pk.cal.n', DAY: 'pk.cal.d', NOOP: 'pk.cal.x', PREVIOUS_STEP: 'pk.cal.p', YEARS: 'pk.cal.y', MONTHS: 'pk.cal.m' },
     TIME: { HOUR: 'pk.tm.h', MINUTE: 'pk.tm.m', BACK: 'pk.tm.b', PREVIOUS_STEP: 'pk.tm.p' },
   },
   STAFF: {
@@ -70,6 +71,7 @@ export const CALLBACK_PREFIX = {
       BACK_TO_MANAGE: 'tr.m.b.st',
       CLIENT_SIGNOUT_SELECT: 'tr.c.so.s.st',
       CLIENT_SIGNIN_SELECT: 'tr.c.si.s.st',
+      SIGN_IN_PASS_SELECT: 'tr.ps.si.st',
       BACK_TO_CLOSEST_TRAINING_LIST: 'tr.cl.s.b.st',
     },
     USER: {
@@ -79,6 +81,10 @@ export const CALLBACK_PREFIX = {
       VERIFY_WITHOUT_PASS: 'u.vw.st',
       PASS_PAYMENT_CONFIRM: 'u.pp.pay.c.st',
       PASS_PAYMENT_REJECT: 'u.pp.pay.r.st',
+      // Change the group of a requested FIXED pass: list (value: request id), pick (request id, group id), back
+      PASS_PAYMENT_GROUP: 'u.pp.grp.st',
+      PASS_PAYMENT_GROUP_SELECT: 'u.pp.grs.st',
+      PASS_PAYMENT_GROUP_BACK: 'u.pp.grb.st',
       VERIFY_NO: 'u.vn.st',
       BLOCK: 'u.b.st',
     },
@@ -138,6 +144,7 @@ export const CALLBACK_PREFIX = {
   },
   CLIENT: {
     PASS_RULES: 'p.rules.cl',
+    PASS_SWITCH: 'p.sw.cl',
     TRAINING: {
       SELECT: 'tr.s.cl',
       SIGN_OUT: 'tr.so.cl',
@@ -160,6 +167,7 @@ export const CALLBACK_PREFIX = {
       },
       PASS: {
         MANAGE: 'm.p.m.cl',
+        VIEW: 'm.p.v.cl', // a chosen pass of a client with several active ones (value: passId)
         ADD_NEW: 'm.p.a.n.cl',
         ACTIVATE: 'm.p.act.cl',
         EDIT_START_DATE: 'm.p.e.s.cl',
@@ -179,6 +187,8 @@ export const CALLBACK_PREFIX = {
       TEMPLATE_SELECT: 'sc.pass.tpl.sel',
       BACK_TO_LIST: 'sc.pass.tp.b.lst',
       CONFIRM_OPEN: 'sc.pass.op.cfm',
+      GROUP_SELECT: 'sc.pass.grp.sel',
+      GROUP_BACK: 'sc.pass.grp.b',
     },
     FILE: {
       BACK: 'sc.file.b',

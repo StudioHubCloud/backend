@@ -189,7 +189,7 @@ export class PersonalTrainingHelper {
   }
 
   static getTrainerRegisteredMessage(session: IStaffPersonalSession, dateTimeProvider: DateTimeProvider): string {
-    return `📌 ${TextHelper.bold('Вам зареєстровано індивідуальне заняття')}\n\n${this.getSessionBlock(session, dateTimeProvider)}`
+    return `📌 ${TextHelper.bold('Нове індивідуальне заняття')}\n\n${this.getSessionBlock(session, dateTimeProvider)}`
   }
 
   static getTrainerCanceledMessage(session: IStaffPersonalSession, dateTimeProvider: DateTimeProvider): string {

@@ -7,6 +7,7 @@ import { InlineKeyboardButton } from '@telegraf/types'
 import { AdminKeyboards } from '@app/bot/keyboard/storage'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
+import { PassGroupModeEnum, PassTemplateTypeEnum } from '@app/libs'
 
 import { PassActivationRequestService } from '@app/domain/pass-activation-request'
 
@@ -75,10 +76,15 @@ export class PassActivationRequestsInlineMenu {
               passActivationRequest.client.userProfile,
               passActivationRequest.pass.passTemplate,
               type,
+              passActivationRequest.pass.group?.name,
             ),
             parse_mode: 'HTML',
           },
-          AdminKeyboards.verifyPassActions(passActivationRequest.id),
+          AdminKeyboards.verifyPassActions(passActivationRequest.id, {
+            withGroupChange:
+              passActivationRequest.pass.passTemplate.type === PassTemplateTypeEnum.GROUP &&
+              passActivationRequest.pass.groupMode === PassGroupModeEnum.FIXED,
+          }),
         )
       } catch (error) {
         await ctx.deleteMessage().catch(() => {})

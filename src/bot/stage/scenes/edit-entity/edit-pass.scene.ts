@@ -249,7 +249,10 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
       return ctx.scene.leave()
     }
 
-    const trainingSignups = await this.trainingSignupService.getTrainingSignupByPassId(pass.id)
+    const [trainingSignups, { passes: activePasses }] = await Promise.all([
+      this.trainingSignupService.getTrainingSignupByPassId(pass.id),
+      this.passService.findActivePassesByClientId(pass.clientId),
+    ])
 
     await PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
       pass: pass as typeof originalPass,
@@ -257,6 +260,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
       clientUserId,
       shouldEdit: false,
       trainingSignups,
+      activePasses,
     })
   }
 }

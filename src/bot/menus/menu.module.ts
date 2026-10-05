@@ -19,6 +19,7 @@ import { VerificationInlineMenu } from './inline-menus/verification-requests.inl
 import { TrainingSelectStaffPaginatedMenu } from './paginated-menus/training-select-staff.paginated-menu'
 import { ClientSelectPaginatedMenu, CLIENT_SIGNIN_MENU, CLIENT_SIGNOUT_MENU } from './paginated-menus/client-select.paginated-menu'
 import { StaffSelectPaginatedMenu } from './paginated-menus/staff-select.paginated-menu'
+import { PassSelectPaginatedMenu } from './paginated-menus/pass-select.paginated-menu'
 import { ActiveSchedulesPaginatedMenu } from './paginated-menus/active-schedules.paginated-menu'
 import { PassActivationRequestsInlineMenu } from './inline-menus/pass-activation-requests.inline-menu'
 
@@ -33,6 +34,7 @@ import { PassActivationRequestsInlineMenu } from './inline-menus/pass-activation
     ClientSelectPaginatedMenu,
     StaffSelectPaginatedMenu,
     ActiveSchedulesPaginatedMenu,
+    PassSelectPaginatedMenu,
     { provide: CLIENT_SIGNIN_MENU, useClass: ClientSelectPaginatedMenu },
     { provide: CLIENT_SIGNOUT_MENU, useClass: ClientSelectPaginatedMenu },
     { provide: ASSIGN_GROUP_TO_STAFF_MENU, useClass: GroupSelectPaginatedMenu },
@@ -51,6 +53,7 @@ import { PassActivationRequestsInlineMenu } from './inline-menus/pass-activation
     TrainingSelectStaffPaginatedMenu,
     StaffSelectPaginatedMenu,
     ActiveSchedulesPaginatedMenu,
+    PassSelectPaginatedMenu,
     PassActivationRequestsInlineMenu,
   ],
 })

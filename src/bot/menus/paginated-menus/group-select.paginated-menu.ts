@@ -13,6 +13,8 @@ type TGroupSelectMenuParams = {
   role: UserProfileRoleEnum
   staffUserId?: string
   data?: any[]
+  /** Client's own groups (FIXED passes, the current one first): listed first and green */
+  highlightGroupIds?: number[]
 }
 
 @Injectable({ scope: Scope.TRANSIENT })
@@ -22,7 +24,7 @@ export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<TGro
   }
 
   protected async loadOptions(params: TGroupSelectMenuParams): Promise<TNormalizedOption[]> {
-    const { userId, role, staffUserId, data } = params
+    const { userId, role, staffUserId, data, highlightGroupIds = [] } = params
 
     let groups
 
@@ -45,10 +47,23 @@ export class GroupSelectPaginatedMenu extends BasePaginatedSelectInlineMenu<TGro
       groups = data
     }
 
-    return KeyboardHelper.prepareInlineMenuOptions(groups, {
+    const options = KeyboardHelper.prepareInlineMenuOptions(groups, {
       labelKey: ['name'],
       valueKey: 'id',
       emoji: ['groupStyle', 'emoji'],
     })
+
+    if (!highlightGroupIds.length) {
+      return options
+    }
+
+    const rank = (value: string | number) => {
+      const index = highlightGroupIds.indexOf(Number(value))
+      return index === -1 ? highlightGroupIds.length : index
+    }
+    return options
+      .map((option, index) => ({ option, index }))
+      .sort((a, b) => rank(a.option.value) - rank(b.option.value) || a.index - b.index)
+      .map(({ option }) => (rank(option.value) < highlightGroupIds.length ? { ...option, style: 'success' as const } : option))
   }
 }

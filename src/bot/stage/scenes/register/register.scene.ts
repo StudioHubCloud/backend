@@ -2,16 +2,19 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { DATE_FORMAT, FileTypeEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
-import { IRegisterSceneState, SCENES, TNextFunction } from '@app/bot/libs'
-import { SceneHelper, BotHelper, UserHelper, TextHelper, KeyboardHelper, NameHelper } from '@app/bot/helpers'
+import { CALLBACK_PREFIX, IRegisterSceneState, NavigationMapValues, SCENES, TNextFunction } from '@app/bot/libs'
+import { SceneHelper, BotHelper, UserHelper, TextHelper, KeyboardHelper, NameHelper, RegexHelper } from '@app/bot/helpers'
+import { CalendarPicker, TCalendarPickerOptions } from '@app/bot/menus'
 import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
 import { RegisterSceneNavigation } from './register.scene-navigation'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { UserProfileService } from '@app/domain/user-profile'
+import { GroupService } from '@app/domain/group'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { RedisCacheService } from '@app/infrastructure/redis'
 import { REGISTER_SCENE_CURSOR_MAP, REGISTER_SCENE_NAVIGATION_MAP } from './register.navigation-map'
 import { AdminKeyboards, CommonKeyboards, CommonSceneKeyboards, GuestKeyboards } from '@app/bot/keyboard/storage'
+import { PassRelatedKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 
 @Injectable()
@@ -22,6 +25,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
   constructor(
     private readonly userProfileService: UserProfileService,
+    private readonly groupService: GroupService,
     private readonly redisCacheService: RedisCacheService,
     @DateTimeProviderInjector() private readonly dateTimeProvider: DateTimeProvider,
   ) {
@@ -31,6 +35,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       (ctx) => this.nameHandler(ctx),
       (ctx) => this.phoneHandler(ctx),
       (ctx) => this.dateOfBirthHandler(ctx),
+      (ctx) => this.groupHandler(ctx),
       (ctx) => this.fileUploadHandler(ctx),
       (ctx) => this.completeHandler(ctx),
     )
@@ -41,6 +46,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     })
 
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
+      await this.deletePicker(ctx)
       await ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.EXIT, CommonKeyboards.registerAs())
       return ctx.scene.leave()
     })
@@ -50,7 +56,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
   private enterSceneHandler = async (ctx: BotContext) => {
     const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.ENTER_HANDLER)
-    return await this.sceneNavigation.handleNext(ctx, next)
+    return await this.goNext(ctx, next)
   }
 
   private nameHandler = async (ctx: BotContext) => {
@@ -97,7 +103,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     this.registerScene.setState(ctx, { firstName, lastName })
 
-    return await this.sceneNavigation.handleNext(ctx, next)
+    return await this.goNext(ctx, next)
   }
 
   private phoneHandler = async (ctx: BotContext) => {
@@ -107,7 +113,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     switch (textPayload) {
       case BUTTON_PATTERNS.BACK:
-        return await this.sceneNavigation.handleBack(ctx, prev)
+        return await this.goBack(ctx, prev)
       default:
         break
     }
@@ -120,31 +126,179 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     this.registerScene.setState(ctx, { phone })
     const state = this.registerScene.getState(ctx)
-    return await this.sceneNavigation.handleNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+    return await this.goNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
   }
 
   private dateOfBirthHandler = async (ctx: BotContext) => {
     const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER)
 
-    const { textPayload } = BotHelper.getUpdatePayload(ctx)
+    const { textPayload, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
 
     switch (textPayload) {
       case BUTTON_PATTERNS.BACK:
-        return await this.sceneNavigation.handleBack(ctx, prev)
+        await this.deletePicker(ctx)
+        return await this.goBack(ctx, prev)
       default:
         break
     }
 
-    const date_of_birth = TextHelper.validateDateInput(textPayload)
+    const picked = await CalendarPicker.handle(ctx, this.getToday(), this.getDobPickerOptions())
+    if (picked?.type === 'navigated') {
+      return
+    }
+    if (!picked && isCallbackQueryUpdate) {
+      return BotHelper.safeAnswerCbQuery(ctx)
+    }
+
+    // A picked day comes in the typed format, so both paths are validated the same way
+    const date_of_birth = TextHelper.validateDateInput(picked?.type === 'selected' ? picked.date : textPayload)
 
     if (!date_of_birth) {
       return ctx.replyWithHTML(MESSAGES_COMMON.DATE_ERROR)
     }
 
+    await this.closePicker(ctx, `🎂 Дата народження: ${TextHelper.bold(date_of_birth)}`)
     this.registerScene.setState(ctx, { date_of_birth })
     const state = this.registerScene.getState(ctx)
 
-    return await this.sceneNavigation.handleNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+    if (next?.cursor === REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER) {
+      return this.openGroupStep(ctx, next, 'next')
+    }
+
+    return await this.goNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+  }
+
+  /** Client only: the group their pass will be bound to; the admin opens the pass for it on verification. */
+  private groupHandler = async (ctx: BotContext) => {
+    const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER)
+    const { textPayload, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
+
+    if (textPayload === BUTTON_PATTERNS.BACK) {
+      await this.deletePicker(ctx)
+      return await this.goBack(ctx, prev)
+    }
+
+    const groupSelectMatch = isCallbackQueryUpdate
+      ? RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.GROUP_SELECT, textPayload)
+      : null
+
+    if (!groupSelectMatch) {
+      if (isCallbackQueryUpdate) {
+        return BotHelper.safeAnswerCbQuery(ctx)
+      }
+      return ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.SELECT_GROUP_HINT)
+    }
+
+    // Re-checked against the age filter: the button may be from an old list
+    const [groupId] = groupSelectMatch
+    const group = (await this.getGroupsForAge(ctx)).find((g) => g.id === Number(groupId))
+
+    if (!group) {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.REGISTER.SELECT_GROUP_HINT, { show_alert: true })
+    }
+
+    await BotHelper.safeAnswerCbQuery(ctx)
+    this.registerScene.setState(ctx, { groupId: group.id, groupName: group.name })
+    await this.closePicker(ctx, `👯‍♀️ Група: ${TextHelper.bold(TextHelper.escapeHtml(group.name))}`)
+
+    const state = this.registerScene.getState(ctx)
+    return await this.goNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+  }
+
+  /**
+   * Enters the group step (from the date of birth, or back from the payment). Without a group for the client's age
+   * the step is skipped both ways and the admin picks the group on verification.
+   */
+  private async openGroupStep(ctx: BotContext, step: NavigationMapValues<IRegisterSceneState> | undefined, direction: 'next' | 'back') {
+    const groupStep = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER)
+    const groups = await this.getGroupsForAge(ctx)
+    const state = this.registerScene.getState(ctx)
+
+    if (!groups.length) {
+      this.registerScene.setState(ctx, { groupId: null, groupName: undefined })
+      if (direction === 'back') {
+        return await this.goBack(ctx, groupStep.prev)
+      }
+      await ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.NO_GROUP_FOR_AGE)
+      return await this.goNext(ctx, groupStep.next, { data: state, role: this.REQUESTED_ROLE })
+    }
+
+    const wizard =
+      direction === 'next'
+        ? await this.goNext(ctx, step)
+        : await this.goBack(ctx, step)
+
+    const message = await ctx.replyWithHTML(
+      MESSAGES_SCENE.REGISTER.SELECT_GROUP_LIST,
+      PassRelatedKeyboards.passGroupSelectInlineKeyboard(groups, { suggestedGroupId: state.groupId }),
+    )
+    this.registerScene.setState(ctx, { pickerMessageId: message.message_id })
+    return wizard
+  }
+
+  /** Navigation that also opens the step's inline picker: the date of birth gets a calendar, wherever it is entered from. */
+  private async goNext(...args: Parameters<RegisterSceneNavigation<IRegisterSceneState>['handleNext']>) {
+    const wizard = await this.sceneNavigation.handleNext(...args)
+    await this.openStepPicker(args[0], args[1])
+    return wizard
+  }
+
+  private async goBack(...args: Parameters<RegisterSceneNavigation<IRegisterSceneState>['handleBack']>) {
+    const wizard = await this.sceneNavigation.handleBack(...args)
+    await this.openStepPicker(args[0], args[1])
+    return wizard
+  }
+
+  private async openStepPicker(ctx: BotContext, step?: NavigationMapValues<IRegisterSceneState>) {
+    if (step?.cursor !== REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER) {
+      return
+    }
+    const message = await ctx.replyWithHTML(
+      MESSAGES_SCENE.REGISTER.DOB_PICKER,
+      await CalendarPicker.keyboard(this.getToday(), this.getDobPickerOptions()),
+    )
+    this.registerScene.setState(ctx, { pickerMessageId: message.message_id })
+  }
+
+  /** Year → month → day; kids from 2 years old (the youngest groups), adults up to 80. */
+  private getDobPickerOptions(): TCalendarPickerOptions {
+    const year = Number(this.getToday().slice(0, 4))
+    return { yearRange: { fromYear: year - 80, toYear: year - 2 }, withoutToday: true }
+  }
+
+  private getToday() {
+    return this.dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_MAIN)
+  }
+
+  /** Active groups for the typed date of birth (the profile is saved only at the end of the scene). */
+  private async getGroupsForAge(ctx: BotContext) {
+    const { date_of_birth } = this.registerScene.getState(ctx)
+    const dateOfBirth = date_of_birth
+      ? this.dateTimeProvider.parseAndFormatDate({
+          date: date_of_birth,
+          outputDateFormat: DATE_FORMAT.DATE_MAIN,
+          inputDateFormat: DATE_FORMAT.DATE_INPUT,
+        })
+      : null
+    return this.groupService.getAgeAppropriateActiveGroups(dateOfBirth)
+  }
+
+  /** The open picker (calendar, group list) turns into a "🎂 …" / "👯‍♀️ Група: …" line, without buttons. */
+  private async closePicker(ctx: BotContext, label: string) {
+    const { pickerMessageId } = this.registerScene.getState(ctx)
+    if (pickerMessageId) {
+      await BotHelper.safeEditMessageTextById(ctx, ctx.chat?.id, pickerMessageId, label)
+    }
+    this.registerScene.setState(ctx, { pickerMessageId: null })
+  }
+
+  /** "Назад" / "Вийти": the open picker would stay with dead buttons, so it goes away. */
+  private async deletePicker(ctx: BotContext) {
+    const { pickerMessageId } = this.registerScene.getState(ctx)
+    if (pickerMessageId && ctx.chat) {
+      await ctx.telegram.deleteMessage(ctx.chat.id, pickerMessageId).catch(() => {})
+    }
+    this.registerScene.setState(ctx, { pickerMessageId: null })
   }
 
   private fileUploadHandler = async (ctx: BotContext) => {
@@ -155,13 +309,16 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     switch (textPayload) {
       case BUTTON_PATTERNS.BACK:
-        return await this.sceneNavigation.handleBack(ctx, prev, {
+        if (prev?.cursor === REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER) {
+          return this.openGroupStep(ctx, prev, 'back')
+        }
+        return await this.goBack(ctx, prev, {
           data: state,
           role: this.REQUESTED_ROLE,
         })
       case BUTTON_PATTERNS.PAY_CASH:
         this.registerScene.setState(ctx, { isCashPayment: true })
-        return await this.sceneNavigation.handleNext(ctx, next, {
+        return await this.goNext(ctx, next, {
           data: { ...state, isCashPayment: true },
           role: this.REQUESTED_ROLE,
         })
@@ -180,7 +337,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
         await ctx.replyWithDocument(fileId, { caption: '📄 Файл успішно отримано' })
       }
       await ctx.deleteMessage().catch(() => null)
-      return await this.sceneNavigation.handleNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+      return await this.goNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
     }
 
     return ctx.replyWithHTML(
@@ -197,7 +354,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     switch (textPayload) {
       case BUTTON_PATTERNS.BACK:
-        return await this.sceneNavigation.handleBack(ctx, prev, { data: state, role: this.REQUESTED_ROLE })
+        return await this.goBack(ctx, prev, { data: state, role: this.REQUESTED_ROLE })
       default:
         break
     }
@@ -254,6 +411,10 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       })
     }
 
+    if (this.REQUESTED_ROLE === UserProfileRoleEnum.CLIENT) {
+      await this.userProfileService.saveRegisterRequest({ userProfileId: id, groupId: state.groupId ?? null, fileId, fileType })
+    }
+
     const keyboard = isGuest ? GuestKeyboards.mainMenu() : CommonKeyboards.registerAs()
 
     await Promise.all([
@@ -270,7 +431,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       BotHelper.safeAnswerCbQuery(ctx)
       await BotHelper.safeDeleteMessage(ctx)
       const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
-      return await this.sceneNavigation.handleNext(ctx, next)
+      return await this.goNext(ctx, next)
     })
 
     this.action('name_confirm_swap', async (ctx) => {
@@ -287,7 +448,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       await ctx.replyWithHTML(`✅ Порядок змінено на: <b>${state.firstNameAlt} ${state.lastNameAlt}</b>`)
 
       const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
-      return await this.sceneNavigation.handleNext(ctx, next)
+      return await this.goNext(ctx, next)
     })
 
     this.action('name_confirm_retry', async (ctx) => {
