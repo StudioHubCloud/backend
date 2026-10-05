@@ -61,6 +61,12 @@ export enum PassTemplateStatusEnum {
   INACTIVE = 'inactive',
 }
 
+/** Group pass scope: FIXED works only in the pass's group, FLEX in any group. */
+export enum PassGroupModeEnum {
+  FIXED = 'fixed',
+  FLEX = 'flex',
+}
+
 export enum StudioPriceTypeEnum {
   TRIAL = 'trial',
   ONE_TIME_GROUP = 'one_time_group',

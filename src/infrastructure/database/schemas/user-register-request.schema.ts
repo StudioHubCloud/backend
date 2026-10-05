@@ -1,13 +1,17 @@
-import { uuid, pgTable as table, varchar, date } from 'drizzle-orm/pg-core'
+import { uuid, pgTable as table, varchar, date, integer } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { studio } from './studio.schema'
 import { userProfile } from './user-profile.schema'
 import { FileTypePgEnum } from '../database.enums'
+import { group } from './group.schema'
 
 export const userRegisterRequest = table('user_register_request', {
   id: uuid('id').primaryKey().defaultRandom(),
-  fileId: varchar('file_id').notNull(),
-  fileType: FileTypePgEnum().notNull(),
+  // Null for cash payment
+  fileId: varchar('file_id'),
+  fileType: FileTypePgEnum(),
+  // Group the client picked at registration; the admin opens the pass for it on verification
+  groupId: integer('group_id').references(() => group.id, { onDelete: 'set null' }),
   userProfileId: uuid('user_profile_id')
     .references(() => userProfile.id, { onDelete: 'cascade' })
     .notNull(),

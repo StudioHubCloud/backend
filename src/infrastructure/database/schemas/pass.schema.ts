@@ -1,9 +1,10 @@
-import { smallint, pgTable as table, uuid, index, date, boolean, uniqueIndex, integer, timestamp } from 'drizzle-orm/pg-core'
-import { relations, sql } from 'drizzle-orm'
+import { smallint, pgTable as table, uuid, index, date, boolean, integer, timestamp } from 'drizzle-orm/pg-core'
+import { relations } from 'drizzle-orm'
 import { group } from './group.schema'
 import { client } from './client.schema'
 import { trainingSignup } from './training-signup.schema'
-import { PassStatusPgEnum } from '../database.enums'
+import { PassGroupModePgEnum, PassStatusPgEnum } from '../database.enums'
+import { PassGroupModeEnum } from '@app/libs/constants/enums'
 import { studio } from './studio.schema'
 import { passTemplate } from './pass-template.schema'
 import { payment } from './payment.schema'
@@ -31,6 +32,8 @@ export const pass = table(
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
     groupId: integer('group_id').references(() => group.id, { onDelete: 'set null' }),
+    // Snapshot of pass_template.group_mode at sale: FIXED = only groupId, FLEX = any group
+    groupMode: PassGroupModePgEnum('group_mode').notNull().default(PassGroupModeEnum.FIXED),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
@@ -39,9 +42,6 @@ export const pass = table(
     index().on(table.studioId),
     index().on(table.groupId, table.status),
     index().on(table.clientId, table.status),
-    uniqueIndex('unique_active_pass_per_client')
-      .on(table.clientId)
-      .where(sql`${table.status} = 'active'`),
   ],
 )
 

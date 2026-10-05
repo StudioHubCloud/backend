@@ -456,6 +456,20 @@
       "when": 1791144769384,
       "tag": "0091_release_confirm_october",
       "breakpoints": true
+    },
+    {
+      "idx": 92,
+      "version": "7",
+      "when": 1791204300222,
+      "tag": "0092_pass-group-binding",
+      "breakpoints": true
+    },
+    {
+      "idx": 93,
+      "version": "7",
+      "when": 1791205851572,
+      "tag": "0093_pass-group-binding-data",
+      "breakpoints": true
     }
   ]
 }

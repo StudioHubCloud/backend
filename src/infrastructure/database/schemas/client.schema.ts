@@ -1,4 +1,4 @@
-import { timestamp, pgTable as table, uuid } from 'drizzle-orm/pg-core'
+import { timestamp, pgTable as table, uuid, AnyPgColumn } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { userProfile } from './user-profile.schema'
 import { pass } from './pass.schema'
@@ -11,6 +11,8 @@ export const client = table('client', {
   userProfileId: uuid('user_profile_id')
     .references(() => userProfile.id, { onDelete: 'cascade' })
     .notNull(),
+  // Pass the client works with (switcher in "Мій абонемент"); null or not active → oldest valid active pass
+  currentPassId: uuid('current_pass_id').references((): AnyPgColumn => pass.id, { onDelete: 'set null' }),
   createdAt: timestamp('created_at').notNull().defaultNow(),
 })
 

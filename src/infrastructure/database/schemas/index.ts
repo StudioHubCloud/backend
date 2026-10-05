@@ -50,6 +50,7 @@ export {
   FileTypePgEnum,
   PassActivationRequestTypePgEnum,
   PassTemplateStatusPgEnum,
+  PassGroupModePgEnum,
   AuditLogOperationPgEnum,
   AuditLogTriggerPgEnum,
   AuditLogActionsPgEnum,

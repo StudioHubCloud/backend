@@ -1,12 +1,12 @@
 import { uuid, pgTable as table, uniqueIndex, varchar, integer, smallint, timestamp } from 'drizzle-orm/pg-core'
 import { PASS_CONFIG } from '@app/bot/libs/constants'
 import { relations } from 'drizzle-orm'
-import { PassTemplateTypePgEnum, PassTemplateStatusPgEnum } from '../database.enums'
+import { PassTemplateTypePgEnum, PassTemplateStatusPgEnum, PassGroupModePgEnum } from '../database.enums'
 import { studio } from './studio.schema'
 import { pass } from './pass.schema'
 import { passTemplateAgeRestriction } from './pass-template-age-restriction.schema'
 import { passTemplateAgeRestrictionException } from './pass-template-age-restriction-exeption.schema'
-import { PassTemplateStatusEnum } from '@app/libs/constants/enums'
+import { PassGroupModeEnum, PassTemplateStatusEnum } from '@app/libs/constants/enums'
 
 export const passTemplate = table(
   'pass_template',
@@ -18,6 +18,8 @@ export const passTemplate = table(
     durationDays: smallint('duration_days').notNull().default(PASS_CONFIG.DEFAULT_DURATION_IN_DAYS),
     type: PassTemplateTypePgEnum().notNull(),
     status: PassTemplateStatusPgEnum().notNull().default(PassTemplateStatusEnum.INACTIVE),
+    // Group templates only: what a sold pass gets (copied to pass.group_mode)
+    groupMode: PassGroupModePgEnum('group_mode').notNull().default(PassGroupModeEnum.FIXED),
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
