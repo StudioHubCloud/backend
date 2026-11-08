@@ -34,6 +34,9 @@ export const pass = table(
     groupId: integer('group_id').references(() => group.id, { onDelete: 'set null' }),
     // Snapshot of pass_template.group_mode at sale: FIXED = only groupId, FLEX = any group
     groupMode: PassGroupModePgEnum('group_mode').notNull().default(PassGroupModeEnum.FIXED),
+    // The one freeze of this validity period: null / 0 = not frozen. Frozen days: from frozen_from, frozen_days long
+    frozenFrom: date('frozen_from', { mode: 'string' }),
+    frozenDays: smallint('frozen_days').notNull().default(0),
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [

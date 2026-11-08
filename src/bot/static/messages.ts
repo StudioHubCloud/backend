@@ -109,6 +109,33 @@ export const MESSAGES_SCENE = {
     SELECT_ALL: `👯‍♀️ Оберіть групу для абонемента\n<i>За віком клієнта груп немає, тому показано всі</i>`,
     HINT: `Оберіть групу в списку вище 👆`,
   },
+  PASS_FREEZE: {
+    UNAVAILABLE: `❗️ Цей абонемент не можна заморозити.`,
+    NOT_ALLOWED: `❗️ Заморожувати абонементи може лише адміністратор.`,
+    DATE: `🧊 З якої дати заморозити абонемент?\nОберіть день у календарі або введіть дату у форматі ДД ММ РРРР.`,
+    DATE_PICKER: `📅 Перший день заморозки:`,
+    DATE_OUT_OF_RANGE: `❗️ Перший день заморозки має бути в межах дії абонемента, не раніше сьогодні.`,
+    DAYS: (maxDays: number) => `🔢 На скільки днів заморозити?\nМаксимум для цього абонемента: ${TextHelper.bold(String(maxDays))}`,
+    DAYS_ERROR: (maxDays: number) => `❗️ Введіть число від 1 до ${maxDays}.`,
+    CONFIRM: (data: { fullName: string; passName: string; range: string; days: string; endDate: string; signupLines: string }) =>
+      `🧊 ${TextHelper.bold('Заморозка абонемента')}\n\n` +
+      `👤 Клієнт: ${TextHelper.bold(TextHelper.escapeHtml(data.fullName))}\n` +
+      `🎫 Абонемент: ${TextHelper.bold(TextHelper.escapeHtml(data.passName))}\n` +
+      `📅 Заморожені дні: ${TextHelper.bold(data.range)} (${data.days})\n` +
+      `✨ Новий термін дії: до ${TextHelper.bold(data.endDate)}\n\n` +
+      (data.signupLines
+        ? `⚠️ ${TextHelper.bold('Записи на ці дні буде скасовано:')}\n${data.signupLines}\n\n`
+        : `✅ Записів на ці дні немає.\n\n`) +
+      `Ви дійсно хочете заморозити абонемент? Заморозка можлива лише один раз за період дії.`,
+    DONE: (data: { range: string; endDate: string; signupLines: string }) =>
+      `✅ Абонемент заморожено: ${TextHelper.bold(data.range)}\n✨ Діє до ${TextHelper.bold(data.endDate)}` +
+      (data.signupLines ? `\n\n❌ Скасовано записи:\n${data.signupLines}` : ''),
+    CLIENT_NOTICE: (data: { passName: string; range: string; endDate: string; signupLines: string }) =>
+      `🧊 Абонемент «${TextHelper.escapeHtml(data.passName)}» заморожено\n\n` +
+      `📅 Заморожені дні: ${TextHelper.bold(data.range)}\n` +
+      `✨ Тепер він діє до ${TextHelper.bold(data.endDate)}` +
+      (data.signupLines ? `\n\n❌ Записи на ці дні скасовано, тренування повернулись на абонемент:\n${data.signupLines}` : ''),
+  },
   PASS_OPEN: {
     WELCOME: `🌟 Відкриття нового абонементу`,
     SELECT_PASS_TYPE: `🧚‍♀️ Обери тип абонементу для клієнта`,
@@ -176,9 +203,12 @@ export const RULES_CONSENT_HEADER = {
   PARENT: `💫 Дякуємо, що приєднались до нас!\nПерш ніж розпочати, будь ласка, ознайомтесь з правилами студії та дайте згоду на їх дотримання.`,
 } as const
 
+const getFreezeRuleLine = (maxDays: number) =>
+  `Заморозити абонемент можна один раз за період його дії, до ${maxDays} ${TextHelper.pluralize(maxDays, ['дня', 'днів', 'днів'])}, попередньо повідомивши адміністратора 🧊`
+
 export const RULES = {
   // TODO: add "🔹 Автоматично записує тебе на всі тренування обраної групи" (owner's text, FIXED passes) once group passes auto-sign up.
-  GROUP: (durationDays: number = PASS_CONFIG.DEFAULT_DURATION_IN_DAYS) => `📌 ${TextHelper.bold('Організаційні моменти:')}
+  GROUP: (durationDays: number = PASS_CONFIG.DEFAULT_DURATION_IN_DAYS, maxFreezeDays?: number | null) => `📌 ${TextHelper.bold('Організаційні моменти:')}
 🔸 Усю інформацію про абонемент можна переглянути у боті
 🔸 Ми не відповідаємо за особисті речі — забирай телефон та коштовності із собою в зал 💼❤️
 
@@ -186,7 +216,7 @@ ${TextHelper.bold('Про абонемент:')}
 🔹 Абонемент активується автоматично після першого тренування або через ${PASS_CONFIG.ACTIVATION_GRACE_PERIOD} днів після оплати
 🔹 Діє ${durationDays} днів з моменту активації
 🔹 Абонемент — персональний, як улюблена пляшка для води. Не передавай його нікому, будь ласка 🙏
-🔹 Заморожувати або продовжувати абонемент не можна, чесно-чесно, ну зовсім ніяк 🧊🚫
+🔹 ${maxFreezeDays ? getFreezeRuleLine(maxFreezeDays) : 'Заморожувати або продовжувати абонемент не можна, чесно-чесно, ну зовсім ніяк 🧊🚫'}
 🔹 Заняття, які ти не використовуєш, поки абонемент ще діє — згорають. Знаємо, сумно, але яка ж чудова мотивація не пропускати тренування)
 
 ${TextHelper.bold('На занятті:')}
@@ -228,10 +258,9 @@ ${TextHelper.bold('Оплата і повернення:')}
 З любов’ю, твоя ${TextHelper.italic('era team')} 🩷`,
 
   /**
-   * Parents of a child (owner's texts, 2026-11-07): 3–5 years with the freeze line (Baby: once a month up to 5 days),
-   * 6–9 years without it.
+   * Parents of a child (owner's texts, 2026-11-07); the freeze line only when the pass template has a freeze rule.
    */
-  PARENT: ({ durationDays = PASS_CONFIG.DEFAULT_DURATION_IN_DAYS, withFreeze }: { durationDays?: number; withFreeze: boolean }) => `📌 ${TextHelper.bold('Організаційні моменти:')}
+  PARENT: ({ durationDays = PASS_CONFIG.DEFAULT_DURATION_IN_DAYS, maxFreezeDays }: { durationDays?: number; maxFreezeDays?: number | null }) => `📌 ${TextHelper.bold('Організаційні моменти:')}
 🔸 Усю інформацію про абонемент можна переглянути у боті
 🔸 Бережіть дитячий паспорт 🩷 У разі його втрати відновлення коштує 150₴
 
@@ -239,9 +268,9 @@ ${TextHelper.bold('Про абонемент:')}
 🔹 Абонемент активується автоматично після першого тренування або через ${PASS_CONFIG.ACTIVATION_GRACE_PERIOD} днів після оплати
 🔹 Діє ${durationDays} днів з моменту активації
 🔹 Абонемент — персональний, як улюблена пляшка для води. Не передавайте його нікому, будь ласка 🙏${
-    withFreeze
+    maxFreezeDays
       ? `
-🔹 Заморожувати або продовжувати абонемент можна раз на місяць до 5-ти днів, попередньо повідомивши адміністратора 🧊`
+🔹 ${getFreezeRuleLine(maxFreezeDays)}`
       : ''
   }
 🔹 Невикористані заняття, поки абонемент ще діє, — згорають. Знаємо, сумно, але яка ж чудова мотивація не пропускати тренування)

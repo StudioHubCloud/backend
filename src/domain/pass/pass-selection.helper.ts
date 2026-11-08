@@ -5,7 +5,7 @@ import { PassGroupModeEnum, PassStatusEnum, PassTemplateTypeEnum } from '@app/li
 /** The pass fields the selection rules need (a pass row with its template). Dates are `yyyy-MM-dd` (studio time zone). */
 export type TSelectablePass = Pick<
   PassSelectModel,
-  'id' | 'status' | 'availableSlots' | 'saleDate' | 'startDate' | 'endDate' | 'groupId' | 'groupMode'
+  'id' | 'status' | 'availableSlots' | 'saleDate' | 'startDate' | 'endDate' | 'groupId' | 'groupMode' | 'frozenFrom' | 'frozenDays'
 > & { passTemplate: Pick<PassTemplateSelectModel, 'type' | 'durationDays'> }
 
 /** A pass with what its label needs: template name, and the group name for a FIXED group pass. */
@@ -14,7 +14,24 @@ export type TLabelPass = TSelectablePass & {
   group?: { name: string } | null
 }
 
-export type TPassTrainingRefusal = 'not_group' | 'not_active' | 'no_slots' | 'expired' | 'other_group'
+export type TPassTrainingRefusal = 'not_group' | 'not_active' | 'frozen' | 'no_slots' | 'expired' | 'other_group'
+
+export type TPassFreezeRefusal = 'not_group' | 'not_active' | 'not_started' | 'already_frozen' | 'no_rule'
+
+/** A pass with what the freeze rules need; a template without `passTemplateFreezeRule` can't be frozen. */
+export type TFreezablePass = Pick<PassSelectModel, 'status' | 'startDate' | 'endDate' | 'frozenFrom'> & {
+  passTemplate: Pick<PassTemplateSelectModel, 'type'> & { passTemplateFreezeRule?: { maxDays: number } | null }
+}
+
+type TFreezeDays = Pick<PassSelectModel, 'frozenFrom' | 'frozenDays'>
+
+const FREEZE_REFUSAL_MESSAGES: Record<TPassFreezeRefusal, string> = {
+  not_group: '❗️ Заморозка доступна лише для групових абонементів.',
+  not_active: '❗️ Заморозити можна лише активний абонемент.',
+  not_started: '❗️ Абонемент ще не активований, тому заморожувати нічого.',
+  already_frozen: '❗️ Цей абонемент уже заморожували в цьому періоді. Заморозка можлива лише один раз.',
+  no_rule: '❗️ Для цього абонемента заморозка не передбачена.',
+}
 
 /**
  * Which pass a group signup uses. A client may hold several active passes (another group, a renewal living next to
@@ -34,6 +51,31 @@ export class PassSelectionHelper {
     return !!pass.startDate && !!pass.endDate
   }
 
+  /** Last day of the pass's freeze (yyyy-MM-dd), null when it was not frozen. */
+  static getLastFrozenDay({ frozenFrom, frozenDays }: TFreezeDays): string | null {
+    return frozenFrom ? format(addDays(parseISO(frozenFrom), frozenDays - 1), 'yyyy-MM-dd') : null
+  }
+
+  /** A frozen pass stays `active`: only its frozen days are closed, a training after them can be signed up for already. */
+  static isFrozenOn(pass: TFreezeDays, day: string): boolean {
+    const lastFrozenDay = this.getLastFrozenDay(pass)
+    return !!pass.frozenFrom && !!lastFrozenDay && day >= pass.frozenFrom && day <= lastFrozenDay
+  }
+
+  /** Why the admin can't freeze this pass, or null when they can. One freeze per validity period (one pass row). */
+  static getFreezeRefusal(pass: TFreezablePass, today: string): TPassFreezeRefusal | null {
+    if (pass.passTemplate.type !== PassTemplateTypeEnum.GROUP) return 'not_group'
+    if (pass.status !== PassStatusEnum.ACTIVE || (pass.endDate && pass.endDate < today)) return 'not_active'
+    if (!pass.startDate || !pass.endDate) return 'not_started'
+    if (pass.frozenFrom) return 'already_frozen'
+    if (!pass.passTemplate.passTemplateFreezeRule) return 'no_rule'
+    return null
+  }
+
+  static getFreezeRefusalMessage(refusal: TPassFreezeRefusal): string {
+    return FREEZE_REFUSAL_MESSAGES[refusal]
+  }
+
   /** FLEX works in any group, FIXED only in its own. */
   static coversGroup(pass: TSelectablePass, groupId: number): boolean {
     return pass.groupMode === PassGroupModeEnum.FLEX || pass.groupId === groupId
@@ -43,6 +85,7 @@ export class PassSelectionHelper {
   static getRefusal(pass: TSelectablePass, groupId: number | null, trainingDay: string, today: string): TPassTrainingRefusal | null {
     if (pass.passTemplate.type !== PassTemplateTypeEnum.GROUP) return 'not_group'
     if (pass.status !== PassStatusEnum.ACTIVE) return 'not_active'
+    if (this.isFrozenOn(pass, trainingDay)) return 'frozen'
     if (pass.availableSlots <= 0) return 'no_slots'
     if (trainingDay > this.getEffectiveEndDate(pass, today)) return 'expired'
     if (groupId !== null && !this.coversGroup(pass, groupId)) return 'other_group'

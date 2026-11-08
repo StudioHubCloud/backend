@@ -1,5 +1,5 @@
 import { PassSelectModel, PassTemplateSelectModel } from '@app/infrastructure/database'
-import { PassGroupModeEnum, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
+import { DATE_FORMAT, PassGroupModeEnum, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
 import { addDays } from 'date-fns'
 import { GetTrainingSignupsByPassIdResponse, PASS_CONFIG } from '../libs'
 import { DateTimeProvider } from '@app/infrastructure/providers'
@@ -9,17 +9,17 @@ import { AdminKeyboards } from '../keyboard/storage'
 import { RULES, RULES_CONSENT_HEADER } from '../static/messages'
 import { PassSelectionHelper, TLabelPass } from '@app/domain/pass'
 
-/** Parents' rules: kids up to this age (Baby Dance 3–5) get the freeze line (once a month up to 5 days). */
-const PARENT_RULES_FREEZE_MAX_AGE = 5
-
-type TRulesPassTemplate = Pick<PassTemplateSelectModel, 'type' | 'durationDays'> | null | undefined
+type TRulesPassTemplate =
+  | (Pick<PassTemplateSelectModel, 'type' | 'durationDays'> & { passTemplateFreezeRule?: { maxDays: number } | null })
+  | null
+  | undefined
 /** `childAge`: a parent acting for a child ("Мої діти"); null / undefined = the person's own rules */
 type TRulesOptions = { childAge?: number | null }
 
 export class PassHelper {
   /**
    * Rules for the pass the person works with ("📜 Правила", "📋 Пам'ятка"): individual (on «ви», as a memo), parents of a
-   * child (3–5 with the freeze line, older without), otherwise group; default duration when there is no pass yet.
+   * child, otherwise group; the freeze line follows the template's freeze rule; default duration when there is no pass yet.
    */
   static getRulesMessage(passTemplate?: TRulesPassTemplate, options: TRulesOptions = {}): string {
     const { body, kind } = this.getRules(passTemplate, options)
@@ -36,11 +36,11 @@ export class PassHelper {
     if (passTemplate?.type === PassTemplateTypeEnum.INDIVIDUAL) {
       return { kind: 'INDIVIDUAL' as const, body: RULES.INDIVIDUAL(passTemplate.durationDays) }
     }
+    const maxFreezeDays = passTemplate?.passTemplateFreezeRule?.maxDays
     if (childAge !== null && childAge !== undefined) {
-      const withFreeze = childAge <= PARENT_RULES_FREEZE_MAX_AGE
-      return { kind: 'PARENT' as const, body: RULES.PARENT({ durationDays: passTemplate?.durationDays, withFreeze }) }
+      return { kind: 'PARENT' as const, body: RULES.PARENT({ durationDays: passTemplate?.durationDays, maxFreezeDays }) }
     }
-    return { kind: 'GROUP' as const, body: RULES.GROUP(passTemplate?.durationDays) }
+    return { kind: 'GROUP' as const, body: RULES.GROUP(passTemplate?.durationDays, maxFreezeDays) }
   }
 
   /** How and when a not-yet-started pass activates, for client notifications. */
@@ -107,6 +107,26 @@ ${duration}`
     return TYPE_MAP[type] || ''
   }
 
+  /** «12 листопада – 16 листопада», one date for a one-day freeze. */
+  static getFreezeRangeLabel(frozenFrom: string, frozenDays: number, dateTimeProvider: DateTimeProvider): string {
+    const first = dateTimeProvider.formatDateStringInTz(frozenFrom, 'd MMMM')
+    const lastDay = PassSelectionHelper.getLastFrozenDay({ frozenFrom, frozenDays })!
+    return frozenDays > 1 ? `${first} – ${dateTimeProvider.formatDateStringInTz(lastDay, 'd MMMM')}` : first
+  }
+
+  /** «• 13 листопада, 18:00 — K-Pop», one line per signup a freeze cancels. */
+  static getFreezeSignupLines(
+    signups: { training: { date: string }; group: { name: string } | null }[],
+    dateTimeProvider: DateTimeProvider,
+  ): string {
+    return signups
+      .map(({ training, group }) => {
+        const when = dateTimeProvider.formatDateStringInTz(training.date, 'd MMMM, HH:mm')
+        return `• ${when} — ${TextHelper.escapeHtml(group?.name ?? 'Невідома група')}`
+      })
+      .join('\n')
+  }
+
   static getPassInfoMessage(
     pass: PassSelectModel & { passTemplate: PassTemplateSelectModel; group?: { name: string } | null },
     dateTimeProvider: DateTimeProvider,
@@ -130,7 +150,11 @@ ${duration}`
 ${groupLine}${icon} ${TextHelper.bold('Статус:')} ${label}
 📌 ${TextHelper.bold('Доступно тренувань:')} ${pass.availableSlots}/${pass.lengthOverride ?? pass.passTemplate.length}\n
 ${!isPassInactive ? `📅 ${TextHelper.bold('Активований:')} ${dateTimeProvider.formatDateStringInTz(pass.startDate!, 'd MMMM')}` : ''}
-${TextHelper.bold(isPassInactive ? '📅 Автоматично активується:' : pass.endDate ? '📅 Дійсний до:' : '')} ${isPassInactive ? checkDateString : (dateTimeProvider.formatDateStringInTz(pass.endDate!, 'd MMMM') ?? '')}`
+${TextHelper.bold(isPassInactive ? '📅 Автоматично активується:' : pass.endDate ? '📅 Дійсний до:' : '')} ${isPassInactive ? checkDateString : (dateTimeProvider.formatDateStringInTz(pass.endDate!, 'd MMMM') ?? '')}${
+      pass.frozenFrom
+        ? `\n🧊 ${TextHelper.bold('Заморозка:')} ${this.getFreezeRangeLabel(pass.frozenFrom, pass.frozenDays, dateTimeProvider)}`
+        : ''
+    }`
 
     return text
   }
@@ -173,7 +197,7 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
     ctx: BotContext,
     dateTimeProvider: DateTimeProvider,
     data: {
-      pass: PassSelectModel & { passTemplate: PassTemplateSelectModel }
+      pass: PassSelectModel & { passTemplate: PassTemplateSelectModel & { passTemplateFreezeRule?: { maxDays: number } | null } }
       fullName: string
       clientUserId: string
       shouldEdit?: boolean
@@ -195,7 +219,9 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
 
       const isPassActivated = PassHelper.isPassActivated(pass)
       const passChoices = (data.activePasses ?? []).map((p) => ({ id: p.id, label: PassSelectionHelper.getLabel(p) }))
-      const keyboard = AdminKeyboards.passManageMenu(clientUserId, pass.id, isPassActivated, isIndividualPass, passChoices)
+      const today = dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_MAIN)
+      const canFreeze = PassSelectionHelper.getFreezeRefusal(pass, today) === null
+      const keyboard = AdminKeyboards.passManageMenu(clientUserId, pass.id, isPassActivated, isIndividualPass, passChoices, canFreeze)
 
       if (!shouldEdit) {
         if (data.editMessageId) {

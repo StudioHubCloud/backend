@@ -2,7 +2,7 @@ import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
-import { PassService } from '@app/domain/pass'
+import { PassSelectionHelper, PassService } from '@app/domain/pass'
 import { BotHelper, PassHelper, PersonalTrainingHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { UserProfileService } from '@app/domain/user-profile'
@@ -92,6 +92,10 @@ export class ClientManageComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.ACTIVATE), (ctx) => {
       return this.withPassIdAction(ctx, (clientUserProfile, pass) => this.handleActivatePassAction(ctx, clientUserProfile, pass))
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.FREEZE), (ctx) => {
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) => this.handleFreezePassAction(ctx, clientUserProfile, pass))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.REGISTER), (ctx) => {
@@ -375,6 +379,21 @@ export class ClientManageComposer {
     AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_CONFIRM, AuditLogTrigger.ADMIN_ACTION, logOperations)
     BotHelper.safeAnswerCbQuery(ctx, '✅ Абонемент успішно активовано.')
     return this.renderPassManageMenu(ctx, clientUserProfile, originalPass.id)
+  }
+
+  private handleFreezePassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient, pass: TClientPass) => {
+    if (!UserHelper.isAdminRole(ctx)) {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_FREEZE.NOT_ALLOWED, { show_alert: true })
+    }
+
+    const refusal = PassSelectionHelper.getFreezeRefusal(pass, this.passService.getTodayDateString())
+    if (refusal) {
+      return BotHelper.safeAnswerCbQuery(ctx, PassSelectionHelper.getFreezeRefusalMessage(refusal), { show_alert: true })
+    }
+
+    BotHelper.safeAnswerCbQuery(ctx)
+    BotHelper.safeDeleteMessage(ctx)
+    return ctx.scene.enter(SCENES.PASS_FREEZE, { passId: pass.id, clientUserId: clientUserProfile.id })
   }
 
   private handleAddNewPassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {

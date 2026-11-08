@@ -18,6 +18,7 @@ export { groupAgeRestriction, group_age_restriction_relations } from './group-ag
 export { groupAgeRestrictionException, group_age_restriction_exception_relations } from './group-age-restriction-exeption.schema'
 export { passTemplate, pass_template_relations } from './pass-template.schema'
 export { passTemplateAgeRestriction, pass_template_age_restriction_relations } from './pass-template-age-restriction.schema'
+export { passTemplateFreezeRule, pass_template_freeze_rule_relations } from './pass-template-freeze-rule.schema'
 export {
   passTemplateAgeRestrictionException,
   pass_template_age_restriction_exception_relations,

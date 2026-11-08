@@ -477,6 +477,13 @@
       "when": 1794073020026,
       "tag": "0094_parent-guardian",
       "breakpoints": true
+    },
+    {
+      "idx": 95,
+      "version": "7",
+      "when": 1794141373803,
+      "tag": "0095_pass-freeze",
+      "breakpoints": true
     }
   ]
 }

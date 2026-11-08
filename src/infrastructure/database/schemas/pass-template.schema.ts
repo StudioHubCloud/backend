@@ -6,6 +6,7 @@ import { studio } from './studio.schema'
 import { pass } from './pass.schema'
 import { passTemplateAgeRestriction } from './pass-template-age-restriction.schema'
 import { passTemplateAgeRestrictionException } from './pass-template-age-restriction-exeption.schema'
+import { passTemplateFreezeRule } from './pass-template-freeze-rule.schema'
 import { PassGroupModeEnum, PassTemplateStatusEnum } from '@app/libs/constants/enums'
 
 export const passTemplate = table(
@@ -32,5 +33,6 @@ export const pass_template_relations = relations(passTemplate, ({ many, one }) =
   passes: many(pass),
   passTemplateAgeRestriction: one(passTemplateAgeRestriction),
   passTemplateAgeRestrictionExceptions: many(passTemplateAgeRestrictionException),
+  passTemplateFreezeRule: one(passTemplateFreezeRule),
   studio: one(studio, { fields: [passTemplate.studioId], references: [studio.id] }),
 }))

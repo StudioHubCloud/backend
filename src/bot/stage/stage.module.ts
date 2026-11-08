@@ -39,6 +39,7 @@ import { APP } from '@app/libs'
     Stage.PassPaymentScene,
     Stage.SpecialScheduleScene,
     Stage.PassOpenScene,
+    Stage.PassFreezeScene,
     Stage.AskAiScene,
     Stage.PersonalTrainingRegisterScene,
     Stage.OneOffTrainingRegisterScene,

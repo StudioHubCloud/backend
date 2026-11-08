@@ -5,6 +5,7 @@ import { addDays, format, isAfter, isBefore, parseISO, subHours } from 'date-fns
 import {
   DatabaseService,
   group,
+  PassSelectModel,
   training,
   TrainingSelectModel,
   trainingSignup,
@@ -249,6 +250,13 @@ export class TrainingSignupService {
       return `Твій абонемент діє лише ${where} 😔\nЩоб відвідувати тренування в іншій групі, звернись до адміністратора 🫶🏻`
     }
 
+    const frozenPass = coveringPasses.find((pass) => PassSelectionHelper.getRefusal(pass, groupId, trainingDay, today) === 'frozen')
+
+    if (frozenPass) {
+      const lastFrozenDay = format(parseISO(PassSelectionHelper.getLastFrozenDay(frozenPass)!), 'dd.MM.yyyy')
+      return `На цю дату абонемент заморожений 🧊\nЗаписатись можна на тренування після ${lastFrozenDay} 🫶🏻`
+    }
+
     const isExpired = coveringPasses.every(
       (pass) => PassSelectionHelper.getRefusal(pass, groupId, trainingDay, today) === 'expired',
     )
@@ -469,6 +477,10 @@ export class TrainingSignupService {
       }
 
       if (!pass) {
+        if (!validPasses.length && passes.some((p) => PassSelectionHelper.isFrozenOn(p, trainingDay))) {
+          return { status: API.RESPONSE.ERROR_STRING, message: `🧊 Абонемент клієнта заморожений на цю дату.` }
+        }
+
         if (!validPasses.length) {
           return {
             status: API.RESPONSE.ERROR_STRING,
@@ -760,6 +772,95 @@ export class TrainingSignupService {
         },
       ],
     ]
+  }
+
+  /** Active signups of the pass on the days of a freeze that haven't happened yet (a training in a payout is locked). */
+  async getSignupsOnFreezeDays(passId: string, frozenFrom: string, frozenDays: number, tx?: Transaction) {
+    const dbProvider = tx || this.databaseService.drizzle
+    const signups = await dbProvider.query.trainingSignup.findMany({
+      where: (ts, { and, eq }) => and(eq(ts.passId, passId), eq(ts.status, TrainingSignupStatusEnum.ACTIVE)),
+      with: { training: true, group: true },
+    })
+    const now = new Date()
+
+    return signups
+      .filter(({ training }) => {
+        if (!training || new Date(training.date) <= now || training.staffMemberPayoutId) {
+          return false
+        }
+        const trainingDay = this.dateTimeProvider.formatDateStringInTz(training.date, DATE_FORMAT.DATE_MAIN)
+        return PassSelectionHelper.isFrozenOn({ frozenFrom, frozenDays }, trainingDay)
+      })
+      .sort((a, b) => new Date(a.training.date).getTime() - new Date(b.training.date).getTime())
+  }
+
+  /**
+   * Admin freezes a pass: the frozen days, the end date moved by them and the cancelled signups in one transaction.
+   * Signups are removed like a sign-out (status CANCELED belongs to a cancelled training and comes back with it); the
+   * slots return through the DB trigger. Everything is re-checked here, the scene's values are not trusted.
+   */
+  async freezePass(passId: string, frozenFrom: string, frozenDays: number) {
+    type TFreezeResult = {
+      pass: PassSelectModel
+      cancelledSignups: Awaited<ReturnType<TrainingSignupService['getSignupsOnFreezeDays']>>
+      logOperations: AuditLogServiceOperation[]
+    }
+    const refused = (message: string): TCustomApiResponse<TFreezeResult> => ({ status: API.RESPONSE.ERROR_STRING, message })
+
+    try {
+      const passToFreeze = await this.passService.findStudioPassById(passId)
+      if (!passToFreeze) {
+        return refused('❗️ Абонемент не знайдено.')
+      }
+
+      const today = this.passService.getTodayDateString()
+      const refusal = PassSelectionHelper.getFreezeRefusal(passToFreeze, today)
+      if (refusal) {
+        return refused(PassSelectionHelper.getFreezeRefusalMessage(refusal))
+      }
+
+      const maxDays = passToFreeze.passTemplate.passTemplateFreezeRule!.maxDays
+      const currentEndDate = passToFreeze.endDate!
+      if (frozenFrom < today || frozenFrom > currentEndDate || frozenDays < 1 || frozenDays > maxDays) {
+        return refused('❗️ Дата або кількість днів заморозки вже не підходять. Спробуйте ще раз.')
+      }
+
+      const endDate = format(addDays(parseISO(currentEndDate), frozenDays), DATE_FORMAT.DATE_MAIN)
+
+      const result = await this.databaseService.drizzle.transaction(async (tx) => {
+        const [frozenPass, passLogOperations] = await this.passService.applyFreeze(passId, { frozenFrom, frozenDays, endDate }, tx)
+        if (!frozenPass) {
+          return null
+        }
+
+        const cancelledSignups = await this.getSignupsOnFreezeDays(passId, frozenFrom, frozenDays, tx)
+        for (const signup of cancelledSignups) {
+          await this.signOutFromTraining({ id: signup.id }, tx)
+        }
+
+        const signupLogOperations: AuditLogServiceOperation[] = cancelledSignups.map((signup) => ({
+          entity: AuditLogEntity.TRAINING_SIGNUP,
+          entityId: signup.id,
+          operation: AuditLogOperation.DELETE,
+          payload: { passId, trainingId: signup.trainingId, reason: 'pass_freeze' },
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: TrainingSignupService.name, methodName: this.freezePass.name },
+        }))
+
+        return { pass: frozenPass, cancelledSignups, logOperations: [...passLogOperations, ...signupLogOperations] }
+      })
+
+      if (!result) {
+        return refused(PassSelectionHelper.getFreezeRefusalMessage('already_frozen'))
+      }
+
+      await this.redisCacheService.reset()
+
+      return { status: API.RESPONSE.SUCCESS_STRING, message: '🧊 Абонемент заморожено', data: result }
+    } catch (error) {
+      this.logger.error(`Error freezing pass %s: %j`, passId, error.stack)
+      return refused('❌ Не вдалося заморозити абонемент. Спробуйте ще раз.')
+    }
   }
 
   private async signOutFromTraining(values: { id: string }, tx?: Transaction) {

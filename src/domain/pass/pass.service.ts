@@ -1,5 +1,5 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { and, eq, inArray } from 'drizzle-orm'
+import { and, eq, inArray, isNull } from 'drizzle-orm'
 import { add, addDays, subDays } from 'date-fns'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { PinoLogger } from 'nestjs-pino'
@@ -32,6 +32,9 @@ import { PassSelectionHelper } from './pass-selection.helper'
 
 /** A new pass always gets its scope from the template (`passTemplate.groupMode`), never the column default. */
 type TNewPassData = Omit<PassInsertModel, 'studioId'> & Required<Pick<PassInsertModel, 'groupMode'>>
+
+/** The template of a pass with its freeze rule: the card, the rules text and the freeze itself read it. */
+const PASS_TEMPLATE_WITH_FREEZE_RULE = { with: { passTemplateFreezeRule: true } } as const
 
 @Injectable()
 export class PassService {
@@ -192,7 +195,7 @@ export class PassService {
     const passFound = await this.databaseService.drizzle.query.pass.findFirst({
       where: (pass, { and }) => and(...whereConditions),
       with: {
-        passTemplate: true,
+        passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE,
         group: { columns: { name: true } },
       },
     })
@@ -239,7 +242,7 @@ export class PassService {
       with: {
         pass: {
           where: (pass, { and, eq }) => and(eq(pass.studioId, this.studioId), eq(pass.status, PassStatusEnum.ACTIVE)),
-          with: { passTemplate: true, group: { columns: { id: true, name: true } } },
+          with: { passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE, group: { columns: { id: true, name: true } } },
         },
       },
     })
@@ -303,7 +306,7 @@ export class PassService {
       where: (pass, { and, eq }) => and(eq(pass.clientId, clientId), eq(pass.status, PassStatusEnum.EXPIRED)),
       orderBy: (pass, { desc }) => desc(pass.endDate),
       with: {
-        passTemplate: true,
+        passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE,
         group: { columns: { name: true } },
       },
     })
@@ -339,6 +342,41 @@ export class PassService {
     ]
   }
 
+  /**
+   * The one freeze of the validity period: checked in the UPDATE, so a second tap gets null. The end date moved, so the
+   * expiry reminder is due again.
+   */
+  async applyFreeze(
+    id: string,
+    data: { frozenFrom: string; frozenDays: number; endDate: string },
+    tx: Transaction,
+  ): Promise<[PassSelectModel | null, AuditLogServiceOperation[]]> {
+    const payload = { ...data, reminderSent: false }
+    const [frozenPass] = await tx
+      .update(pass)
+      .set(payload)
+      .where(and(eq(pass.id, id), eq(pass.studioId, this.studioId), eq(pass.status, PassStatusEnum.ACTIVE), isNull(pass.frozenFrom)))
+      .returning()
+
+    if (!frozenPass) {
+      return [null, []]
+    }
+
+    return [
+      frozenPass,
+      [
+        {
+          entity: AuditLogEntity.PASS,
+          entityId: id,
+          operation: AuditLogOperation.UPDATE,
+          payload,
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: PassService.name, methodName: this.applyFreeze.name },
+        },
+      ],
+    ]
+  }
+
   async getExpiringPassesInDays(days: number) {
     const now = new Date()
     const dateToCheck = add(now, { days: days }).toISOString()
@@ -346,7 +384,7 @@ export class PassService {
     const todayDateString = this.dateTimeProvider.formatDateStringInTz(now.toISOString(), DATE_FORMAT.DATE_MAIN)
     const checkDateString = this.dateTimeProvider.formatDateStringInTz(dateToCheck, DATE_FORMAT.DATE_MAIN)
 
-    return this.databaseService.drizzle.query.pass.findMany({
+    const expiringPasses = await this.databaseService.drizzle.query.pass.findMany({
       where: (pass, { and, gte, lte, eq, exists }) =>
         and(
           eq(pass.studioId, this.studioId),
@@ -370,6 +408,9 @@ export class PassService {
         },
       },
     })
+
+    // Not while the pass is frozen: the reminder goes out once the frozen days are over
+    return expiringPasses.filter((pass) => !PassSelectionHelper.isFrozenOn(pass, todayDateString))
   }
 
   async getPassById(id: string) {
@@ -383,7 +424,7 @@ export class PassService {
     const foundPass = await this.databaseService.drizzle.query.pass.findFirst({
       where: (pass, { eq }) => eq(pass.id, id),
       with: {
-        passTemplate: true,
+        passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE,
         client: {
           with: {
             userProfile: true,

@@ -4,6 +4,7 @@ export const BUTTON_PATTERNS = {
   VERIFY: '✅ Верифікувати',
   AGREE: '✅ Погоджуюсь',
   ACTIVATE: '✅ Активувати',
+  FREEZE_PASS: '🧊 Заморозити абонемент',
   SELECT: '✅ Обрати',
   REJECT: '🙅‍♀️ Відхилити',
   BLOCK: '🚫 Заблокувати',

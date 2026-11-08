@@ -506,7 +506,19 @@ export class AdminKeyboards {
     isPassActivated: boolean,
     isIndividualPass: boolean = false,
     passChoices: { id: string; label: string }[] = [],
+    canFreeze: boolean = false,
   ): TReplyInlineKeyboard {
+    const freezeRows: InlineKeyboardButton[][] = canFreeze
+      ? [
+          [
+            {
+              text: BUTTON_PATTERNS.FREEZE_PASS,
+              callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.FREEZE, passId),
+            },
+          ],
+        ]
+      : []
+
     const choiceRows: InlineKeyboardButton[][] =
       passChoices.length > 1
         ? passChoices.map(({ id, label }) => {
@@ -555,6 +567,7 @@ export class AdminKeyboards {
       ...choiceRows,
       [...activateButton],
       ...individualTrainingButtons,
+      ...freezeRows,
       [
         {
           text: BUTTON_PATTERNS.PASS_ADD_NEW,
