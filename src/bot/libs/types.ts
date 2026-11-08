@@ -126,6 +126,8 @@ export interface ISelectInlineMenuConfig<T> {
 }
 
 export interface IRegisterSceneState {
+  /** Role picked on the start screen, passed to `scene.enter` */
+  role?: UserProfileRoleEnum
   firstName: string
   lastName?: string
   telegramUsername?: string

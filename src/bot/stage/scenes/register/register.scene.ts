@@ -2,7 +2,7 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { DATE_FORMAT, FileTypeEnum, UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
-import { CALLBACK_PREFIX, IRegisterSceneState, NavigationMapValues, SCENES, TNextFunction } from '@app/bot/libs'
+import { CALLBACK_PREFIX, IRegisterSceneState, NavigationMapValues, SCENES } from '@app/bot/libs'
 import { SceneHelper, BotHelper, UserHelper, TextHelper, KeyboardHelper, NameHelper, RegexHelper } from '@app/bot/helpers'
 import { CalendarPicker, TCalendarPickerOptions } from '@app/bot/menus'
 import { MESSAGES_COMMON, MESSAGES_SCENE } from '@app/bot/static/messages'
@@ -21,7 +21,6 @@ import { MessageHelper } from '@app/bot/helpers/message.helper'
 export class RegisterScene extends Scenes.WizardScene<BotContext> {
   private readonly registerScene = new SceneHelper<IRegisterSceneState>()
   private readonly sceneNavigation = new RegisterSceneNavigation<IRegisterSceneState>(REGISTER_SCENE_NAVIGATION_MAP)
-  private REQUESTED_ROLE: UserProfileRoleEnum = UserProfileRoleEnum.GUEST
 
   constructor(
     private readonly userProfileService: UserProfileService,
@@ -40,11 +39,6 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       (ctx) => this.completeHandler(ctx),
     )
 
-    this.enter(async (ctx: BotContext, next: TNextFunction) => {
-      this.REQUESTED_ROLE = ctx.scene.state['role']
-      return await next()
-    })
-
     this.hears(BUTTON_PATTERNS.EXIT, async (ctx) => {
       await this.deletePicker(ctx)
       await ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.EXIT, CommonKeyboards.registerAs())
@@ -55,12 +49,12 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   }
 
   private enterSceneHandler = async (ctx: BotContext) => {
-    const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.ENTER_HANDLER)
+    const { next } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.ENTER_HANDLER)
     return await this.goNext(ctx, next)
   }
 
   private nameHandler = async (ctx: BotContext) => {
-    const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
+    const { next } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
 
     const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
@@ -107,7 +101,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   }
 
   private phoneHandler = async (ctx: BotContext) => {
-    const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER)
+    const { next, prev } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.PHONE_HANDLER)
 
     const { textPayload } = BotHelper.getUpdatePayload(ctx)
 
@@ -126,11 +120,11 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     this.registerScene.setState(ctx, { phone })
     const state = this.registerScene.getState(ctx)
-    return await this.goNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+    return await this.goNext(ctx, next, { data: state, role: this.getRole(ctx) })
   }
 
   private dateOfBirthHandler = async (ctx: BotContext) => {
-    const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER)
+    const { next, prev } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.DOB_HANDLER)
 
     const { textPayload, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
 
@@ -165,12 +159,12 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       return this.openGroupStep(ctx, next, 'next')
     }
 
-    return await this.goNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+    return await this.goNext(ctx, next, { data: state, role: this.getRole(ctx) })
   }
 
   /** Client only: the group their pass will be bound to; the admin opens the pass for it on verification. */
   private groupHandler = async (ctx: BotContext) => {
-    const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER)
+    const { next, prev } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER)
     const { textPayload, isCallbackQueryUpdate } = BotHelper.getUpdatePayload(ctx)
 
     if (textPayload === BUTTON_PATTERNS.BACK) {
@@ -202,7 +196,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     await this.closePicker(ctx, `👯‍♀️ Група: ${TextHelper.bold(TextHelper.escapeHtml(group.name))}`)
 
     const state = this.registerScene.getState(ctx)
-    return await this.goNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+    return await this.goNext(ctx, next, { data: state, role: this.getRole(ctx) })
   }
 
   /**
@@ -210,7 +204,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
    * the step is skipped both ways and the admin picks the group on verification.
    */
   private async openGroupStep(ctx: BotContext, step: NavigationMapValues<IRegisterSceneState> | undefined, direction: 'next' | 'back') {
-    const groupStep = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER)
+    const groupStep = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.GROUP_HANDLER)
     const groups = await this.getGroupsForAge(ctx)
     const state = this.registerScene.getState(ctx)
 
@@ -220,7 +214,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
         return await this.goBack(ctx, groupStep.prev)
       }
       await ctx.replyWithHTML(MESSAGES_SCENE.REGISTER.NO_GROUP_FOR_AGE)
-      return await this.goNext(ctx, groupStep.next, { data: state, role: this.REQUESTED_ROLE })
+      return await this.goNext(ctx, groupStep.next, { data: state, role: this.getRole(ctx) })
     }
 
     const wizard =
@@ -234,6 +228,11 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     )
     this.registerScene.setState(ctx, { pickerMessageId: message.message_id })
     return wizard
+  }
+
+  /** Role picked on the start screen (`scene.enter(SCENES.REGISTER, { role })`); kept in scene state, per user. */
+  private getRole(ctx: BotContext): UserProfileRoleEnum {
+    return this.registerScene.getState(ctx).role ?? UserProfileRoleEnum.GUEST
   }
 
   /** Navigation that also opens the step's inline picker: the date of birth gets a calendar, wherever it is entered from. */
@@ -302,7 +301,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   }
 
   private fileUploadHandler = async (ctx: BotContext) => {
-    const { next, prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER)
+    const { next, prev } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.FILE_UPLOAD_HANDLER)
 
     const { textPayload, isFileUpdate, fileId, fileType } = BotHelper.getUpdatePayload(ctx)
     const state = this.registerScene.getState(ctx)
@@ -314,13 +313,13 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
         }
         return await this.goBack(ctx, prev, {
           data: state,
-          role: this.REQUESTED_ROLE,
+          role: this.getRole(ctx),
         })
       case BUTTON_PATTERNS.PAY_CASH:
         this.registerScene.setState(ctx, { isCashPayment: true })
         return await this.goNext(ctx, next, {
           data: { ...state, isCashPayment: true },
-          role: this.REQUESTED_ROLE,
+          role: this.getRole(ctx),
         })
       default:
         break
@@ -337,7 +336,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
         await ctx.replyWithDocument(fileId, { caption: '📄 Файл успішно отримано' })
       }
       await ctx.deleteMessage().catch(() => null)
-      return await this.goNext(ctx, next, { data: state, role: this.REQUESTED_ROLE })
+      return await this.goNext(ctx, next, { data: state, role: this.getRole(ctx) })
     }
 
     return ctx.replyWithHTML(
@@ -347,14 +346,14 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
   }
 
   private completeHandler = async (ctx: BotContext) => {
-    const { prev } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER)
+    const { prev } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.COMPLETE_HANDLER)
 
     const { textPayload } = BotHelper.getUpdatePayload(ctx)
     const state = this.registerScene.getState(ctx)
 
     switch (textPayload) {
       case BUTTON_PATTERNS.BACK:
-        return await this.goBack(ctx, prev, { data: state, role: this.REQUESTED_ROLE })
+        return await this.goBack(ctx, prev, { data: state, role: this.getRole(ctx) })
       default:
         break
     }
@@ -365,10 +364,10 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
     const { firstName, lastName, phone, date_of_birth, fileId = null, fileType = null } = state
     const { id } = UserHelper.getUser(ctx)
-    const isGuest = this.REQUESTED_ROLE === UserProfileRoleEnum.GUEST
+    const isGuest = this.getRole(ctx) === UserProfileRoleEnum.GUEST
 
     const dateOfBirth =
-      this.REQUESTED_ROLE !== UserProfileRoleEnum.TRAINER
+      this.getRole(ctx) !== UserProfileRoleEnum.TRAINER
         ? this.dateTimeProvider.parseAndFormatDate({
             date: date_of_birth || '',
             outputDateFormat: DATE_FORMAT.DATE_MAIN,
@@ -382,7 +381,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
       dateOfBirth,
       fullName: UserHelper.getFullName(firstName!, lastName),
       phoneNumber: phone,
-      role: this.REQUESTED_ROLE,
+      role: this.getRole(ctx),
       fileId,
       fileType,
       status: isGuest ? UserProfileStatusEnum.ACTIVE : UserProfileStatusEnum.VERIFICATION_REQUESTED,
@@ -394,24 +393,24 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
         if (fileId && fileType) {
           const method = fileType === FileTypeEnum.PHOTO ? 'sendPhoto' : 'sendDocument'
           ctx.telegram[method](admin.telegramId, fileId, {
-            caption: MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
-            ...AdminKeyboards.verifyActions(id, this.REQUESTED_ROLE),
+            caption: MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.getRole(ctx) }),
+            ...AdminKeyboards.verifyActions(id, this.getRole(ctx)),
             parse_mode: 'HTML',
           }).catch((error) => console.error('Error sending verification request to admin:', error.message))
         } else {
           BotHelper.safeSendMessage(
             ctx.telegram,
             admin.telegramId,
-            MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.REQUESTED_ROLE }),
+            MessageHelper.getVerifyRequestMessage(state, { completed: true, role: this.getRole(ctx) }),
             {
-              ...AdminKeyboards.verifyActions(id, this.REQUESTED_ROLE),
+              ...AdminKeyboards.verifyActions(id, this.getRole(ctx)),
             },
           )
         }
       })
     }
 
-    if (this.REQUESTED_ROLE === UserProfileRoleEnum.CLIENT) {
+    if (this.getRole(ctx) === UserProfileRoleEnum.CLIENT) {
       await this.userProfileService.saveRegisterRequest({ userProfileId: id, groupId: state.groupId ?? null, fileId, fileType })
     }
 
@@ -430,7 +429,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     this.action('name_confirm_keep', async (ctx) => {
       BotHelper.safeAnswerCbQuery(ctx)
       await BotHelper.safeDeleteMessage(ctx)
-      const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
+      const { next } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
       return await this.goNext(ctx, next)
     })
 
@@ -447,7 +446,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
 
       await ctx.replyWithHTML(`✅ Порядок змінено на: <b>${state.firstNameAlt} ${state.lastNameAlt}</b>`)
 
-      const { next } = this.sceneNavigation.getNavigation(this.REQUESTED_ROLE, REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
+      const { next } = this.sceneNavigation.getNavigation(this.getRole(ctx), REGISTER_SCENE_CURSOR_MAP.NAME_HANDLER)
       return await this.goNext(ctx, next)
     })
 
