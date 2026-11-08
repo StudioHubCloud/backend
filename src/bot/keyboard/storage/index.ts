@@ -1,4 +1,4 @@
-export { ClientKeyboards } from './client-keyboards'
+export { ClientKeyboards, CHILDREN_SELF_VALUE } from './client-keyboards'
 export { GuestKeyboards } from './guest-keyboards'
 export { AdminKeyboards } from './admin-keyboards'
 export { TrainerKeyboards } from './trainer-keyboards'

@@ -68,6 +68,7 @@ export class VerificationInlineMenu {
         const userId = ctx.match[1]
         const { dateOfBirth, firstName, lastName, phoneNumber, telegramUsername, role, id, fileId, fileType } =
           await this.userProfileService.getUserProfileById(userId)
+        const parents = await this.userProfileService.findGuardians(id)
 
         await BotHelper.safeDeleteMessage(ctx)
 
@@ -80,7 +81,7 @@ export class VerificationInlineMenu {
             telegramUsername: telegramUsername ?? '',
             isCashPayment: !fileId,
           },
-          { completed: true, role },
+          { completed: true, role, parents },
         )
         const keyboard = AdminKeyboards.verifyActions(id, role)
 

@@ -6,17 +6,41 @@ import { DateTimeProvider } from '@app/infrastructure/providers'
 import { TextHelper } from './text.helper'
 import { BotContext } from '../bot.context'
 import { AdminKeyboards } from '../keyboard/storage'
-import { RULES } from '../static/messages'
+import { RULES, RULES_CONSENT_HEADER } from '../static/messages'
 import { PassSelectionHelper, TLabelPass } from '@app/domain/pass'
 
-export class PassHelper {
-  /** Rules for the client's pass type and duration; group rules with the default duration when there is no pass yet. */
-  static getRulesMessage(passTemplate?: Pick<PassTemplateSelectModel, 'type' | 'durationDays'> | null): string {
-    if (passTemplate?.type === PassTemplateTypeEnum.INDIVIDUAL) {
-      return RULES.INDIVIDUAL(passTemplate.durationDays)
-    }
+/** Parents' rules: kids up to this age (Baby Dance 3–5) get the freeze line (once a month up to 5 days). */
+const PARENT_RULES_FREEZE_MAX_AGE = 5
 
-    return RULES.GROUP(passTemplate?.durationDays)
+type TRulesPassTemplate = Pick<PassTemplateSelectModel, 'type' | 'durationDays'> | null | undefined
+/** `childAge`: a parent acting for a child ("Мої діти"); null / undefined = the person's own rules */
+type TRulesOptions = { childAge?: number | null }
+
+export class PassHelper {
+  /**
+   * Rules for the pass the person works with ("📜 Правила", "📋 Пам'ятка"): individual (on «ви», as a memo), parents of a
+   * child (3–5 with the freeze line, older without), otherwise group; default duration when there is no pass yet.
+   */
+  static getRulesMessage(passTemplate?: TRulesPassTemplate, options: TRulesOptions = {}): string {
+    const { body, kind } = this.getRules(passTemplate, options)
+    return kind === 'INDIVIDUAL' ? `📋 ${TextHelper.bold('Пам’ятка: індивідуальний абонемент')}\n\n${body}` : body
+  }
+
+  /** The rules consent: the owner's header for that kind of rules + the rules. */
+  static getRulesConsentMessage(passTemplate?: TRulesPassTemplate, options: TRulesOptions = {}): string {
+    const { body, kind } = this.getRules(passTemplate, options)
+    return `${RULES_CONSENT_HEADER[kind]}\n\n${body}`
+  }
+
+  private static getRules(passTemplate: TRulesPassTemplate, { childAge }: TRulesOptions) {
+    if (passTemplate?.type === PassTemplateTypeEnum.INDIVIDUAL) {
+      return { kind: 'INDIVIDUAL' as const, body: RULES.INDIVIDUAL(passTemplate.durationDays) }
+    }
+    if (childAge !== null && childAge !== undefined) {
+      const withFreeze = childAge <= PARENT_RULES_FREEZE_MAX_AGE
+      return { kind: 'PARENT' as const, body: RULES.PARENT({ durationDays: passTemplate?.durationDays, withFreeze }) }
+    }
+    return { kind: 'GROUP' as const, body: RULES.GROUP(passTemplate?.durationDays) }
   }
 
   /** How and when a not-yet-started pass activates, for client notifications. */

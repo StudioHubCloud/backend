@@ -192,7 +192,9 @@ export class PayoutStaffComposer {
       })
     }
 
-    await BotHelper.safeSendMessage(ctx.telegram, staffUserProfile.telegramId, InitiatePayoutSceneHelper.getStaffInfoMessage(payoutState))
+    if (staffUserProfile.telegramId) {
+      await BotHelper.safeSendMessage(ctx.telegram, staffUserProfile.telegramId, InitiatePayoutSceneHelper.getStaffInfoMessage(payoutState))
+    }
     BotHelper.safeAnswerCbQuery(ctx, '💸 Зарплату виплачено')
     return BotHelper.safeEditMessageText(
       ctx,
@@ -256,7 +258,9 @@ export class PayoutStaffComposer {
           personalTrainingIds: [],
           payoutStatistics: payout.snapshot?.statistics as TPayoutStatistics,
         }
-        await BotHelper.safeSendMessage(ctx.telegram, staffUserProfile.telegramId, InitiatePayoutSceneHelper.getStaffInfoMessage(payoutState))
+        if (staffUserProfile.telegramId) {
+          await BotHelper.safeSendMessage(ctx.telegram, staffUserProfile.telegramId, InitiatePayoutSceneHelper.getStaffInfoMessage(payoutState))
+        }
       }
       BotHelper.safeAnswerCbQuery(ctx, `💸 Оплачено: ${name}`)
       return this.renderPendingPayoutsList(ctx, `✅ Оплачено: ${TextHelper.escapeHtml(name)} · ${PassHelper.toDisplayPrice(amount)}\n\n`)

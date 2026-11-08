@@ -1,4 +1,5 @@
 export { RegisterScene } from './register/register.scene'
+export { RegisterChildScene } from './register-child/register-child.scene'
 export { VerifyClientScene } from './verify-client/verify-client.scene'
 export { SpecialScheduleScene } from './special-schedule/special-schedule.scene'
 export { PassOpenScene } from './pass/pass-open.scene'

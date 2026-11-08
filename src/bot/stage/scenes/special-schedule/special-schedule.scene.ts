@@ -135,6 +135,6 @@ export class SpecialScheduleScene extends Scenes.WizardScene<BotContext> {
 
   /** Main menu for this user's role. Computed per update: the scene instance is shared by all users. */
   private getExitKeyboard(ctx: BotContext): TReplyMarkupKeyboard {
-    return KeyboardHelper.getRoleBasedMainMenuKeyboard(UserHelper.getUserRole(ctx))
+    return KeyboardHelper.getMainMenuKeyboard(ctx)
   }
 }

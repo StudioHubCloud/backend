@@ -189,16 +189,16 @@ export class GroupManageStaffComposer {
         await Promise.all(
           signups
             .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
-            .map((signup) => {
-              return BotHelper.safeSendMessage(
-                ctx.telegram,
-                String(signup.userProfile?.telegramId),
-                MessageHelper.constructTrainingCancelMessage(
-                  { date: training.date, groupName: signup?.group?.name },
-                  this.dateTimeProvider,
-                ),
-              )
-            }),
+            .map((signup) =>
+              signup.userProfile
+                ? BotHelper.notifyClient(ctx.telegram, this.userProfileService, signup.userProfile, {
+                    text: MessageHelper.constructTrainingCancelMessage(
+                      { date: training.date, groupName: signup?.group?.name },
+                      this.dateTimeProvider,
+                    ),
+                  })
+                : null,
+            ),
         )
 
         return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId })
@@ -211,16 +211,16 @@ export class GroupManageStaffComposer {
         await Promise.all(
           signups
             .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
-            .map((signup) => {
-              return BotHelper.safeSendMessage(
-                ctx.telegram,
-                String(signup.userProfile?.telegramId),
-                MessageHelper.constructTrainingActivateMessage(
-                  { date: training.date, groupName: signup?.group?.name },
-                  this.dateTimeProvider,
-                ),
-              )
-            }),
+            .map((signup) =>
+              signup.userProfile
+                ? BotHelper.notifyClient(ctx.telegram, this.userProfileService, signup.userProfile, {
+                    text: MessageHelper.constructTrainingActivateMessage(
+                      { date: training.date, groupName: signup?.group?.name },
+                      this.dateTimeProvider,
+                    ),
+                  })
+                : null,
+            ),
         )
         return this.renderTrainingManageMenu(ctx, trainingId, { fromUpcomingTrainingsMenu: !!backButtonCallbackData, staffUserId })
       })
@@ -530,21 +530,16 @@ export class GroupManageStaffComposer {
 
       const activeSignUps = await this.trainingSignupService.getTrainingActiveSignups(training!.id)
 
-      if (userProfile?.telegramId) {
+      if (userProfile) {
         const group = await this.groupService.getGroupById(training.groupId)
 
         const now = new Date()
         const trainingDate = new Date(training.date)
 
         if (now < trainingDate) {
-          BotHelper.safeSendMessage(
-            ctx.telegram,
-            String(userProfile.telegramId),
-            MessageHelper.constructTrainingSignoutByAdminMessage(
-              { date: training.date, groupName: group.name },
-              this.dateTimeProvider,
-            ),
-          )
+          await BotHelper.notifyClient(ctx.telegram, this.userProfileService, userProfile, {
+            text: MessageHelper.constructTrainingSignoutByAdminMessage({ date: training.date, groupName: group.name }, this.dateTimeProvider),
+          })
         }
       }
 
@@ -631,7 +626,7 @@ export class GroupManageStaffComposer {
 
     const { userProfile, groupId } = response.data || {}
 
-    if (userProfile?.telegramId && groupId) {
+    if (userProfile && groupId) {
       const [group, training] = await Promise.all([
         this.groupService.getGroupById(groupId),
         this.trainingService.getTrainingById(+trainingId),
@@ -641,11 +636,9 @@ export class GroupManageStaffComposer {
       const trainingDate = new Date(training.date)
 
       if (now < trainingDate) {
-        BotHelper.safeSendMessage(
-          ctx.telegram,
-          String(userProfile.telegramId),
-          MessageHelper.constructTrainingSigninByAdminMessage({ date: training.date, groupName: group.name }, this.dateTimeProvider),
-        )
+        await BotHelper.notifyClient(ctx.telegram, this.userProfileService, userProfile, {
+          text: MessageHelper.constructTrainingSigninByAdminMessage({ date: training.date, groupName: group.name }, this.dateTimeProvider),
+        })
       }
     }
     return this.renderTrainingManageMenu(ctx, trainingId, context)
@@ -741,14 +734,14 @@ export class GroupManageStaffComposer {
     const results = await Promise.allSettled(
       activeSignUps
         .map(async (signup) => {
-          if (!signup.userProfile?.telegramId) return
+          if (!signup.userProfile) return
 
           try {
-            await BotHelper.safeSendMessage(ctx.telegram, String(signup.userProfile.telegramId), message)
-            return { success: true, telegramId: signup.userProfile.telegramId }
+            await BotHelper.notifyClient(ctx.telegram, this.userProfileService, signup.userProfile, { text: message })
+            return { success: true, userProfileId: signup.userProfile.id }
           } catch (error) {
-            console.error(`Failed to send substitute trainer notification to ${signup.userProfile.telegramId}:`, error)
-            return { success: false, telegramId: signup.userProfile.telegramId, error }
+            console.error(`Failed to send substitute trainer notification to ${signup.userProfile.id}:`, error)
+            return { success: false, userProfileId: signup.userProfile.id, error }
           }
         })
         .filter(Boolean),

@@ -28,6 +28,13 @@ export class GuardComposer {
     this.composer.hears(BUTTON_PATTERNS.REGISTER_AS_TRAINER, async (ctx: BotContext, next: TNextFunction) => {
       return this.enterRegisterScene(ctx, next, UserProfileRoleEnum.TRAINER)
     })
+    // A parent who doesn't train: their name + phone, then the child; one approval for both
+    this.composer.hears(BUTTON_PATTERNS.REGISTER_AS_PARENT, async (ctx: BotContext, next: TNextFunction) => {
+      if (!UserHelper.isUnverifiedStatus(ctx)) {
+        return await next()
+      }
+      return ctx.scene.enter(SCENES.REGISTER_CHILD, { withParent: true })
+    })
   }
 
   middleware() {

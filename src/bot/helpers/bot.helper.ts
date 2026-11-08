@@ -4,6 +4,8 @@ import { InlineKeyboardMarkup, User } from '@telegraf/types'
 import { FmtString } from 'telegraf/typings/format'
 import { ExtraAnswerCbQuery, ExtraEditMessageText, ExtraReplyMessage } from 'telegraf/typings/telegram-types'
 import { FileTypeEnum } from '@app/libs'
+import { TNotificationRecipient } from '@app/bot/libs'
+import { TextHelper } from './text.helper'
 
 /** Telegram's limit is 4096 characters of text; the margin covers HTML tags counted by the raw length. */
 const MESSAGE_LIMIT = 4000
@@ -167,6 +169,30 @@ export class BotHelper {
       console.error('Error sending message:', error?.message, chatId, text)
       return undefined
     }
+  }
+
+  /**
+   * A message meant for a client profile. Own Telegram: `text` + `extra` as is. A child without Telegram: to each parent
+   * (`UserProfileService.getNotificationRecipients`) as `guardianText`, by default «🧒 <b>Child</b>» + `text`, with no
+   * reply markup (the parent's own menu stays; client buttons would act for the parent, not the child).
+   */
+  static async notifyClient(
+    telegram: Telegram,
+    recipientsSource: { getNotificationRecipients(profile: { id: string; telegramId: string | null }): Promise<TNotificationRecipient[]> },
+    profile: { id: string; telegramId: string | null; fullName: string },
+    message: { text: string; extra?: ExtraReplyMessage; guardianText?: string },
+  ) {
+    const recipients = await recipientsSource.getNotificationRecipients(profile).catch((error) => {
+      console.error('Error resolving notification recipients:', error?.message, profile.id)
+      return [] as TNotificationRecipient[]
+    })
+    const guardianText = message.guardianText ?? `🧒 <b>${TextHelper.escapeHtml(profile.fullName)}</b>\n${message.text}`
+    await Promise.all(
+      recipients.map(({ chatId, asGuardian }) =>
+        asGuardian ? this.safeSendMessage(telegram, chatId, guardianText) : this.safeSendMessage(telegram, chatId, message.text, message.extra),
+      ),
+    )
+    return recipients
   }
 
   static async safeEditMessageReplyMarkup(ctx: BotContext, markup: InlineKeyboardMarkup | undefined) {

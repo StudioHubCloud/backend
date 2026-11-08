@@ -14,6 +14,11 @@ export class RegexHelper {
     return new RegExp(`^${prefix}:${CALLBACK_DATA.ITEM_KEY}:(.*)$`) // add named groups
   }
 
+  /** A literal string (e.g. a button label with emoji / symbols) as a part of a RegExp. */
+  static escape(text: string) {
+    return text.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  }
+
   static createButtonActionRegex(prefix: string) {
     return new RegExp(`^${prefix}:(?<value>[^:]+)(?::(?<subvalue>.*))?$`)
   }

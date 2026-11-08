@@ -19,6 +19,7 @@ import {
   AuditLogTrigger,
   PassStatusEnum,
   UserProfileRoleEnum,
+  UserProfileStatusEnum,
   AuditLogServiceOperation,
   FileTypeEnum,
 } from '@app/libs'
@@ -33,6 +34,8 @@ import {
 
 export type TBotStore = {
   user: AuthUserProfile | null
+  /** "Мої діти": the child the parent acts for in this update (validated in `authMiddleware`); null = self */
+  actingUser: AuthUserProfile | null
   audit: IAuditLogTelegramContext | null
 }
 
@@ -40,10 +43,19 @@ export type TBotStore = {
 export type TBotSession = Scenes.WizardSession & {
   menus?: Record<string, TPaginatedMenuState>
   payoutTailMessageIds?: number[] // payout texts over Telegram's limit continue in these messages; deleted on the next step
+  profileMenus?: Record<string, { profileId: string; at: number }> // parent's inline messages bound to a profile (ProfileMenuHelper)
 }
+
+/** A parent's main menu: the profile button shows whom the screens act for (null = self) */
+export type TParentMenu = { actingName: string | null }
+
+/** Where a message for a client profile goes: own Telegram, or (a child without Telegram) each parent. */
+export type TNotificationRecipient = { chatId: string; asGuardian: boolean }
 
 export type AuthUserProfile = UserProfileSelectModel & {
   client: (ClientSelectModel & { pass: { id: string; status: PassStatusEnum; groupId: number | null }[] }) | null
+  /** The person's children (links, child status only); absent on a just-created guest */
+  children?: { childProfileId: string; child: { status: UserProfileStatusEnum } }[]
 }
 
 export type UserProfileWithRoleRelations = UserProfileSelectModel & { client: ClientSelectModel | null } & {
@@ -187,6 +199,8 @@ export interface IAuditLogTelegramContext {
   actionResponseTimeMs: number | null
   trigger: AuditLogTrigger
   telegramId?: string
+  /** Profile id of the child a parent acted for ("Мої діти"); the actor stays the parent (`telegramId`) */
+  onBehalfOf?: string
   operations: AuditLogServiceOperation[]
 }
 

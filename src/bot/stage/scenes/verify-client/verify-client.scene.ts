@@ -2,7 +2,7 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
-import { SceneHelper, BotHelper, RegexHelper, UserHelper, KeyboardHelper, TextHelper } from '@app/bot/helpers'
+import { SceneHelper, BotHelper, RegexHelper, UserHelper, KeyboardHelper, TextHelper, ParentHelper } from '@app/bot/helpers'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
@@ -114,14 +114,11 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
 
       await Promise.all([
-        BotHelper.safeSendMessage(
-          ctx.telegram,
-          userProfile.telegramId,
-          VerifyClientSceneHelper.getClientInfoMessage(state),
-          {
-            ...ClientKeyboards.mainMenu(),
-          },
-        ),
+        // A child: the waiting parents become clients too (one approval), the parents get a text about the child
+        ParentHelper.notifyVerified(ctx.telegram, this.userProfileService, userProfile, {
+          text: VerifyClientSceneHelper.getClientInfoMessage(state),
+          extra: { ...ClientKeyboards.mainMenu() },
+        }),
         ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.COMPLETE, keyboard),
       ])
 

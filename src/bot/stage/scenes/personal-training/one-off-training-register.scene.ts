@@ -395,11 +395,13 @@ export class OneOffTrainingRegisterScene extends Scenes.WizardScene<BotContext> 
 
       AuditLogHelper.startAction(ctx, AuditLogActions.PERSONAL_TRAINING_REGISTER, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
-      await BotHelper.safeSendMessage(
-        ctx.telegram,
-        staffUserProfile.telegramId,
-        PersonalTrainingHelper.getTrainerRegisteredMessage({ ...created, studioPrice }, this.dateTimeProvider),
-      )
+      if (staffUserProfile.telegramId) {
+        await BotHelper.safeSendMessage(
+          ctx.telegram,
+          staffUserProfile.telegramId,
+          PersonalTrainingHelper.getTrainerRegisteredMessage({ ...created, studioPrice }, this.dateTimeProvider),
+        )
+      }
 
       const { role } = UserHelper.getUser(ctx)
       await ctx.replyWithHTML(MESSAGES_SCENE.ONE_OFF_TRAINING_REGISTER.REGISTER_SUCCESS, KeyboardHelper.getRoleBasedMainMenuKeyboard(role))

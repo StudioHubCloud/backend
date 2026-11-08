@@ -65,7 +65,7 @@ export class CalendarPicker {
       [
         !yearRange || prevMonth.getFullYear() >= yearRange.fromYear ? this.navButton('◀️', prevMonth) : this.noopButton(' '),
         // With a year range the title goes up to the year's months
-        yearRange ? this.monthsButton(`${title} 🔼`, monthStart.getFullYear()) : this.noopButton(title),
+        yearRange ? this.monthsButton(`↩️ ${title}`, monthStart.getFullYear()) : this.noopButton(title),
         !yearRange || nextMonth.getFullYear() <= yearRange.toYear ? this.navButton('▶️', nextMonth) : this.noopButton(' '),
       ],
       WEEKDAYS.map((day) => this.noopButton(day)),
@@ -103,7 +103,7 @@ export class CalendarPicker {
     const rows: InlineKeyboardButton[][] = [
       [
         year > range.fromYear ? this.monthsButton('◀️', year - 1) : this.noopButton(' '),
-        this.yearsButton(`${year} 🔼`, this.getYearsPageStart(year, range)),
+        this.yearsButton(`↩️ ${year}`, this.getYearsPageStart(year, range)),
         year < range.toYear ? this.monthsButton('▶️', year + 1) : this.noopButton(' '),
       ],
       ...this.chunk(

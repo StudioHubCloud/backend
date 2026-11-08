@@ -113,7 +113,11 @@ export class StudioScheduleComposer {
       const signup = await PersonalTrainingHelper.cancelByAdmin(
         ctx,
         signupId,
-        { personalTrainingSignupService: this.personalTrainingSignupService, passService: this.passService },
+        {
+        personalTrainingSignupService: this.personalTrainingSignupService,
+        passService: this.passService,
+        userProfileService: this.userProfileService,
+      },
         this.dateTimeProvider,
       )
       if (!signup) {

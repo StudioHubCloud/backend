@@ -27,7 +27,8 @@ export class AuditLogHelper {
       trigger,
       command: textPayload,
       actionResponseTimeMs: null,
-      telegramId: user.telegramId,
+      telegramId: user.telegramId ?? undefined,
+      ...(UserHelper.isActingForChild(ctx) ? { onBehalfOf: UserHelper.getActingUser(ctx).id } : {}),
       operations: [],
     }
 

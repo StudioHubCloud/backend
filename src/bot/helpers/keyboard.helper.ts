@@ -6,9 +6,11 @@ import {
   ReplyKeyboardRemove,
 } from '@telegraf/types'
 import { AutocompletableString, UserProfileRoleEnum } from '@app/libs'
-import { CALLBACK_DATA, TButtonStyle, TNormalizedOption, TPaginatedMenuOptions, TReplyInlineKeyboard } from '@app/bot/libs'
+import { CALLBACK_DATA, TButtonStyle, TNormalizedOption, TPaginatedMenuOptions, TParentMenu, TReplyInlineKeyboard } from '@app/bot/libs'
 import { AdminKeyboards, ClientKeyboards, GuestKeyboards, MaintainerKeyboards, TrainerKeyboards } from '../keyboard/storage'
 import { BUTTON_PATTERNS } from '../static/button-patterns'
+import { BotContext } from '../bot.context'
+import { UserHelper } from './user.helper'
 
 export class KeyboardHelper {
   constructor() {}
@@ -146,15 +148,24 @@ export class KeyboardHelper {
     })
   }
 
-  static getRoleBasedMainMenuKeyboard(role: UserProfileRoleEnum) {
+  static getRoleBasedMainMenuKeyboard(role: UserProfileRoleEnum, { parent = null }: { parent?: TParentMenu | null } = {}) {
     const KeyboardsMap = {
-      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu(),
+      [UserProfileRoleEnum.CLIENT]: ClientKeyboards.mainMenu({ parent }),
       [UserProfileRoleEnum.GUEST]: GuestKeyboards.mainMenu(),
       [UserProfileRoleEnum.TRAINER]: TrainerKeyboards.mainMenu(),
       [UserProfileRoleEnum.ADMIN]: AdminKeyboards.mainMenu(),
       [UserProfileRoleEnum.MAINTAINER]: MaintainerKeyboards.mainMenu(),
     }
     return KeyboardsMap[role]
+  }
+
+  /** Main menu of the person who taps (a client parent gets the profile button with whom they act for now). */
+  static getMainMenuKeyboard(ctx: BotContext) {
+    const user = UserHelper.getUser(ctx)
+    const parent = UserHelper.hasChildren(user)
+      ? { actingName: UserHelper.isActingForChild(ctx) ? UserHelper.getActingUser(ctx).firstName : null }
+      : null
+    return this.getRoleBasedMainMenuKeyboard(user.role, { parent })
   }
 
   private static isObject(value: any): value is object {

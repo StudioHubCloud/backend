@@ -294,7 +294,8 @@ export class TrainingSignupService {
     return { status: API.RESPONSE.SUCCESS_STRING, message: 'Запис успішний' }
   }
 
-  async signOutFromTrainingAsClientViaTelegram(trainingSignupId: string): Promise<TCustomApiResponse> {
+  /** `ownerUserProfileId`: whom the client screens act for (self or the parent's child); a foreign signup is refused. */
+  async signOutFromTrainingAsClientViaTelegram(trainingSignupId: string, ownerUserProfileId: string): Promise<TCustomApiResponse> {
     try {
       const signup = await this.databaseService.drizzle.query.trainingSignup.findFirst({
         where: (ts, { eq }) => eq(ts.id, trainingSignupId),
@@ -310,6 +311,10 @@ export class TrainingSignupService {
           status: API.RESPONSE.ERROR_STRING,
           message: `На жаль, запис не знайдено 😔\nМожливо, щось пішло не так — давай спробуємо ще раз!`,
         }
+      }
+      // A button from an old message (e.g. the list of another child before a switch in "Мої діти")
+      if (signup.userProfileId !== ownerUserProfileId) {
+        return { status: API.RESPONSE.ERROR_STRING, message: `Цей запис іншої людини 🙈\nПеремкни профіль (кнопка «Профіль» у меню) і спробуй ще раз` }
       }
 
       const now = new Date()

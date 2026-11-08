@@ -1,13 +1,14 @@
 import { Injectable } from '@nestjs/common'
 import { PinoLogger } from 'nestjs-pino'
 
-import { UserHelper } from '@app/bot/helpers'
+import { ProfileMenuHelper, UserHelper } from '@app/bot/helpers'
 import { BotContext } from '@app/bot/bot.context'
 import { StudioService } from '@app/domain/studio'
 import { UserProfileService } from '@app/domain/user-profile'
 import { UserProfileRoleEnum, UserProfileStatusEnum } from '@app/libs'
-import { IAuditLogTelegramContext, type TNextFunction } from '@app/bot/libs'
+import { AuthUserProfile, IAuditLogTelegramContext, type TNextFunction } from '@app/bot/libs'
 import { BotHelper } from '@app/bot/helpers/bot.helper'
+import { MESSAGES_COMMON } from '@app/bot/static/messages'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { AuditLogService } from '@app/infrastructure/audit-log'
 import { MetricsService } from '@app/infrastructure/metrics'
@@ -106,6 +107,7 @@ export class MiddlewareService {
     UserHelper.setUser(ctx, user)
 
     if (user) {
+      await this.setActingUser(ctx, user)
       return await next()
     }
 
@@ -135,6 +137,35 @@ export class MiddlewareService {
     }
     UserHelper.setUser(ctx, { ...createdUser, client: null })
     return await next()
+  }
+
+  /** "Мої діти": loads the child a parent acts for; a choice no longer theirs (or no longer active) goes back to self. */
+  private async setActingUser(ctx: BotContext, user: AuthUserProfile) {
+    if (!user.actingProfileId || user.role !== UserProfileRoleEnum.CLIENT) {
+      return
+    }
+    const child = await this.userProfileService.findChildOfGuardian(user.id, user.actingProfileId)
+    if (child && UserHelper.canActFor(child)) {
+      UserHelper.setActingUser(ctx, child)
+      return
+    }
+    this.logger.warn('Acting profile %s is not an active child of %s, back to self', user.actingProfileId, user.id)
+    await this.userProfileService.setActingProfile(user.id, null)
+  }
+
+  /**
+   * Any button on an inline message a parent opened for another profile (switched since): an alert and the message is
+   * removed — nothing acts for a profile the message wasn't built for. After `authMiddleware` (needs the acting user).
+   */
+  profileMenuGuardMiddleware = async (ctx: BotContext, next: TNextFunction) => {
+    const messageId = ctx.callbackQuery?.message?.message_id
+    const boundProfileId = messageId ? ProfileMenuHelper.getBoundProfileId(ctx, messageId) : undefined
+    if (!messageId || !boundProfileId || boundProfileId === UserHelper.getActingUser(ctx).id) {
+      return await next()
+    }
+    ProfileMenuHelper.unbind(ctx, messageId)
+    await BotHelper.safeAnswerCbQuery(ctx, MESSAGES_COMMON.OTHER_PROFILE_MENU, { show_alert: true })
+    await BotHelper.safeDeleteMessage(ctx)
   }
 
   auditLogMiddleware = async (ctx: BotContext, next: TNextFunction) => {

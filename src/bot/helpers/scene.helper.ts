@@ -2,7 +2,6 @@ import { BotContext } from '../bot.context'
 import { MESSAGES_SCENE } from '../static/messages'
 import { BotHelper } from './bot.helper'
 import { KeyboardHelper } from './keyboard.helper'
-import { UserHelper } from './user.helper'
 
 export class SceneHelper<T extends Record<string, any>> {
   constructor() {}
@@ -45,8 +44,7 @@ export class SceneHelper<T extends Record<string, any>> {
       maintainerChatId,
       `Error: ${error?.message}\n\nUpdate: ${JSON.stringify(ctx.update)}`,
     )
-    const user = UserHelper.getUser(ctx)
-    const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role)
+    const keyboard = KeyboardHelper.getMainMenuKeyboard(ctx)
     await ctx.replyWithHTML(
       `❌ Виникла помилка, ми вже повіломлені про неї. Спробуйте ще раз або зверніться до адміністратора.`,
       keyboard,
@@ -61,8 +59,7 @@ export class SceneHelper<T extends Record<string, any>> {
       ctx.deleteMessage(promptMessageId).catch(() => {})
     }
 
-    const user = UserHelper.getUser(ctx)
-    const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role)
+    const keyboard = KeyboardHelper.getMainMenuKeyboard(ctx)
     await ctx.replyWithHTML(MESSAGES_SCENE.EDIT_ENTITIES.EXIT, keyboard)
     if (action) {
       await action()

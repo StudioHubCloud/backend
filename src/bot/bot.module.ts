@@ -9,9 +9,10 @@ import { BOT_INSTANCE } from './bot.instance'
 import { BotCommands } from './bot.commands'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { APP } from '@app/libs'
+import { UserProfileModule } from '@app/domain/user-profile'
 
 @Module({
-  imports: [KeyboardModule, MiddlewareModule, StageModule, ComposerModule],
+  imports: [KeyboardModule, MiddlewareModule, StageModule, ComposerModule, UserProfileModule],
   providers: [
     BotService,
     BotCommands,

@@ -16,6 +16,7 @@ export const ERA_STUDIO_LOGO_320_PROD = 'AgACAgIAAxkBAAIY52kVLPuAEgAB6vbyVq8Pj6M
 
 export const SCENES = {
   REGISTER: 'register',
+  REGISTER_CHILD: 'register_child',
   VERIFY_CLIENT: 'verify_client',
   VERIFY_TRAINER: 'verify_trainer',
   SIGN_IN_CLIENT: 'sign_in_client',
@@ -145,6 +146,11 @@ export const CALLBACK_PREFIX = {
   CLIENT: {
     PASS_RULES: 'p.rules.cl',
     PASS_SWITCH: 'p.sw.cl',
+    // "Мої діти": switch value = child profile id or CHILDREN_SELF
+    CHILDREN: {
+      SWITCH: 'ch.sw.cl',
+      ADD: 'ch.add.cl',
+    },
     TRAINING: {
       SELECT: 'tr.s.cl',
       SIGN_OUT: 'tr.so.cl',

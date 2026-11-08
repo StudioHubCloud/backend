@@ -8,6 +8,7 @@ import {
   UserProfileStatusEnum,
 } from '@app/libs'
 import { TextHelper } from './text.helper'
+import { BotContext } from '../bot.context'
 import { GetGroupByIdResponse, GetTrainingByIdResponse, IRegisterSceneState, PassTemplateWithAgeRestrictions } from '../libs'
 import {
   GroupAgeRestrictionSelectModel,
@@ -22,6 +23,63 @@ import { UserHelper } from './user.helper'
 import { BUTTON_PATTERNS } from '../static/button-patterns'
 
 export class MessageHelper {
+  // ── Parents ("Мої діти"): impersonal texts about the child, sent to the parents of a child without Telegram ──
+
+  /** «🧒 <b>Марія Петренко</b>» line on top of every parent's message about a child */
+  static getChildLine(childFullName: string) {
+    return `🧒 <b>${TextHelper.escapeHtml(childFullName)}</b>`
+  }
+
+  /**
+   * Client screens while a parent acts for a child: «🧒 Марія Петренко» on top, so it's clear whom the screen is about.
+   * `html: false` for alerts (answerCbQuery shows tags as text).
+   */
+  static withActingChild(ctx: BotContext, text: string, { html = true }: { html?: boolean } = {}) {
+    if (!UserHelper.isActingForChild(ctx)) {
+      return text
+    }
+    const { fullName } = UserHelper.getActingUser(ctx)
+    return `${html ? this.getChildLine(fullName) : `🧒 ${fullName}`}\n${text}`
+  }
+
+  /** Signup alert for a child (the client texts are about the person who taps) */
+  static getChildSignupSuccess(availableSlots: number | undefined) {
+    return `✅ Запис на тренування успішний!${availableSlots === 1 ? '\n🛎 В абонементі залишився 1 запис' : ''}`
+  }
+
+  static getParentTrainingReminder(childFullName: string, groupTitle: string, time: string) {
+    return `${this.getChildLine(childFullName)}\n⏰ Сьогодні тренування групи ${groupTitle} о ${time}\nДо зустрічі 💖`
+  }
+
+  static getParentPassExpiration(childFullName: string, expirationDate: string) {
+    return (
+      `${this.getChildLine(childFullName)}\n⚠️ Абонемент закінчується ${expirationDate}\n` +
+      `Продовжити його можна в боті: перемкни профіль на дитину (кнопка «Профіль» у меню) → «${BUTTON_PATTERNS.CLIENT_PASS_BUY}» 💖`
+    )
+  }
+
+  static getParentBirthday(childFullName: string) {
+    return (
+      `🎂 <b>${TextHelper.escapeHtml(childFullName)}</b> сьогодні святкує день народження!\n\n` +
+      `Вітаємо від усієї команди <i>ERA</i>: нехай танці приносять радість, а кожне тренування — нові перемоги ✨💖`
+    )
+  }
+
+  static getParentChildVerified(childFullName: string) {
+    return (
+      `${this.getChildLine(childFullName)}\n✅ Реєстрацію підтверджено!\n\n` +
+      `Щоб записати дитину на тренування чи переглянути абонемент, перемкни профіль на неї: кнопка «${BUTTON_PATTERNS.PROFILE_SELF}» у меню ✨`
+    )
+  }
+
+  static getParentChildRejected(childFullName: string) {
+    return `${this.getChildLine(childFullName)}\n❌ Заявку на реєстрацію відхилено. Якщо це помилка — напиши адміністратору 🙏`
+  }
+
+  static getParentChildBlocked(childFullName: string) {
+    return `${this.getChildLine(childFullName)}\n🚫 Профіль дитини заблоковано адміністратором`
+  }
+
   static getAgeRestrictionMessage(minAge: number | null = null, maxAge: number | null = null): string {
     const minAgeText = minAge ? `від ${minAge} років` : ''
     const maxAgeText = maxAge ? ` до ${maxAge} років` : ''
@@ -40,18 +98,63 @@ export class MessageHelper {
 
   static getVerifyRequestMessage(
     data: Partial<IRegisterSceneState>,
-    { completed = false, role }: { completed?: boolean; role: UserProfileRoleEnum },
+    {
+      completed = false,
+      role,
+      parents = [],
+    }: {
+      completed?: boolean
+      role: UserProfileRoleEnum
+      /** A child registered by parents: shown to the admin with their contacts */
+      parents?: Pick<UserProfileSelectModel, 'fullName' | 'phoneNumber' | 'telegramUsername'>[]
+    },
   ) {
     const { firstName, date_of_birth, lastName, phone, telegramUsername, isCashPayment, groupName } = data
-    const modeText = completed
-      ? `${role === UserProfileRoleEnum.CLIENT ? 'Клієнт' : 'Тренер'} відправив запит на реєстрацію: ✅\n\n`
-      : `🔍 Перевір, чи все вірно:\n\n`
+    const requestTitle = parents.length
+      ? `✅ Запит на реєстрацію дитячого профілю`
+      : `${role === UserProfileRoleEnum.CLIENT ? 'Клієнт' : 'Тренер'} відправив запит на реєстрацію: ✅`
+    const modeText = completed ? `${requestTitle}\n\n` : `🔍 Перевір, чи все вірно:\n\n`
+    const parentsText = parents.length ? `\n\n${this.getParentsLine(parents)}` : ''
 
     const mainContent = `👤 Ім'я: ${TextHelper.bold(`${UserHelper.getFullName(firstName!, lastName)}\n`)}${date_of_birth ? `\n➡️ Дата народження: ${TextHelper.bold(date_of_birth)}` : ''}${phone ? `\n➡️ Номер телефону: ${TextHelper.bold(phone)}` : ''}${telegramUsername ? `\n➡️ Telegram: ${TextHelper.bold(`@${telegramUsername}`)}` : ''}${groupName ? `\n👯‍♀️ Група: ${TextHelper.bold(TextHelper.escapeHtml(groupName))}` : ''}${isCashPayment ? `\n\n💵 <b>Оплата готівкою</b>` : ''}`
 
     return !completed
-      ? `${modeText}${mainContent}\n\n👌 Якщо все правильно — тисни “✅ Підтвердити”\n❌ А якщо щось хочеш змінити — просто натисни “⬅️ Назад”`
-      : `${modeText}${mainContent}`
+      ? `${modeText}${mainContent}${parentsText}\n\n👌 Якщо все правильно — тисни “✅ Підтвердити”\n❌ А якщо щось хочеш змінити — просто натисни “⬅️ Назад”`
+      : `${modeText}${mainContent}${parentsText}`
+  }
+
+  /** Admin client card: «👨‍👩‍👧 Батьки: …» for a child, «🧒 Діти: …» for a parent (⏳ = waiting for approval). */
+  static getFamilyLines(family: {
+    parents: Pick<UserProfileSelectModel, 'fullName' | 'phoneNumber' | 'telegramUsername'>[]
+    children: Pick<UserProfileSelectModel, 'fullName' | 'status'>[]
+  }) {
+    const children = family.children.filter(
+      (child) => child.status === UserProfileStatusEnum.ACTIVE || child.status === UserProfileStatusEnum.VERIFICATION_REQUESTED,
+    )
+    return [
+      family.parents.length ? this.getParentsLine(family.parents) : null,
+      children.length
+        ? `🧒 Діти: ${children
+            .map((child) => `${child.status === UserProfileStatusEnum.VERIFICATION_REQUESTED ? '⏳ ' : ''}${TextHelper.escapeHtml(child.fullName)}`)
+            .join(', ')}`
+        : null,
+    ]
+      .filter(Boolean)
+      .join('\n')
+  }
+
+  /** «👨‍👩‍👧 Батьки: Ольга Петренко, тел. 0661234567, @olha» (one line per parent) for staff screens */
+  static getParentsLine(parents: Pick<UserProfileSelectModel, 'fullName' | 'phoneNumber' | 'telegramUsername'>[]) {
+    const lines = parents.map((parent) =>
+      [
+        TextHelper.bold(TextHelper.escapeHtml(parent.fullName)),
+        parent.phoneNumber ? `тел. ${parent.phoneNumber}` : null,
+        parent.telegramUsername ? `@${parent.telegramUsername}` : null,
+      ]
+        .filter(Boolean)
+        .join(', '),
+    )
+    return `👨‍👩‍👧 Батьки: ${lines.join('; ')}`
   }
 
   static getClientPassPaymentRequestMessage(

@@ -63,7 +63,7 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
       const { promptMessageId, clientUserProfile } = this.scene.getState(ctx, ['promptMessageId', 'clientUserProfile'])
 
       const action = async () => {
-        await ClientHelper.renderClientManageMenu(ctx, clientUserProfile, false)
+        await ClientHelper.renderClientManageMenu(ctx, clientUserProfile, false, await this.userProfileService.getFamily(clientUserProfile.id))
       }
       return this.scene.handleAdminSceneExit(ctx, promptMessageId, action)
     })
@@ -227,7 +227,7 @@ export class EditUserProfileScene extends Scenes.WizardScene<BotContext> {
       const keyboard = KeyboardHelper.getRoleBasedMainMenuKeyboard(role)
 
       await ctx.replyWithHTML(`✅ ${this.displayNames[action] || 'Поле'} успішно оновлено!`, keyboard)
-      await ClientHelper.renderClientManageMenu(ctx, clientUserProfile, false)
+      await ClientHelper.renderClientManageMenu(ctx, clientUserProfile, false, await this.userProfileService.getFamily(clientUserProfile.id))
       return ctx.scene.leave()
     } catch (error) {
       return this.scene.handleAdminSceneError(ctx, error, this.mainTainerChatId)

@@ -32,6 +32,7 @@ import { APP } from '@app/libs'
   providers: [
     StageService,
     Stage.RegisterScene,
+    Stage.RegisterChildScene,
     Stage.VerifyClientScene,
     Stage.EditPassScene,
     Stage.EditUserProfileScene,

@@ -388,7 +388,7 @@ export class RegisterScene extends Scenes.WizardScene<BotContext> {
     })
 
     const sendMessageToStudioAdmins = async (ctx: BotContext) => {
-      const studioAdmins = await this.userProfileService.findStudioAdmins()
+      const studioAdmins = await this.userProfileService.findRequestReviewers()
       studioAdmins.forEach((admin) => {
         if (fileId && fileType) {
           const method = fileType === FileTypeEnum.PHOTO ? 'sendPhoto' : 'sendDocument'

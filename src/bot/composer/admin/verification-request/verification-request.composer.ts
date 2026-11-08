@@ -1,7 +1,7 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
-import { BotHelper, KeyboardHelper, PassHelper, RegexHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, ParentHelper, PassHelper, RegexHelper } from '@app/bot/helpers'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { PassActivationRequestsInlineMenu, VerificationInlineMenu } from '@app/bot/menus'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
@@ -106,12 +106,9 @@ export class VerificationRequestComposer {
           return
         }
 
-        await BotHelper.safeSendMessage(
-          ctx.telegram,
-          userProfile.telegramId,
-          MESSAGES_STAFF.VERIFY_SUCCESS,
-          TrainerKeyboards.mainMenu(),
-        )
+        if (userProfile.telegramId) {
+          await BotHelper.safeSendMessage(ctx.telegram, userProfile.telegramId, MESSAGES_STAFF.VERIFY_SUCCESS, TrainerKeyboards.mainMenu())
+        }
         await BotHelper.safeAnswerCbQuery(ctx, 'Тренер успішно верифікований ✅', { show_alert: true })
         BotHelper.safeDeleteMessage(ctx)
         return
@@ -127,12 +124,10 @@ export class VerificationRequestComposer {
         return
       }
 
-      await BotHelper.safeSendMessage(
-        ctx.telegram,
-        userProfile.telegramId,
-        MessageHelper.getClientWithoutPassVerifySuccess(userProfile.firstName),
-        ClientKeyboards.mainMenu(),
-      )
+      await ParentHelper.notifyVerified(ctx.telegram, this.userProfileService, userProfile, {
+        text: MessageHelper.getClientWithoutPassVerifySuccess(userProfile.firstName),
+        extra: ClientKeyboards.mainMenu(),
+      })
 
       await BotHelper.safeAnswerCbQuery(ctx, 'Клієнт успішно верифікований ✅', { show_alert: true })
       BotHelper.safeDeleteMessage(ctx)
@@ -142,15 +137,14 @@ export class VerificationRequestComposer {
 
   //todo: add are you sure?
   private rejectUserVerifyAction = async (ctx: BotContext) => {
-    await this.handleVerifyUserProfileAction(ctx, async ({ id, telegramId }) => {
-      await this.userProfileService.rejectVerificationRequest(id)
+    await this.handleVerifyUserProfileAction(ctx, async (userProfile) => {
+      await this.userProfileService.rejectVerificationRequest(userProfile.id)
       await Promise.all([
-        BotHelper.safeSendMessage(
-          ctx.telegram,
-          telegramId,
-          `Ваша заявка на підтвердження була відхилена ❌`,
-          CommonKeyboards.registerAs(),
-        ),
+        ParentHelper.notifyRejected(ctx.telegram, this.userProfileService, userProfile, {
+          text: `Ваша заявка на підтвердження була відхилена ❌`,
+          extra: CommonKeyboards.registerAs(),
+          guardianText: MessageHelper.getParentChildRejected(userProfile.fullName),
+        }),
         BotHelper.safeAnswerCbQuery(ctx, 'Ви відхилили запит на реєстрацію ❌'),
       ])
       await BotHelper.safeDeleteMessage(ctx)
@@ -159,15 +153,14 @@ export class VerificationRequestComposer {
 
   //todo: add are you sure?
   private blockUserAction = async (ctx: BotContext) => {
-    await this.handleVerifyUserProfileAction(ctx, async ({ id, telegramId }) => {
-      await this.userProfileService.rejectVerificationRequestAndBlockUser(id)
+    await this.handleVerifyUserProfileAction(ctx, async (userProfile) => {
+      await this.userProfileService.rejectVerificationRequestAndBlockUser(userProfile.id)
       await Promise.all([
-        BotHelper.safeSendMessage(
-          ctx.telegram,
-          telegramId,
-          `Доступ до боту було обмежено 🚫`,
-          KeyboardHelper.removeReplyMarkupKeyboard(),
-        ),
+        ParentHelper.notifyRejected(ctx.telegram, this.userProfileService, userProfile, {
+          text: `Доступ до боту було обмежено 🚫`,
+          extra: KeyboardHelper.removeReplyMarkupKeyboard(),
+          guardianText: MessageHelper.getParentChildBlocked(userProfile.fullName),
+        }),
         BotHelper.safeAnswerCbQuery(ctx, 'Ви заблокували користувача 🚫'),
       ])
       await BotHelper.safeDeleteMessage(ctx)
@@ -190,10 +183,9 @@ export class VerificationRequestComposer {
 
       await Promise.all([
         BotHelper.safeDeleteMessage(ctx),
-        BotHelper.safeSendMessage(
-          ctx.telegram,
-          passActivateRequest!.client.userProfile.telegramId,
-          `✅ Оплату за абонемент <b>${passActivateRequest!.pass.passTemplate.name}</b> підтверджено!\n` +
+        BotHelper.notifyClient(ctx.telegram, this.userProfileService, passActivateRequest!.client.userProfile, {
+          text:
+            `✅ Оплату за абонемент <b>${passActivateRequest!.pass.passTemplate.name}</b> підтверджено!\n` +
             // The group may have been changed by the admin: the client sees where the pass works
             PassHelper.getGroupLine(
               { type: passActivateRequest!.pass.passTemplate.type, groupMode: passActivateRequest!.pass.groupMode },
@@ -201,8 +193,8 @@ export class VerificationRequestComposer {
               { forClient: true },
             ) +
             `\n${PassHelper.getActivationInfo(passActivateRequest!.pass.passTemplate)}`,
-          { ...ClientKeyboards.mainMenu() },
-        ),
+          extra: { ...ClientKeyboards.mainMenu({ parent: await this.userProfileService.getParentMenu(passActivateRequest!.client.userProfile.id) }) },
+        }),
       ])
     })
   }
@@ -220,12 +212,13 @@ export class VerificationRequestComposer {
 
       await Promise.all([
         BotHelper.safeDeleteMessage(ctx),
-        BotHelper.safeSendMessage(
-          ctx.telegram,
-          passActivateRequest!.client.userProfile.telegramId,
-          `🚫 Ваш запит на активацію абонементу <b>${passActivateRequest!.pass.passTemplate.name}</b> було відхилено адміністратором.`,
-          { ...ClientKeyboards.mainMenu(), parse_mode: 'HTML' },
-        ),
+        BotHelper.notifyClient(ctx.telegram, this.userProfileService, passActivateRequest!.client.userProfile, {
+          text: `🚫 Ваш запит на активацію абонементу <b>${passActivateRequest!.pass.passTemplate.name}</b> було відхилено адміністратором.`,
+          extra: {
+            ...ClientKeyboards.mainMenu({ parent: await this.userProfileService.getParentMenu(passActivateRequest!.client.userProfile.id) }),
+            parse_mode: 'HTML',
+          },
+        }),
       ])
     })
   }

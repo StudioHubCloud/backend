@@ -195,7 +195,8 @@ export class ClientManageComposer {
     }
     BotHelper.safeAnswerCbQuery(ctx)
 
-    return ClientHelper.renderClientManageMenu(ctx, userProfile as UserProfileWithClient)
+    const family = await this.userProfileService.getFamily(userProfile.id)
+    return ClientHelper.renderClientManageMenu(ctx, userProfile as UserProfileWithClient, true, family)
   }
 
   /** The chosen pass (`passId`), else the client's current one; with several active passes the card switches between them. */
@@ -276,7 +277,11 @@ export class ClientManageComposer {
     const signup = await PersonalTrainingHelper.cancelByAdmin(
       ctx,
       signupId,
-      { personalTrainingSignupService: this.personalTrainingSignupService, passService: this.passService },
+      {
+        personalTrainingSignupService: this.personalTrainingSignupService,
+        passService: this.passService,
+        userProfileService: this.userProfileService,
+      },
       this.dateTimeProvider,
     )
 

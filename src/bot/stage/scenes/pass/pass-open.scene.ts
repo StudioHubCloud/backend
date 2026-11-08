@@ -23,6 +23,7 @@ import { PassTemplateService } from '@app/domain/pass-template'
 import { PassService } from '@app/domain/pass'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
+import { UserProfileService } from '@app/domain/user-profile'
 
 @Injectable()
 export class PassOpenScene extends Scenes.WizardScene<BotContext> {
@@ -36,6 +37,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
     private readonly passService: PassService,
     private readonly trainingSignupService: TrainingSignupService,
     private readonly groupService: GroupService,
+    private readonly userProfileService: UserProfileService,
   ) {
     super(
       SCENES.PASS_OPEN,
@@ -311,7 +313,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
 
       await Promise.all([
         ctx.replyWithHTML(`✅ Абонемент успішно відкрито!`, keyboard),
-        BotHelper.safeSendMessage(ctx.telegram, userProfile.telegramId, PassOpenSceneHelper.getClientInfoMessage(state)),
+        BotHelper.notifyClient(ctx.telegram, this.userProfileService, userProfile, { text: PassOpenSceneHelper.getClientInfoMessage(state) }),
       ])
 
       await this.renderPassManageMenu(ctx)

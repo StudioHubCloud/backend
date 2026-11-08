@@ -11,6 +11,7 @@ import { BotContext } from '../bot.context'
 import { MESSAGES_SCENE } from '../static/messages'
 import type { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
 import type { PassService } from '@app/domain/pass'
+import type { UserProfileService } from '@app/domain/user-profile'
 
 /** What a trainer needs to know about one individual session: one-off (price + note) or pass session (pass + client). */
 export interface IStaffPersonalSession {
@@ -82,7 +83,7 @@ export class PersonalTrainingHelper {
     return `${header}\n\n${history}`
   }
 
-  /** "✅ Мої активні записи" for an individual pass: planned (future, not cancelled) sessions, or null when none. */
+  /** "✅ Активні записи" for an individual pass: planned (future, not cancelled) sessions, or null when none. */
   static getClientUpcomingMessage(signups: GetPersonalTrainingSignupListItem[], dateTimeProvider: DateTimeProvider): string | null {
     const now = Date.now()
     const upcoming = signups
@@ -242,7 +243,7 @@ export class PersonalTrainingHelper {
   static async cancelByAdmin(
     ctx: BotContext,
     signupId: string,
-    services: { personalTrainingSignupService: PersonalTrainingSignupService; passService: PassService },
+    services: { personalTrainingSignupService: PersonalTrainingSignupService; passService: PassService; userProfileService: UserProfileService },
     dateTimeProvider: DateTimeProvider,
   ) {
     const signup = await services.personalTrainingSignupService.findById(signupId)
@@ -275,14 +276,12 @@ export class PersonalTrainingHelper {
 
     if (signup.client?.userProfile) {
       const updatedPass = canceled.passId ? await services.passService.getPassById(canceled.passId) : null
-      await BotHelper.safeSendMessage(
-        ctx.telegram,
-        signup.client.userProfile.telegramId,
-        this.getClientCanceledMessage(canceled.scheduledAt, updatedPass?.availableSlots ?? 0, dateTimeProvider),
-      )
+      await BotHelper.notifyClient(ctx.telegram, services.userProfileService, signup.client.userProfile, {
+        text: this.getClientCanceledMessage(canceled.scheduledAt, updatedPass?.availableSlots ?? 0, dateTimeProvider),
+      })
     }
 
-    if (signup.staffMember?.userProfile) {
+    if (signup.staffMember?.userProfile?.telegramId) {
       await BotHelper.safeSendMessage(
         ctx.telegram,
         signup.staffMember.userProfile.telegramId,

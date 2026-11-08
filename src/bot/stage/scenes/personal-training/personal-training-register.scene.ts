@@ -378,24 +378,24 @@ export class PersonalTrainingRegisterScene extends Scenes.WizardScene<BotContext
       const updatedPass = created.passId ? await this.passService.getPassById(created.passId) : null
       const remainingSlots = updatedPass?.availableSlots ?? 0
 
-      await BotHelper.safeSendMessage(
-        ctx.telegram,
-        clientUserProfile.telegramId,
-        PersonalTrainingHelper.getClientRegisteredMessage(
+      await BotHelper.notifyClient(ctx.telegram, this.userProfileService, clientUserProfile, {
+        text: PersonalTrainingHelper.getClientRegisteredMessage(
           UserHelper.getDisplayName(staffMember.userProfile),
           scheduledAt,
           remainingSlots,
           this.dateTimeProvider,
         ),
-      )
-      await BotHelper.safeSendMessage(
-        ctx.telegram,
-        staffMember.userProfile.telegramId,
-        PersonalTrainingHelper.getTrainerRegisteredMessage(
-          { ...created, client: { userProfile: clientUserProfile }, pass: updatedPass },
-          this.dateTimeProvider,
-        ),
-      )
+      })
+      if (staffMember.userProfile.telegramId) {
+        await BotHelper.safeSendMessage(
+          ctx.telegram,
+          staffMember.userProfile.telegramId,
+          PersonalTrainingHelper.getTrainerRegisteredMessage(
+            { ...created, client: { userProfile: clientUserProfile }, pass: updatedPass },
+            this.dateTimeProvider,
+          ),
+        )
+      }
 
       // The client's current pass is another one (e.g. a group pass): say which pass paid
       const passNote =

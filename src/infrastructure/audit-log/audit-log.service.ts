@@ -35,6 +35,7 @@ export class AuditLogService {
           payload: operation.payload,
           metadata: {
             ...(auditData.command ? { command: auditData.command } : {}),
+            ...(auditData.onBehalfOf ? { onBehalfOf: auditData.onBehalfOf } : {}),
             ...operation.metadata,
           },
         })

@@ -1,5 +1,5 @@
 import { BotContext } from '@app/bot/bot.context'
-import { BotHelper, PassHelper, PersonalTrainingHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, MessageHelper, PassHelper, PersonalTrainingHelper, ProfileMenuHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { ClientKeyboards, PersonalTrainingKeyboards } from '@app/bot/keyboard/storage'
 import { CALLBACK_PREFIX } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
@@ -46,11 +46,11 @@ export class PassInfoComposer {
    * client works with: highlighted group in "Розклад", this card).
    */
   private renderPassInfo = async (ctx: BotContext, shouldEdit: boolean) => {
-    const { client } = UserHelper.getUser(ctx)
+    const { client } = UserHelper.getActingUser(ctx)
     const pass = await this.passService.findActivePassByClientId(client?.id, { withExpired: true, withRequested: true })
 
     if (!pass || !client) {
-      return ctx.reply('📋 В тебе немає жодного абонементу')
+      return ctx.replyWithHTML(MessageHelper.withActingChild(ctx, '📋 В тебе немає жодного абонементу'))
     }
 
     const isIndividual = pass.passTemplate.type === PassTemplateTypeEnum.INDIVIDUAL
@@ -74,12 +74,19 @@ export class PassInfoComposer {
         ? PersonalTrainingKeyboards.passRulesButton()
         : undefined
 
-    return shouldEdit ? BotHelper.safeEditMessageText(ctx, message, keyboard) : ctx.replyWithHTML(message, keyboard)
+    message = MessageHelper.withActingChild(ctx, message)
+    if (shouldEdit) {
+      return BotHelper.safeEditMessageText(ctx, message, keyboard)
+    }
+    const card = await ctx.replyWithHTML(message, keyboard)
+    // The pass switcher / memo act for this profile: bound to it (profileMenuGuardMiddleware)
+    ProfileMenuHelper.bind(ctx, card.message_id)
+    return card
   }
 
   /** The client picks the current pass; the client comes from the session, the service checks the pass is theirs. */
   private passSwitchHandler = async (ctx: BotContext) => {
-    const { client } = UserHelper.getUser(ctx)
+    const { client } = UserHelper.getActingUser(ctx)
     const [passId] = RegexHelper.getMatchGroupValue(ctx)
 
     if (!client || !passId) {
@@ -98,7 +105,7 @@ export class PassInfoComposer {
 
   private passRulesHandler = async (ctx: BotContext) => {
     BotHelper.safeAnswerCbQuery(ctx)
-    const { client } = UserHelper.getUser(ctx)
+    const { client } = UserHelper.getActingUser(ctx)
     const pass = await this.passService.findActivePassByClientId(client?.id, { withExpired: true, withRequested: true })
     return ctx.replyWithHTML(PassHelper.getRulesMessage(pass?.passTemplate))
   }

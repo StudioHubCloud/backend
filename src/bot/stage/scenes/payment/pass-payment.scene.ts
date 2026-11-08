@@ -1,7 +1,7 @@
-import { BotHelper, PassHelper, RegexHelper, SceneHelper, UserHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, PassHelper, RegexHelper, SceneHelper, UserHelper } from '@app/bot/helpers'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { BotContext } from '@app/bot/bot.context'
-import { AdminKeyboards, ClientKeyboards, CommonSceneKeyboards } from '@app/bot/keyboard/storage'
+import { AdminKeyboards, CommonSceneKeyboards } from '@app/bot/keyboard/storage'
 import { PassRelatedKeyboards } from '@app/bot/keyboard/storage/scene-keyboards'
 import { AuthUserProfile, CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
@@ -73,7 +73,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       // Remove the scene's welcome, menu and uploaded-file messages so they don't stay in chat history.
       // .catch: the client may exit days later, when Telegram no longer allows deleting them.
       await ctx.deleteMessages(this.getSceneMessageIds(ctx)).catch(() => {})
-      await ctx.replyWithHTML(message, ClientKeyboards.mainMenu())
+      await ctx.replyWithHTML(message, KeyboardHelper.getMainMenuKeyboard(ctx))
       return ctx.scene.leave()
     })
 
@@ -82,10 +82,13 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
 
       const todayDateString = this.dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_MAIN)
 
-      const messageText =
+      const welcome =
         requestType === PassActivationRequestTypeEnum.PURCHASE
           ? MESSAGES_SCENE.PAYMENT.PASS_PURCHASE_WELCOME
           : MESSAGES_SCENE.PAYMENT.PASS_RENEW_WELCOME
+      // A parent buying for a child: the child is fixed in the scene state at entry (a later switch doesn't move it)
+      const { userProfile } = this.passPaymentScene.getState(ctx, ['userProfile'])
+      const messageText = this.isForChild(ctx, userProfile) ? `${MessageHelper.getChildLine(userProfile.fullName)}\n${welcome}` : welcome
 
       const message = await ctx.replyWithHTML(messageText, CommonSceneKeyboards.exit())
       this.passPaymentScene.setState(ctx, {
@@ -375,18 +378,27 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
 
     await ctx.deleteMessages(messagesToDelete)
 
-    const studioAdmins = await this.userProfileService.findStudioAdmins()
+    const studioAdmins = await this.userProfileService.findRequestReviewers()
     const method = fileType === FileTypeEnum.PHOTO ? 'sendPhoto' : 'sendDocument'
+    // Paid by a parent for a child: the admin sees whom to contact
+    const parents = this.isForChild(ctx, userProfile) ? await this.userProfileService.findGuardians(userProfile.id) : []
+    const caption =
+      MessageHelper.getClientPassPaymentRequestMessage(userProfile, passTemplate, requestType, groupName) +
+      (parents.length ? `\n\n${MessageHelper.getParentsLine(parents)}` : '')
 
     for (const admin of studioAdmins) {
       await ctx.telegram[method](admin.telegramId, fileId, {
-        caption: MessageHelper.getClientPassPaymentRequestMessage(userProfile, passTemplate, requestType, groupName),
+        caption,
         ...AdminKeyboards.verifyPassActions(activationRequest.id, { withGroupChange: this.isFixedGroupPass(passTemplate) }),
         parse_mode: 'HTML',
       })
     }
-    await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS, ClientKeyboards.mainMenu())
+    await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS, KeyboardHelper.getMainMenuKeyboard(ctx))
     return ctx.scene.leave()
+  }
+
+  private isForChild(ctx: BotContext, userProfile?: AuthUserProfile | null): userProfile is AuthUserProfile {
+    return !!userProfile && userProfile.id !== UserHelper.getUser(ctx).id
   }
 
   private handleFileResetAction = async (ctx: BotContext) => {
@@ -479,7 +491,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     )
     await ctx.replyWithHTML(
       `❌ Виникла помилка: ${error?.message}. Спробуйте ще раз або зверніться до адміністратора.`,
-      ClientKeyboards.mainMenu(),
+      KeyboardHelper.getMainMenuKeyboard(ctx),
     )
     return ctx.scene.leave()
   }

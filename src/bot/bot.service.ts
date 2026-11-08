@@ -63,6 +63,7 @@ export class BotService implements OnModuleDestroy {
     this.bot.use(this.middlewareService.timerMiddleware)
     this.bot.use(this.middlewareService.loggingMiddleware)
     this.bot.use(this.middlewareService.authMiddleware)
+    this.bot.use(this.middlewareService.profileMenuGuardMiddleware)
   }
 
   private initExitGuard() {
@@ -74,7 +75,7 @@ export class BotService implements OnModuleDestroy {
 
     this.bot.hears('🚪 Вийти', async (ctx) => {
       const user = UserHelper.getUser(ctx)
-      await ctx.replyWithHTML('Головне меню', KeyboardHelper.getRoleBasedMainMenuKeyboard(user.role))
+      await ctx.replyWithHTML('Головне меню', KeyboardHelper.getMainMenuKeyboard(ctx))
       this.logger.error('Global Scene Exit guard triggered for userId: %s', user.telegramId)
 
       if (ctx.scene.current?.id) {

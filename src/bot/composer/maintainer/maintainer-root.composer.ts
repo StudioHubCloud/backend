@@ -6,7 +6,7 @@ import { ClientKeyboards, MaintainerKeyboards } from '@app/bot/keyboard/storage'
 import { AdminRootComposer } from '../admin/admin-root.composer'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { RedisCacheService } from '@app/infrastructure/redis'
-import { UserProfileService } from '@app/domain/user-profile'
+import { UserProfileService, hasTelegram } from '@app/domain/user-profile'
 import { BotHelper, KeyboardHelper, UserHelper } from '@app/bot/helpers'
 
 @Injectable()
@@ -45,11 +45,13 @@ export class MaintainerRootComposer {
       await ctx.reply('Кеш очищено ✅')
     })
     this.composer.hears(BUTTON_PATTERNS.RESET_MAIN_MENU, async (ctx) => {
-      const clients = await this.userProfileService.getClientsUserProfiles({ withArchived: true })
+      // Children without Telegram are managed from their parent's menu
+      const clients = (await this.userProfileService.getClientsUserProfiles({ withArchived: true })).filter(hasTelegram)
+      const parentMenus = await this.userProfileService.getParentMenus()
 
       await Promise.all(
         clients.map(async (userProfile) => {
-          BotHelper.safeSendMessage(ctx.telegram, userProfile.telegramId, '🔄 Оновлення головного меню', ClientKeyboards.mainMenu())
+          BotHelper.safeSendMessage(ctx.telegram, userProfile.telegramId, '🔄 Оновлення головного меню', ClientKeyboards.mainMenu({ parent: parentMenus.get(userProfile.id) ?? null }))
         }),
       )
 

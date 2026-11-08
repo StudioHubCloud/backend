@@ -320,27 +320,25 @@ export class CronService {
       for (const training of trainings) {
         this.logger.debug(`Processing training ID: ${training.id}, date: ${training.date}`)
 
-        training.trainingSignups
-          .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
-          .forEach(async (signup) => {
-            if (!signup.userProfile) {
-              return this.logger.warn(`No user profile found for signup ID: ${signup.id} in training ID: ${training.id}`)
-            }
-            const name = signup.userProfile.firstName
-            const groupStyle = signup.group.groupStyle.title
-            const telegramId = signup.userProfile.telegramId
-            await Promise.all([
-              this.botNotificationService.sendTrainingReminderNotification({
-                name,
-                groupStyle,
-                date: training.date,
-                telegramId,
-                min: signup.group.groupAgeRestrictions?.minAge || null,
-                max: signup.group.groupAgeRestrictions?.maxAge || null,
-              }),
-              this.trainingService.updateTraining(training.id, { reminderSent: true }),
-            ])
-          })
+        await Promise.all(
+          training.trainingSignups
+            .filter((s) => s.type !== TrainingSignupTypeEnum.SPECIAL)
+            .map(async (signup) => {
+              if (!signup.userProfile) {
+                return this.logger.warn(`No user profile found for signup ID: ${signup.id} in training ID: ${training.id}`)
+              }
+              await Promise.all([
+                this.botNotificationService.sendTrainingReminderNotification({
+                  userProfile: signup.userProfile,
+                  groupStyle: signup.group.groupStyle.title,
+                  date: training.date,
+                  min: signup.group.groupAgeRestrictions?.minAge || null,
+                  max: signup.group.groupAgeRestrictions?.maxAge || null,
+                }),
+                this.trainingService.updateTraining(training.id, { reminderSent: true }),
+              ])
+            }),
+        )
 
         this.logger.debug(`Training ID: ${training.id} - Notifications sent for ${training.trainingSignups.length} signups`)
       }
@@ -370,18 +368,17 @@ export class CronService {
         const clientUserProfile = session.client?.userProfile
 
         if (clientUserProfile && clientUserProfile.status === UserProfileStatusEnum.ACTIVE) {
-          await this.botNotificationService.sendCustomNotification(
-            clientUserProfile.telegramId,
-            PersonalTrainingHelper.getClientReminderMessage(
+          await this.botNotificationService.notifyClient(clientUserProfile, {
+            text: PersonalTrainingHelper.getClientReminderMessage(
               clientUserProfile.firstName,
               UserHelper.getDisplayName(trainerUserProfile ?? null),
               session.scheduledAt,
               this.dateTimeProvider,
             ),
-          )
+          })
         }
 
-        if (trainerUserProfile) {
+        if (trainerUserProfile?.telegramId) {
           await this.botNotificationService.sendCustomNotification(
             trainerUserProfile.telegramId,
             PersonalTrainingHelper.getTrainerReminderMessage(session, this.dateTimeProvider),

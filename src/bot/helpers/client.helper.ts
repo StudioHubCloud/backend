@@ -6,9 +6,15 @@ import { MessageHelper } from './message.helper'
 import { UserHelper } from './user.helper'
 
 export class ClientHelper {
-  static async renderClientManageMenu(ctx: BotContext, clientUserProfile: UserProfileWithClient, shouldEdit = true) {
+  static async renderClientManageMenu(
+    ctx: BotContext,
+    clientUserProfile: UserProfileWithClient,
+    shouldEdit = true,
+    family?: Parameters<typeof MessageHelper.getFamilyLines>[0],
+  ) {
     const isArchived = UserHelper.isArchivedProfile(clientUserProfile)
-    const message = MessageHelper.getClientManageHeaderMessage(clientUserProfile)
+    const familyLines = family ? MessageHelper.getFamilyLines(family) : ''
+    const message = MessageHelper.getClientManageHeaderMessage(clientUserProfile) + (familyLines ? `\n\n${familyLines}` : '')
 
     if (shouldEdit) {
       return BotHelper.safeEditMessageText(ctx, message, AdminKeyboards.clientManageMenu(clientUserProfile.id, isArchived))

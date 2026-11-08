@@ -13,6 +13,7 @@ export class BotContext extends Context {
     super(update, api, me)
     this.store = {
       user: null,
+      actingUser: null,
       audit: null,
     }
   }

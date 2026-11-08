@@ -1,6 +1,6 @@
 import { Composer } from 'telegraf'
 import { BotContext } from '@app/bot/bot.context'
-import { BotHelper, KeyboardHelper, RegexHelper } from '@app/bot/helpers'
+import { BotHelper, KeyboardHelper, ProfileMenuHelper, RegexHelper } from '@app/bot/helpers'
 import { ISelectInlineMenuConfig, TNormalizedOption, TPaginatedMenuRenderOptions, TPaginatedMenuState } from '@app/bot/libs'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { MESSAGES_COMMON } from '@app/bot/static/messages'
@@ -57,13 +57,23 @@ export abstract class BasePaginatedSelectInlineMenu<T extends Record<string, any
 
     const promptMessage = this.getPromptText(ctx, params)
 
+    // A menu rendered for a profile (`context.profileId`) works only while it is selected (profileMenuGuardMiddleware)
+    const profileId = renderOptions.context?.profileId
+
     if (renderOptions.shouldEdit) {
-      this.setState(ctx, ctx.callbackQuery?.message?.message_id, { params, renderOptions })
+      const messageId = ctx.callbackQuery?.message?.message_id
+      this.setState(ctx, messageId, { params, renderOptions })
+      if (profileId) {
+        ProfileMenuHelper.bind(ctx, messageId, profileId)
+      }
       return BotHelper.safeEditMessageText(ctx, promptMessage, { reply_markup: menu })
     }
 
     const sentMessage = await ctx.reply(promptMessage, { reply_markup: menu, parse_mode: 'HTML' })
     this.setState(ctx, sentMessage.message_id, { params, renderOptions })
+    if (profileId) {
+      ProfileMenuHelper.bind(ctx, sentMessage.message_id, profileId)
+    }
     return sentMessage
   }
 
