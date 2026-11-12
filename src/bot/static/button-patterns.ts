@@ -69,6 +69,7 @@ export const BUTTON_PATTERNS = {
   TRAINERS: '👨‍🏫 Тренери',
   GROUP_PASS_TYPE: '👥 Груповий абонемент',
   INDIVIDUAL_PASS_TYPE: '👤 Індивідуальний абонемент',
+  SHOW_ALL_GROUPS: '👀 Показати всі групи',
   SCHEDULES_INFO: '📝 Інформація про записи',
   SEE_DETAILS: '📑 Переглянути деталі',
   INITIATE_PAYOUT: '💸 Виплатити зарплату',

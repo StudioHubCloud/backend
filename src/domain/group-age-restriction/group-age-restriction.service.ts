@@ -3,12 +3,14 @@ import { PinoLogger } from 'nestjs-pino'
 import { UserProfileService } from '../user-profile'
 import { GroupService } from '../group/group.service'
 import { differenceInYears } from 'date-fns'
-import { GroupAgeRestrictionCacheKey, RedisCacheService } from '@app/infrastructure/redis'
+import { GroupAgeRestrictionCacheKey, GroupCacheKey, RedisCacheService } from '@app/infrastructure/redis'
+import { DatabaseService, groupAgeRestrictionException } from '@app/infrastructure/database'
 
 @Injectable()
 export class GroupAgeRestrictionService {
 
   constructor(
+    private readonly databaseService: DatabaseService,
     private readonly redisCacheService: RedisCacheService,
     private readonly userProfileService: UserProfileService,
     private readonly groupService: GroupService,
@@ -39,11 +41,7 @@ export class GroupAgeRestrictionService {
         return true
       }
 
-      if (!userProfile.dateOfBirth) {
-        this.logger.warn('Age check failed! User profile %s does not have dateOfBirth', userProfileId)
-        return false
-      }
-
+      // An admin's exception wins even without a date of birth
       if (group.groupAgeRestrictionExeptions) {
         const exception = group.groupAgeRestrictionExeptions.find((exception) => exception.userProfileId === userProfileId)
         if (exception) {
@@ -51,7 +49,12 @@ export class GroupAgeRestrictionService {
           return true
         }
       }
-      
+
+      if (!userProfile.dateOfBirth) {
+        this.logger.warn('Age check failed! User profile %s does not have dateOfBirth', userProfileId)
+        return false
+      }
+
       const { allowedThreshold, maxAge, minAge } = group.groupAgeRestrictions
       const threshhold = allowedThreshold ?? 0
 
@@ -84,5 +87,21 @@ export class GroupAgeRestrictionService {
     const canSchedule = await validateAgeRestriction()
     await this.redisCacheService.set(cacheKey, canSchedule)
     return canSchedule
+  }
+
+  /**
+   * Admin lets a client into a group outside its age limits (opening a pass for that group). Idempotent; drops the
+   * cached group (it carries the exceptions) and the cached age check, so signups work at once.
+   */
+  async addException(userProfileId: string, groupId: number): Promise<void> {
+    await this.databaseService.drizzle
+      .insert(groupAgeRestrictionException)
+      .values({ userProfileId, groupId })
+      .onConflictDoNothing({ target: [groupAgeRestrictionException.userProfileId, groupAgeRestrictionException.groupId] })
+
+    await Promise.all([
+      this.redisCacheService.delete(GroupCacheKey.groupById(groupId)),
+      this.redisCacheService.delete(GroupAgeRestrictionCacheKey.passedAgeRestriction(userProfileId, groupId)),
+    ])
   }
 }

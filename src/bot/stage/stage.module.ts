@@ -2,6 +2,7 @@ import { Module } from '@nestjs/common'
 import { StageService } from './stage.service'
 import * as Stage from './scenes'
 import {
+  GroupAgeRestrictionModule,
   GroupModule,
   PassModule,
   PassTemplateModule,
@@ -22,6 +23,7 @@ import { APP } from '@app/libs'
     PassTemplateModule,
     TrainingSignupModule,
     GroupModule,
+    GroupAgeRestrictionModule,
     StaffMemberPayoutModule,
     PassModule,
     TrainingModule,

@@ -254,28 +254,14 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     const passTemplateData = await this.passTemplateService.getById(templateId)
     const { userProfile } = this.passPaymentScene.getState(ctx)
 
-    if (passTemplateData.passTemplateAgeRestriction && userProfile?.dateOfBirth) {
-      const { minAge, maxAge } = passTemplateData.passTemplateAgeRestriction
-      const age = this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth)
-
-      const meetsMinAge = minAge === null || age >= minAge
-      const meetsMaxAge = maxAge === null || age <= maxAge
-
-      if (!meetsMinAge || !meetsMaxAge) {
-        const ageRangeText =
-          minAge !== null && maxAge !== null
-            ? `${minAge} - ${maxAge} років`
-            : minAge !== null
-              ? `від ${minAge} років`
-              : `до ${maxAge} років`
-
-        BotHelper.safeAnswerCbQuery(
-          ctx,
-          `😔 Цей абонемент призначений для іншої вікової групи.\n\n👤 Твій вік: ${age} років\n📋 Потрібний вік: ${ageRangeText}\n\n💡 Спробуй обрати інший абонемент!`,
-          { show_alert: true },
-        )
-        return BotHelper.safeDeleteMessage(ctx)
-      }
+    // A button from an old list: refused with an alert, the scene stays on the template list
+    const age = userProfile?.dateOfBirth ? this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth) : null
+    const ageRange = PassHelper.getTemplateAgeMismatch(passTemplateData.passTemplateAgeRestriction, age)
+    if (ageRange) {
+      await BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PAYMENT.TEMPLATE_AGE_MISMATCH(PassHelper.formatAge(age!), ageRange), {
+        show_alert: true,
+      })
+      return this.renderPassTemplateSelectMenu(ctx)
     }
 
     if (this.isFixedGroupPass(passTemplateData)) {
@@ -432,10 +418,14 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
   }
 
   private renderPassTemplateSelectMenu = async (ctx: BotContext) => {
-    const { selectedPassType } = this.passPaymentScene.getState(ctx, ['selectedPassType'])
+    const { selectedPassType, userProfile } = this.passPaymentScene.getState(ctx)
+    const age = userProfile?.dateOfBirth ? this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth) : null
 
     const result = await this.passTemplateService.getAll()
-    const filteredTemplates = result.filter((template) => template.type === selectedPassType)
+    // Templates outside the client's age (BABY for an adult) aren't offered
+    const filteredTemplates = result.filter(
+      (template) => template.type === selectedPassType && !PassHelper.getTemplateAgeMismatch(template.passTemplateAgeRestriction, age),
+    )
 
     if (!filteredTemplates.length) {
       return await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.NO_PASS_TEMPLATES)

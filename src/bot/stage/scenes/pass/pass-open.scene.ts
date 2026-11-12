@@ -23,6 +23,7 @@ import { PassTemplateService } from '@app/domain/pass-template'
 import { PassService } from '@app/domain/pass'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
+import { GroupAgeRestrictionService } from '@app/domain/group-age-restriction'
 import { UserProfileService } from '@app/domain/user-profile'
 
 @Injectable()
@@ -37,6 +38,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
     private readonly passService: PassService,
     private readonly trainingSignupService: TrainingSignupService,
     private readonly groupService: GroupService,
+    private readonly groupAgeRestrictionService: GroupAgeRestrictionService,
     private readonly userProfileService: UserProfileService,
   ) {
     super(
@@ -105,6 +107,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
       const confirmOpenActionMatch = textPayload === CALLBACK_PREFIX.SCENES.PASS.CONFIRM_OPEN
       const groupSelectActionMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.GROUP_SELECT, textPayload)
       const backFromGroupActionMatch = textPayload === CALLBACK_PREFIX.SCENES.PASS.GROUP_BACK
+      const showAllGroupsActionMatch = textPayload === CALLBACK_PREFIX.SCENES.PASS.GROUP_SHOW_ALL
 
       switch (true) {
         case !!backToTypeSelectActionMatch: {
@@ -137,6 +140,9 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
           const [groupId] = groupSelectActionMatch
           return this.handleGroupSelectAction(ctx, Number(groupId))
         }
+        case showAllGroupsActionMatch: {
+          return this.handleShowAllGroupsAction(ctx)
+        }
         case !!backFromGroupActionMatch: {
           BotHelper.safeAnswerCbQuery(ctx)
           return this.renderPassTemplateSelectMenu(ctx)
@@ -166,10 +172,14 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
   }
 
   private renderPassTemplateSelectMenu = async (ctx: BotContext) => {
-    const { selectedPassType } = this.scene.getState(ctx, ['selectedPassType'])
+    const { selectedPassType, userProfile } = this.scene.getState(ctx)
+    const age = userProfile?.dateOfBirth ? this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth) : null
 
     const result = await this.passTemplateService.getAll()
-    const filteredTemplates = result.filter((template) => template.type === selectedPassType)
+    // Templates outside the client's age (BABY for an adult) aren't offered
+    const filteredTemplates = result.filter(
+      (template) => template.type === selectedPassType && !PassHelper.getTemplateAgeMismatch(template.passTemplateAgeRestriction, age),
+    )
 
     if (!filteredTemplates.length) {
       return await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.NO_PASS_TEMPLATES)
@@ -211,33 +221,26 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
     const passTemplateData = await this.passTemplateService.getById(templateId)
     const { userProfile, saleDate } = this.scene.getState(ctx)
 
-    if (passTemplateData.passTemplateAgeRestriction && userProfile?.dateOfBirth) {
-      const { minAge, maxAge } = passTemplateData.passTemplateAgeRestriction
-      const age = this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth)
-      // todo: handle exeption passTemplateAgeRestrictionExeptions
-      const meetsMinAge = minAge === null || age >= minAge
-      const meetsMaxAge = maxAge === null || age <= maxAge
-
-      if (!meetsMinAge || !meetsMaxAge) {
-        const ageRangeText =
-          minAge !== null && maxAge !== null
-            ? `${minAge} - ${maxAge} років`
-            : minAge !== null
-              ? `від ${minAge} років`
-              : `до ${maxAge} років`
-
-        BotHelper.safeAnswerCbQuery(
-          ctx,
-          `😔 Цей абонемент призначений для іншої вікової групи.\n\n👤 Твій вік: ${age} років\n📋 Потрібний вік: ${ageRangeText}\n\n💡 Спробуй обрати інший абонемент!`,
-          { show_alert: true },
-        )
-        return BotHelper.safeDeleteMessage(ctx)
-      }
+    // A button from an old list: refused with an alert, the scene stays on the template list
+    // todo: handle exeption passTemplateAgeRestrictionExeptions
+    const age = userProfile?.dateOfBirth ? this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth) : null
+    const ageRange = PassHelper.getTemplateAgeMismatch(passTemplateData.passTemplateAgeRestriction, age)
+    if (ageRange) {
+      await BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_OPEN.TEMPLATE_AGE_MISMATCH(PassHelper.formatAge(age!), ageRange), {
+        show_alert: true,
+      })
+      return this.renderPassTemplateSelectMenu(ctx)
     }
 
     BotHelper.safeAnswerCbQuery(ctx)
 
-    this.scene.setState(ctx, { passTemplate: passTemplateData, groupId: null, groupName: undefined })
+    this.scene.setState(ctx, {
+      passTemplate: passTemplateData,
+      groupId: null,
+      groupName: undefined,
+      showAllGroups: false,
+      ageException: false,
+    })
 
     if (passTemplateData.type === PassTemplateTypeEnum.GROUP && passTemplateData.groupMode === PassGroupModeEnum.FIXED) {
       return this.renderGroupSelectMenu(ctx)
@@ -247,30 +250,54 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
 
   /**
    * FIXED group pass: the group it is bound to. The client's current pass's group (a renewal) is first and green;
-   * groups for the client's age, or all active ones when none fits.
+   * groups for the client's age, or all active ones when none fits. "👀 Показати всі групи" lists every active group
+   * (a group outside the client's age gets an exception when the pass is opened).
    */
   private renderGroupSelectMenu = async (ctx: BotContext) => {
-    const { userProfile } = this.scene.getState(ctx)
+    const { userProfile, showAllGroups } = this.scene.getState(ctx)
     const [{ groups, isAgeFiltered }, currentPass] = await Promise.all([
-      this.groupService.getGroupsForClientPass(userProfile?.dateOfBirth ?? null),
+      showAllGroups
+        ? this.groupService.getAllActiveGroups().then((groups) => ({ groups, isAgeFiltered: false }))
+        : this.groupService.getGroupsForClientPass(userProfile?.dateOfBirth ?? null),
       this.passService.getCurrentPass(userProfile.client.id),
     ])
     const suggestedGroupId = currentPass?.groupMode === PassGroupModeEnum.FIXED ? currentPass.groupId : null
+    const message = showAllGroups
+      ? MESSAGES_SCENE.PASS_GROUP.SELECT_ANY
+      : isAgeFiltered
+        ? MESSAGES_SCENE.PASS_GROUP.SELECT
+        : MESSAGES_SCENE.PASS_GROUP.SELECT_ALL
 
     return BotHelper.safeEditMessageText(
       ctx,
-      isAgeFiltered ? MESSAGES_SCENE.PASS_GROUP.SELECT : MESSAGES_SCENE.PASS_GROUP.SELECT_ALL,
+      message,
       PassRelatedKeyboards.passGroupSelectInlineKeyboard(groups, {
         suggestedGroupId,
         backCallbackData: CALLBACK_PREFIX.SCENES.PASS.GROUP_BACK,
+        showAllCallbackData: isAgeFiltered ? CALLBACK_PREFIX.SCENES.PASS.GROUP_SHOW_ALL : undefined,
       }),
     )
   }
 
+  private handleShowAllGroupsAction = async (ctx: BotContext) => {
+    if (!UserHelper.isAdminRole(ctx)) {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.HINT, { show_alert: true })
+    }
+    BotHelper.safeAnswerCbQuery(ctx)
+    this.scene.setState(ctx, { showAllGroups: true })
+    return this.renderGroupSelectMenu(ctx)
+  }
+
   private handleGroupSelectAction = async (ctx: BotContext, groupId: number) => {
     // Re-checked: the button may be from an old list
-    const { userProfile } = this.scene.getState(ctx)
-    const { groups } = await this.groupService.getGroupsForClientPass(userProfile?.dateOfBirth ?? null)
+    const { userProfile, showAllGroups } = this.scene.getState(ctx)
+    const dateOfBirth = userProfile?.dateOfBirth ?? null
+    const [{ groups }, ageGroups] = await Promise.all([
+      showAllGroups && UserHelper.isAdminRole(ctx)
+        ? this.groupService.getAllActiveGroups().then((groups) => ({ groups }))
+        : this.groupService.getGroupsForClientPass(dateOfBirth),
+      this.groupService.getAgeAppropriateActiveGroups(dateOfBirth),
+    ])
     const group = groups.find((g) => g.id === groupId)
 
     if (!group) {
@@ -278,7 +305,9 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
     }
 
     BotHelper.safeAnswerCbQuery(ctx)
-    this.scene.setState(ctx, { groupId: group.id, groupName: group.name })
+    // Outside the age (picked from "all groups"): signups would be refused without an exception
+    const ageException = !ageGroups.some((g) => g.id === group.id)
+    this.scene.setState(ctx, { groupId: group.id, groupName: group.name, ageException })
     return this.renderConfirmMenu(ctx)
   }
 
@@ -302,6 +331,10 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
         groupMode: passTemplate.groupMode,
         groupId: isFixedGroupPass ? groupId : null,
       })
+
+      if (isFixedGroupPass && groupId && state.ageException) {
+        await this.groupAgeRestrictionService.addException(userProfile.id, groupId)
+      }
 
       AuditLogHelper.startAction(ctx, AuditLogActions.PASS_CREATE, AuditLogTrigger.ADMIN_ACTION, logOperations)
 

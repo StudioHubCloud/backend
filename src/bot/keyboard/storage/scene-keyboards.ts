@@ -114,7 +114,11 @@ export class PassRelatedKeyboards {
    */
   static passGroupSelectInlineKeyboard(
     groups: (GroupSelectModel & { groupStyle?: { emoji: string } | null })[],
-    { suggestedGroupId, backCallbackData }: { suggestedGroupId?: number | null; backCallbackData?: string } = {},
+    {
+      suggestedGroupId,
+      backCallbackData,
+      showAllCallbackData,
+    }: { suggestedGroupId?: number | null; backCallbackData?: string; showAllCallbackData?: string } = {},
   ): TReplyInlineKeyboard {
     const sorted = [...groups].sort((a, b) => Number(b.id === suggestedGroupId) - Number(a.id === suggestedGroupId))
     const rows: InlineKeyboardButton[][] = sorted.map((group) => {
@@ -124,6 +128,10 @@ export class PassRelatedKeyboards {
       }
       return [group.id === suggestedGroupId ? KeyboardHelper.withStyle(button, 'success') : button]
     })
+
+    if (showAllCallbackData) {
+      rows.push([{ text: BUTTON_PATTERNS.SHOW_ALL_GROUPS, callback_data: showAllCallbackData }])
+    }
 
     if (backCallbackData) {
       rows.push([{ text: BUTTON_PATTERNS.BACK, callback_data: backCallbackData }])

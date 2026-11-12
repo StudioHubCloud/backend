@@ -2,7 +2,7 @@ import { Scenes } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
 import { CALLBACK_PREFIX, SCENES } from '@app/bot/libs'
-import { SceneHelper, BotHelper, RegexHelper, UserHelper, KeyboardHelper, TextHelper, ParentHelper } from '@app/bot/helpers'
+import { SceneHelper, BotHelper, RegexHelper, UserHelper, KeyboardHelper, TextHelper, ParentHelper, PassHelper } from '@app/bot/helpers'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
@@ -142,8 +142,14 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
         return
     }
 
+    const { userProfile } = this.verifyClientScene.getState(ctx)
+    const age = userProfile?.dateOfBirth ? this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth) : null
+
     const result = await this.passTemplateService.getAll()
-    const filteredTemplates = result.filter((template) => template.type === passType)
+    // Templates outside the client's age (BABY for an adult) aren't offered
+    const filteredTemplates = result.filter(
+      (template) => template.type === passType && !PassHelper.getTemplateAgeMismatch(template.passTemplateAgeRestriction, age),
+    )
 
     if (!filteredTemplates.length) {
       return await ctx.replyWithHTML(MESSAGES_SCENE.VERIFY_CLIENT.NO_PASS_TEMPLATES)
@@ -182,28 +188,13 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       const passTemplateData = await this.passTemplateService.getById(id)
       const { userProfile } = this.verifyClientScene.getState(ctx)
 
-      if (passTemplateData.passTemplateAgeRestriction && userProfile?.dateOfBirth) {
-        const { minAge, maxAge } = passTemplateData.passTemplateAgeRestriction
-        const age = this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth)
-
-        const meetsMinAge = minAge === null || age >= minAge
-        const meetsMaxAge = maxAge === null || age <= maxAge
-
-        if (!meetsMinAge || !meetsMaxAge) {
-          const ageRangeText =
-            minAge !== null && maxAge !== null
-              ? `${minAge} - ${maxAge} років`
-              : minAge !== null
-                ? `від ${minAge} років`
-                : `до ${maxAge} років`
-
-          BotHelper.safeAnswerCbQuery(
-            ctx,
-            `Клієнт не відповідає віковим обмеженням для цього абонементу.\n\nВік: ${age} років\nВікові обмеження: ${ageRangeText}`,
-            { show_alert: true },
-          )
-          return BotHelper.safeDeleteMessage(ctx)
-        }
+      // A button from an old list: refused with an alert; the details card stays (it has its own "✖️ Закрити")
+      const age = userProfile?.dateOfBirth ? this.dateTimeProvider.getAgeFromBirthday(userProfile.dateOfBirth) : null
+      const ageRange = PassHelper.getTemplateAgeMismatch(passTemplateData.passTemplateAgeRestriction, age)
+      if (ageRange) {
+        return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_OPEN.TEMPLATE_AGE_MISMATCH(PassHelper.formatAge(age!), ageRange), {
+          show_alert: true,
+        })
       }
 
       BotHelper.safeAnswerCbQuery(ctx)

@@ -197,6 +197,7 @@ export const CALLBACK_PREFIX = {
       CONFIRM_OPEN: 'sc.pass.op.cfm',
       GROUP_SELECT: 'sc.pass.grp.sel',
       GROUP_BACK: 'sc.pass.grp.b',
+      GROUP_SHOW_ALL: 'sc.pass.grp.all', // admin: all groups, outside the client's age too (adds an exception)
     },
     FILE: {
       BACK: 'sc.file.b',

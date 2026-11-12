@@ -27,6 +27,7 @@ export class PassTemplateService {
     const passTemplates = await this.databaseService.drizzle.query.passTemplate.findMany({
       where: (passTemplate, { eq, and }) =>
         and(eq(passTemplate.studioId, this.studioId), eq(passTemplate.status, PassTemplateStatusEnum.ACTIVE)),
+      with: { passTemplateAgeRestriction: true }, // lists hide templates outside the client's age
     })
 
     if (passTemplates.length) {

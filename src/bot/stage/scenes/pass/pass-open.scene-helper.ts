@@ -2,6 +2,7 @@ import { UserProfileWithClient, PassTemplateWithAgeRestrictions } from '@app/bot
 import { TextHelper, MessageHelper, PassHelper } from '@app/bot/helpers'
 import { PassSelectModel, PassTemplateSelectModel, UserProfileSelectModel } from '@app/infrastructure/database'
 import { PassGroupModeEnum, PassTemplateTypeEnum } from '@app/libs'
+import { MESSAGES_SCENE } from '@app/bot/static/messages'
 
 export interface IPassOpenSceneState {
   userProfile: UserProfileWithClient
@@ -18,6 +19,10 @@ export interface IPassOpenSceneState {
   /** Group a FIXED group pass is bound to */
   groupId?: number | null
   groupName?: string
+  /** Admin tapped "👀 Показати всі групи": the group list isn't limited by the client's age */
+  showAllGroups?: boolean
+  /** The picked group is outside the client's age: opening the pass adds an exception */
+  ageException?: boolean
 }
 
 export class PassOpenSceneHelper {
@@ -27,7 +32,8 @@ export class PassOpenSceneHelper {
     const userInfo = `👤 Клієнт: ${userProfile.firstName} ${userProfile.lastName}`
     const passInfo = MessageHelper.constructPassSelectMessage(passTemplate, true)
 
-    const groupLine = PassHelper.getGroupLine(passTemplate, data.groupName)
+    const groupLine =
+      PassHelper.getGroupLine(passTemplate, data.groupName) + (data.ageException ? `\n${MESSAGES_SCENE.PASS_GROUP.AGE_EXCEPTION}\n` : '')
 
     return `${TextHelper.bold('❓ Підтвердити відкриття абонементу?')}\n\n${userInfo}\n\n${passInfo}\n${groupLine}\nℹ️ <i>При підтврердженні клієнт отримає сповіщення про відкриття абонементу.</i>`
   }

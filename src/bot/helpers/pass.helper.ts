@@ -18,6 +18,42 @@ type TRulesOptions = { childAge?: number | null }
 
 export class PassHelper {
   /**
+   * The template's age limits ("3–5 років", "від 16 років") when `age` is outside them, null when it fits, the template
+   * has no limits or the age is unknown (no date of birth: not restricted, as before).
+   */
+  static getTemplateAgeMismatch(
+    restriction: { minAge: number | null; maxAge: number | null } | null | undefined,
+    age: number | null,
+  ): string | null {
+    if (!restriction || age === null) {
+      return null
+    }
+    const { minAge, maxAge } = restriction
+    if ((minAge === null || age >= minAge) && (maxAge === null || age <= maxAge)) {
+      return null
+    }
+    return minAge !== null && maxAge !== null
+      ? `${minAge}–${maxAge} ${this.years(maxAge)}`
+      : minAge !== null
+        ? `від ${minAge} ${this.yearsGenitive(minAge)}`
+        : `до ${maxAge} ${this.yearsGenitive(maxAge!)}`
+  }
+
+  /** "23 роки", "5 років". */
+  static formatAge(age: number): string {
+    return `${age} ${this.years(age)}`
+  }
+
+  private static years(count: number): string {
+    return TextHelper.pluralize(count, ['рік', 'роки', 'років'])
+  }
+
+  /** After "від" / "до": "від 21 року", "від 16 років". */
+  private static yearsGenitive(count: number): string {
+    return count % 10 === 1 && count % 100 !== 11 ? 'року' : 'років'
+  }
+
+  /**
    * Rules for the pass the person works with ("📜 Правила", "📋 Пам'ятка"): individual (on «ви», as a memo), parents of a
    * child, otherwise group; the freeze line follows the template's freeze rule; default duration when there is no pass yet.
    */
