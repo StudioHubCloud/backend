@@ -162,11 +162,13 @@ export class MessageHelper {
     passTemplate: PassTemplateSelectModel,
     requestType: PassActivationRequestTypeEnum,
     groupNames?: string | string[] | null,
+    isCashPayment = false,
   ) {
     const fullName = UserHelper.getDisplayName(userProfile)
     const price = PassHelper.toDisplayPrice(passTemplate.price)
     const requestTypeText = requestType === PassActivationRequestTypeEnum.PURCHASE ? 'Активацію' : 'Поновлення'
-    return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}\n${PassHelper.getGroupLine(passTemplate, groupNames)}`
+    const cashLine = isCashPayment ? `\n💵 <b>Оплата готівкою</b>` : ''
+    return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}\n${PassHelper.getGroupLine(passTemplate, groupNames)}${cashLine}`
   }
 
   static constructPassSelectMessage(data: PassTemplateWithAgeRestrictions, withoutHeader?: boolean) {

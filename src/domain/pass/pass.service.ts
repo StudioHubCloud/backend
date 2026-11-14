@@ -96,8 +96,9 @@ export class PassService {
 
   async createPassWithActivationRequest(
     data: TNewPassData & {
-      fileId: string
-      fileType: FileTypeEnum
+      // Null for cash payment
+      fileId: string | null
+      fileType: FileTypeEnum | null
       type: PassActivationRequestTypeEnum
     },
   ): Promise<[PassSelectModel, PassActivationRequestSelectModel, AuditLogServiceOperation[]]> {

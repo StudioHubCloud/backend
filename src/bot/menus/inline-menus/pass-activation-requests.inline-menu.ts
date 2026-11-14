@@ -67,26 +67,26 @@ export class PassActivationRequestsInlineMenu {
       BotHelper.safeAnswerCbQuery(ctx)
 
       const { fileId, fileType, type } = passActivationRequest
+      const caption = MessageHelper.getClientPassPaymentRequestMessage(
+        passActivationRequest.client.userProfile,
+        passActivationRequest.pass.passTemplate,
+        type,
+        PassSelectionHelper.getGroupNames(passActivationRequest.pass),
+        !fileId,
+      )
+      const keyboard = AdminKeyboards.verifyPassActions(passActivationRequest.id, {
+        withGroupChange:
+          passActivationRequest.pass.passTemplate.type === PassTemplateTypeEnum.GROUP &&
+          passActivationRequest.pass.groupMode === PassGroupModeEnum.FIXED,
+      })
+
+      // Cash payment: no file, the request is a text message
+      if (!fileId || !fileType) {
+        return BotHelper.safeEditMessageText(ctx, caption, keyboard)
+      }
 
       try {
-        await ctx.editMessageMedia(
-          {
-            type: fileType,
-            media: fileId,
-            caption: MessageHelper.getClientPassPaymentRequestMessage(
-              passActivationRequest.client.userProfile,
-              passActivationRequest.pass.passTemplate,
-              type,
-              PassSelectionHelper.getGroupNames(passActivationRequest.pass),
-            ),
-            parse_mode: 'HTML',
-          },
-          AdminKeyboards.verifyPassActions(passActivationRequest.id, {
-            withGroupChange:
-              passActivationRequest.pass.passTemplate.type === PassTemplateTypeEnum.GROUP &&
-              passActivationRequest.pass.groupMode === PassGroupModeEnum.FIXED,
-          }),
-        )
+        await ctx.editMessageMedia({ type: fileType, media: fileId, caption, parse_mode: 'HTML' }, keyboard)
       } catch (error) {
         await ctx.deleteMessage().catch(() => {})
         throw error instanceof Error ? error : new Error(String(error))

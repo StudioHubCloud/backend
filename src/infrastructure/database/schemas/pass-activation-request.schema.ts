@@ -7,8 +7,9 @@ import { FileTypePgEnum, PassActivationRequestTypePgEnum } from '../database.enu
 
 export const passActivationRequest = table('pass_activation_request', {
   id: uuid('id').primaryKey().defaultRandom(),
-  fileId: varchar('file_id').notNull(),
-  fileType: FileTypePgEnum().notNull(),
+  // Null for cash payment
+  fileId: varchar('file_id'),
+  fileType: FileTypePgEnum(),
   type: PassActivationRequestTypePgEnum().notNull(),
   passId: uuid('pass_id')
     .references(() => pass.id, { onDelete: 'cascade' })

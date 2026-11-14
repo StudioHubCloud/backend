@@ -234,6 +234,9 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
         case CALLBACK_PREFIX.SCENES.FILE.RESET: {
           return this.handleFileResetAction(ctx)
         }
+        case CALLBACK_PREFIX.SCENES.FILE.CASH: {
+          return this.handleFileConfirmAction(ctx, { cash: true })
+        }
       }
     } catch (error) {
       await this.handleError(ctx, error)
@@ -369,7 +372,8 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     return this.renderGroupSelectMenu(ctx)
   }
 
-  private handleFileConfirmAction = async (ctx: BotContext) => {
+  /** Sends the request: with the uploaded screenshot, or without a file for a cash payment ("💵 Оплатити готівкою"). */
+  private handleFileConfirmAction = async (ctx: BotContext, { cash = false } = {}) => {
     const {
       fileIds,
       userProfile,
@@ -388,7 +392,11 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     }
 
     const messagesToDelete = this.getSceneMessageIds(ctx)
-    const fileId = fileIds[0]
+    const fileId = cash ? null : (fileIds[0] ?? null)
+    if (!cash && !fileId) {
+      // Stale "Підтвердити" without a file
+      return this.renderFileUploadMenu(ctx)
+    }
 
     const [_, activationRequest, logOperations] = await this.passService.createPassWithActivationRequest({
       saleDate,
@@ -399,7 +407,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       groupMode: passTemplate.groupMode,
       groupIds: this.isFixedGroupPass(passTemplate) ? groupIds : [],
       fileId,
-      fileType,
+      fileType: fileId ? fileType : null,
       type: requestType,
     })
     AuditLogHelper.startAction(ctx, AuditLogActions.PASS_ACTIVATE_REQUEST, AuditLogTrigger.CLIENT_ACTION, logOperations)
@@ -407,21 +415,25 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
     await ctx.deleteMessages(messagesToDelete)
 
     const studioAdmins = await this.userProfileService.findRequestReviewers()
-    const method = fileType === FileTypeEnum.PHOTO ? 'sendPhoto' : 'sendDocument'
     // Paid by a parent for a child: the admin sees whom to contact
     const parents = this.isForChild(ctx, userProfile) ? await this.userProfileService.findGuardians(userProfile.id) : []
     const caption =
-      MessageHelper.getClientPassPaymentRequestMessage(userProfile, passTemplate, requestType, groupNames) +
+      MessageHelper.getClientPassPaymentRequestMessage(userProfile, passTemplate, requestType, groupNames, !fileId) +
       (parents.length ? `\n\n${MessageHelper.getParentsLine(parents)}` : '')
 
+    const keyboard = AdminKeyboards.verifyPassActions(activationRequest.id, { withGroupChange: this.isFixedGroupPass(passTemplate) })
     for (const admin of studioAdmins) {
-      await ctx.telegram[method](admin.telegramId, fileId, {
-        caption,
-        ...AdminKeyboards.verifyPassActions(activationRequest.id, { withGroupChange: this.isFixedGroupPass(passTemplate) }),
-        parse_mode: 'HTML',
-      })
+      if (!fileId) {
+        await ctx.telegram.sendMessage(admin.telegramId, caption, { ...keyboard, parse_mode: 'HTML' })
+        continue
+      }
+      const method = fileType === FileTypeEnum.PHOTO ? 'sendPhoto' : 'sendDocument'
+      await ctx.telegram[method](admin.telegramId, fileId, { caption, ...keyboard, parse_mode: 'HTML' })
     }
-    await ctx.replyWithHTML(MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS, KeyboardHelper.getMainMenuKeyboard(ctx))
+    await ctx.replyWithHTML(
+      fileId ? MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS : MESSAGES_SCENE.PAYMENT.PASS_REQUEST_SUCCESS_CASH,
+      KeyboardHelper.getMainMenuKeyboard(ctx),
+    )
     return ctx.scene.leave()
   }
 
@@ -491,7 +503,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       message += `📸 Файл успішно отримано\n\n`
       message += `${BUTTON_PATTERNS.CONFIRM} - якщо все вірно\n\n${BUTTON_PATTERNS.DELETE}, щоб завантажити інший.`
     } else {
-      message += '📸 Надішли скріншот оплати в цей чат (фото або файлом)'
+      message += `📸 Надішли скріншот оплати в цей чат (фото або файлом)\n\nАбо обери «${BUTTON_PATTERNS.PAY_CASH}», якщо платиш на місці.`
     }
 
     if (shouldEdit) {

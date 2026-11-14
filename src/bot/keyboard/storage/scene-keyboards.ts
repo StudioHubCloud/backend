@@ -172,6 +172,8 @@ export class PassRelatedKeyboards {
           callback_data: CALLBACK_PREFIX.SCENES.FILE.RESET,
         },
       ])
+    } else {
+      buttons.push([{ text: BUTTON_PATTERNS.PAY_CASH, callback_data: CALLBACK_PREFIX.SCENES.FILE.CASH }])
     }
 
     buttons.push([

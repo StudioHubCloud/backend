@@ -207,6 +207,7 @@ export const CALLBACK_PREFIX = {
       BACK: 'sc.file.b',
       CONFIRM: 'sc.file.c',
       RESET: 'sc.file.d',
+      CASH: 'sc.file.cash', // pass payment: pay in cash, the request goes without a screenshot
     },
     PERSONAL_TRAINING: {
       TRAINER_SELECT: 'sc.pt.tr.sel',

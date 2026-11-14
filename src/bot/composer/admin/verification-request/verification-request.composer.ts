@@ -285,11 +285,16 @@ export class VerificationRequestComposer {
         updated.pass.passTemplate,
         updated.type,
         PassSelectionHelper.getGroupNames(updated.pass),
+        !updated.fileId,
       )
       // PRO: the list stays for the next pick; one group: back to the request's actions
       const keyboard = updated.pass.passTemplate.multiGroup
         ? AdminKeyboards.passRequestGroupSelect(updated.id, groups, PassSelectionHelper.getGroupIds(updated.pass))
         : AdminKeyboards.verifyPassActions(updated.id, { withGroupChange: true })
+      // Cash payment: the request is a text message, not a file with a caption
+      if (!updated.fileId) {
+        return BotHelper.safeEditMessageText(ctx, caption, keyboard)
+      }
       return ctx
         .editMessageCaption(caption, { parse_mode: 'HTML', ...keyboard })
         .catch(() => BotHelper.safeEditMessageReplyMarkup(ctx, keyboard.reply_markup))
