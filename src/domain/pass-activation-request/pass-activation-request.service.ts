@@ -10,6 +10,7 @@ import { PassActivationRequestCacheKey, RedisCacheService } from '@app/infrastru
 import { AuditLogEntity, AuditLogOperation, AuditLogServiceOperation } from '@app/libs'
 import { Injectable } from '@nestjs/common'
 import { eq } from 'drizzle-orm'
+import { PASS_GROUPS_WITH } from '../pass/pass-groups.query'
 
 @Injectable()
 export class PassActivationRequestService {
@@ -88,7 +89,7 @@ export class PassActivationRequestService {
         pass: {
           with: {
             passTemplate: true,
-            group: { columns: { name: true } },
+            passGroups: PASS_GROUPS_WITH,
           },
         },
       },

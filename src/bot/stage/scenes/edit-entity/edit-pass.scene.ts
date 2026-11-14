@@ -255,7 +255,7 @@ export class EditPassScene extends Scenes.WizardScene<BotContext> {
     ])
 
     await PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
-      pass: pass as typeof originalPass,
+      pass,
       fullName: UserHelper.getDisplayName(clientUserProfile),
       clientUserId,
       shouldEdit: false,

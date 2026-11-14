@@ -6,6 +6,7 @@ export { groupStyleVariant, grpup_style_variant_relations } from './group-style-
 export { groupStyle, group_style_relations } from './group-style.schema'
 export { group, group_relations } from './group.schema'
 export { pass, pass_relations } from './pass.schema'
+export { passGroup, pass_group_relations } from './pass-group.schema'
 export { studio, studio_relations } from './studio.schema'
 export { staffMember, staff_member_relations } from './staff-member.schema'
 export { subscribtionPlan, subscribtion_plan_relations } from './subscribtion-plan.schema'

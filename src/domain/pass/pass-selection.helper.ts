@@ -5,13 +5,17 @@ import { PassGroupModeEnum, PassStatusEnum, PassTemplateTypeEnum } from '@app/li
 /** The pass fields the selection rules need (a pass row with its template). Dates are `yyyy-MM-dd` (studio time zone). */
 export type TSelectablePass = Pick<
   PassSelectModel,
-  'id' | 'status' | 'availableSlots' | 'saleDate' | 'startDate' | 'endDate' | 'groupId' | 'groupMode' | 'frozenFrom' | 'frozenDays'
-> & { passTemplate: Pick<PassTemplateSelectModel, 'type' | 'durationDays'> }
+  'id' | 'status' | 'availableSlots' | 'saleDate' | 'startDate' | 'endDate' | 'groupMode' | 'frozenFrom' | 'frozenDays'
+> & {
+  passTemplate: Pick<PassTemplateSelectModel, 'type' | 'durationDays'>
+  /** Groups a FIXED pass covers (pass_group): one, or several for a multi_group template (PRO) */
+  passGroups: { groupId: number }[]
+}
 
-/** A pass with what its label needs: template name, and the group name for a FIXED group pass. */
+/** A pass with what its label needs: template name, and the group names for a FIXED group pass. */
 export type TLabelPass = TSelectablePass & {
   passTemplate: Pick<PassTemplateSelectModel, 'name'>
-  group?: { name: string } | null
+  passGroups: { groupId: number; group?: { name: string } | null }[]
 }
 
 export type TPassTrainingRefusal = 'not_group' | 'not_active' | 'frozen' | 'no_slots' | 'expired' | 'other_group'
@@ -76,9 +80,19 @@ export class PassSelectionHelper {
     return FREEZE_REFUSAL_MESSAGES[refusal]
   }
 
-  /** FLEX works in any group, FIXED only in its own. */
+  /** FLEX works in any group, FIXED only in its own (one, or several for PRO). */
   static coversGroup(pass: TSelectablePass, groupId: number): boolean {
-    return pass.groupMode === PassGroupModeEnum.FLEX || pass.groupId === groupId
+    return pass.groupMode === PassGroupModeEnum.FLEX || pass.passGroups.some((g) => g.groupId === groupId)
+  }
+
+  /** Ids of the groups a FIXED pass covers (empty for FLEX and individual passes). */
+  static getGroupIds(pass: Pick<TSelectablePass, 'passGroups'>): number[] {
+    return pass.passGroups.map((g) => g.groupId)
+  }
+
+  /** Names of the groups a pass covers, in binding order: «K-Pop 10+, Jazz-Funk 16+». */
+  static getGroupNames(pass: { passGroups: { group?: { name: string } | null }[] }): string[] {
+    return pass.passGroups.map((g) => g.group?.name).filter((name): name is string => !!name)
   }
 
   /** Why the pass can't pay for a training of `groupId` (null: any group) on `trainingDay`, or null when it can. */
@@ -125,10 +139,15 @@ export class PassSelectionHelper {
     return sorted.find((pass) => pass.availableSlots > 0) ?? sorted[0] ?? null
   }
 
-  /** «STANDART · K-Pop» (до 20.10.2026); «Легкий старт · будь-яка група»; «INDIVIDUAL»; optionally with sessions left. */
+  /**
+   * «STANDART · K-Pop» (до 20.10.2026); «PRO · K-Pop, Jazz-Funk»; «Легкий старт · будь-яка група»; «INDIVIDUAL»;
+   * optionally with sessions left.
+   */
   static getLabel(pass: TLabelPass, { withSlots = false } = {}): string {
     const isGroup = pass.passTemplate.type === PassTemplateTypeEnum.GROUP
-    const scope = !isGroup ? '' : ` · ${pass.groupMode === PassGroupModeEnum.FLEX ? 'будь-яка група' : (pass.group?.name ?? '—')}`
+    const scope = !isGroup
+      ? ''
+      : ` · ${pass.groupMode === PassGroupModeEnum.FLEX ? 'будь-яка група' : this.getGroupNames(pass).join(', ') || '—'}`
     const slots = withSlots ? ` · залишок ${pass.availableSlots}` : ''
     const until = this.isStarted(pass) ? ` (до ${format(parseISO(pass.endDate!), 'dd.MM.yyyy')})` : ''
     return `«${pass.passTemplate.name}${scope}»${slots}${until}`

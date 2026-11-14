@@ -1,6 +1,7 @@
 import { Composer } from 'telegraf'
 import { Injectable } from '@nestjs/common'
 import { BotContext } from '@app/bot/bot.context'
+import { PassSelectionHelper } from '@app/domain/pass'
 
 import { BotHelper, KeyboardHelper, PassHelper, RegexHelper, UserHelper } from '@app/bot/helpers'
 import { InlineKeyboardButton } from '@telegraf/types'
@@ -76,7 +77,7 @@ export class PassActivationRequestsInlineMenu {
               passActivationRequest.client.userProfile,
               passActivationRequest.pass.passTemplate,
               type,
-              passActivationRequest.pass.group?.name,
+              PassSelectionHelper.getGroupNames(passActivationRequest.pass),
             ),
             parse_mode: 'HTML',
           },

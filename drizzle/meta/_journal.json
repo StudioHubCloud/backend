@@ -484,6 +484,20 @@
       "when": 1794141373803,
       "tag": "0095_pass-freeze",
       "breakpoints": true
+    },
+    {
+      "idx": 96,
+      "version": "7",
+      "when": 1794680681922,
+      "tag": "0096_multi-group-pass",
+      "breakpoints": true
+    },
+    {
+      "idx": 97,
+      "version": "7",
+      "when": 1794680712209,
+      "tag": "0097_multi-group-pass-data",
+      "breakpoints": true
     }
   ]
 }

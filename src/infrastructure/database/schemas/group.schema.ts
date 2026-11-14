@@ -1,7 +1,6 @@
 import { index, smallint, integer, pgTable as table, uuid, varchar, serial, foreignKey, timestamp } from 'drizzle-orm/pg-core'
 import { relations } from 'drizzle-orm'
 import { training } from './training.schema'
-import { pass } from './pass.schema'
 import { groupSchedule } from './group-schedule.schema'
 import { studio } from './studio.schema'
 import { groupStyle } from './group-style.schema'
@@ -11,6 +10,7 @@ import { GroupStatusEnum } from '@app/libs/constants/enums'
 import { groupAgeRestriction } from './group-age-restriction.schema'
 import { trainingSignup } from './training-signup.schema'
 import { groupAgeRestrictionException } from './group-age-restriction-exeption.schema'
+import { passGroup } from './pass-group.schema'
 
 export const group = table(
   'group',
@@ -48,7 +48,7 @@ export const group_relations = relations(group, ({ one, many }) => ({
   groupAgeRestrictions: one(groupAgeRestriction),
   trainings: many(training),
   trainingSignups: many(trainingSignup),
-  passes: many(pass),
+  passGroups: many(passGroup),
   groupSchedules: many(groupSchedule),
   groupAgeRestrictionExeptions: many(groupAgeRestrictionException),
 }))

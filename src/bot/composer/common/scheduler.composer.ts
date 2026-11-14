@@ -9,7 +9,7 @@ import { BotHelper, MessageHelper, PersonalTrainingHelper, UserHelper } from '@a
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
 import { UserProfileService } from '@app/domain/user-profile'
-import { PassService } from '@app/domain/pass'
+import { PassSelectionHelper, PassService } from '@app/domain/pass'
 import { PersonalTrainingSignupService } from '@app/domain/personal-training-signup'
 import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/providers'
 import { MESSAGES_CLIENT } from '@app/bot/static/messages'
@@ -196,7 +196,7 @@ export class SchedulerComposer {
       : current
   }
 
-  /** Groups of the client's active FIXED passes, the current pass's group first ("Розклад": first and green). */
+  /** Groups of the client's active FIXED passes (several for PRO), the current pass's groups first ("Розклад": green). */
   private getOwnGroupIds = async (ctx: BotContext): Promise<number[]> => {
     const { role, client } = UserHelper.getActingUser(ctx)
 
@@ -207,9 +207,9 @@ export class SchedulerComposer {
     const { passes } = await this.passService.findActivePassesByClientId(client.id)
     const currentPass = await this.passService.getCurrentPass(client.id)
     const groupIds = passes
-      .filter((pass) => pass.groupMode === PassGroupModeEnum.FIXED && pass.groupId !== null)
+      .filter((pass) => pass.groupMode === PassGroupModeEnum.FIXED)
       .sort((a, b) => Number(b.id === currentPass?.id) - Number(a.id === currentPass?.id))
-      .map((pass) => pass.groupId!)
+      .flatMap((pass) => PassSelectionHelper.getGroupIds(pass))
     return [...new Set(groupIds)]
   }
 

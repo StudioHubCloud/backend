@@ -20,7 +20,7 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { AuditLogActions, AuditLogTrigger, DATE_FORMAT, PassGroupModeEnum, PassStatusEnum, PassTemplateTypeEnum } from '@app/libs'
 import { IPassOpenSceneState, PassOpenSceneHelper } from './pass-open.scene-helper'
 import { PassTemplateService } from '@app/domain/pass-template'
-import { PassService } from '@app/domain/pass'
+import { PassSelectionHelper, PassService } from '@app/domain/pass'
 import { TrainingSignupService } from '@app/domain/training-signup'
 import { GroupService } from '@app/domain/group'
 import { GroupAgeRestrictionService } from '@app/domain/group-age-restriction'
@@ -261,7 +261,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
         : this.groupService.getGroupsForClientPass(userProfile?.dateOfBirth ?? null),
       this.passService.getCurrentPass(userProfile.client.id),
     ])
-    const suggestedGroupId = currentPass?.groupMode === PassGroupModeEnum.FIXED ? currentPass.groupId : null
+    const suggestedGroupId = currentPass?.groupMode === PassGroupModeEnum.FIXED ? (PassSelectionHelper.getGroupIds(currentPass)[0] ?? null) : null
     const message = showAllGroups
       ? MESSAGES_SCENE.PASS_GROUP.SELECT_ANY
       : isAgeFiltered
@@ -329,7 +329,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
         status: PassStatusEnum.ACTIVE,
         availableSlots: passTemplate.length,
         groupMode: passTemplate.groupMode,
-        groupId: isFixedGroupPass ? groupId : null,
+        groupIds: isFixedGroupPass && groupId ? [groupId] : [],
       })
 
       if (isFixedGroupPass && groupId && state.ageException) {
@@ -371,7 +371,7 @@ export class PassOpenScene extends Scenes.WizardScene<BotContext> {
     ])
 
     await PassHelper.renderPassManageMenu(ctx, this.dateTimeProvider, {
-      pass: pass as typeof originalPass,
+      pass,
       fullName: UserHelper.getDisplayName(userProfile),
       clientUserId: userProfile.id,
       shouldEdit: false,

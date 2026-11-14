@@ -53,7 +53,7 @@ export type TParentMenu = { actingName: string | null }
 export type TNotificationRecipient = { chatId: string; asGuardian: boolean }
 
 export type AuthUserProfile = UserProfileSelectModel & {
-  client: (ClientSelectModel & { pass: { id: string; status: PassStatusEnum; groupId: number | null }[] }) | null
+  client: (ClientSelectModel & { pass: { id: string; status: PassStatusEnum }[] }) | null
   /** The person's children (links, child status only); absent on a just-created guest */
   children?: { childProfileId: string; child: { status: UserProfileStatusEnum } }[]
 }

@@ -161,12 +161,12 @@ export class MessageHelper {
     userProfile: UserProfileSelectModel,
     passTemplate: PassTemplateSelectModel,
     requestType: PassActivationRequestTypeEnum,
-    groupName?: string | null,
+    groupNames?: string | string[] | null,
   ) {
     const fullName = UserHelper.getDisplayName(userProfile)
     const price = PassHelper.toDisplayPrice(passTemplate.price)
     const requestTypeText = requestType === PassActivationRequestTypeEnum.PURCHASE ? 'Активацію' : 'Поновлення'
-    return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}\n${PassHelper.getGroupLine(passTemplate, groupName)}`
+    return `Запит на <b><i>${requestTypeText} абонементу</i></b>\n\n👤 Клієнт: <i>${TextHelper.bold(fullName)}</i>\n\n📜 Назва: ${TextHelper.bold(passTemplate.name)}\n💰 Ціна: ${TextHelper.bold(price)}\n🎫 Кількість: ${TextHelper.bold(`${passTemplate.length} тренувань`)}\n${PassHelper.getGroupLine(passTemplate, groupNames)}`
   }
 
   static constructPassSelectMessage(data: PassTemplateWithAgeRestrictions, withoutHeader?: boolean) {

@@ -47,7 +47,6 @@ const AUTH_USER_WITH = {
       pass: {
         columns: {
           id: true,
-          groupId: true,
           status: true,
         },
       },
@@ -415,7 +414,7 @@ export class UserProfileService {
             status: PassStatusEnum.ACTIVE,
             availableSlots: passTemplate.length,
             groupMode: passTemplate.groupMode,
-            groupId,
+            groupIds: groupId ? [groupId] : [],
           },
           tx,
         ),

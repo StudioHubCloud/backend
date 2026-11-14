@@ -69,7 +69,7 @@ export class PersonalTrainingHelper {
 
   /** The client's individual-pass cabinet: pass header + session history. */
   static getClientCabinetMessage(
-    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel },
+    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel; passGroups: { group?: { name: string } | null }[] },
     signups: GetPersonalTrainingSignupListItem[],
     dateTimeProvider: DateTimeProvider,
   ): string {

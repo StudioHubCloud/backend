@@ -23,7 +23,7 @@ import {
 import { Injectable } from '@nestjs/common'
 import { Scenes } from 'telegraf'
 import { UserProfileService } from '@app/domain/user-profile'
-import { PassService } from '@app/domain/pass'
+import { PassSelectionHelper, PassService } from '@app/domain/pass'
 import { GroupService } from '@app/domain/group'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
@@ -300,7 +300,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       this.getGroupsForClient(ctx),
       userProfile.client ? this.passService.getCurrentPass(userProfile.client.id) : null,
     ])
-    const suggestedGroupId = currentPass?.groupMode === PassGroupModeEnum.FIXED ? currentPass.groupId : null
+    const suggestedGroupId = currentPass?.groupMode === PassGroupModeEnum.FIXED ? (PassSelectionHelper.getGroupIds(currentPass)[0] ?? null) : null
 
     return BotHelper.safeEditMessageText(
       ctx,
@@ -355,7 +355,7 @@ export class PassPaymentScene extends Scenes.WizardScene<BotContext> {
       status: PassStatusEnum.REQUESTED,
       availableSlots: passTemplate.length,
       groupMode: passTemplate.groupMode,
-      groupId: this.isFixedGroupPass(passTemplate) ? groupId : null,
+      groupIds: this.isFixedGroupPass(passTemplate) && groupId ? [groupId] : [],
       fileId,
       fileType,
       type: requestType,

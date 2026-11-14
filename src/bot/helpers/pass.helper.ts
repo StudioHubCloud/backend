@@ -94,20 +94,22 @@ ${duration}`
   }
 
   /**
-   * "👯‍♀️ Група: …" for a group pass: the bound group, or any group for a FLEX one; '' for an individual pass.
-   * Clients don't see the staff term "FLEX".
+   * "👯‍♀️ Група: …" for a group pass: the bound group ("Групи: A, B" for several), or any group for a FLEX one;
+   * '' for an individual pass. Clients don't see the staff term "FLEX".
    */
   static getGroupLine(
     passTemplate: Pick<PassTemplateSelectModel, 'type' | 'groupMode'>,
-    groupName?: string | null,
+    groupNames?: string | string[] | null,
     { forClient = false } = {},
   ): string {
     if (passTemplate.type !== PassTemplateTypeEnum.GROUP) {
       return ''
     }
-    return passTemplate.groupMode === PassGroupModeEnum.FLEX
-      ? `👯‍♀️ Група: ${TextHelper.bold(forClient ? 'будь-яка ✨' : 'будь-яка (FLEX)')}\n`
-      : `👯‍♀️ Група: ${TextHelper.bold(TextHelper.escapeHtml(groupName ?? ''))}\n`
+    if (passTemplate.groupMode === PassGroupModeEnum.FLEX) {
+      return `👯‍♀️ Група: ${TextHelper.bold(forClient ? 'будь-яка ✨' : 'будь-яка (FLEX)')}\n`
+    }
+    const names = (Array.isArray(groupNames) ? groupNames : [groupNames ?? '']).map((name) => TextHelper.escapeHtml(name))
+    return `👯‍♀️ ${names.length > 1 ? 'Групи' : 'Група'}: ${TextHelper.bold(names.join(', '))}\n`
   }
 
   static toDisplayPrice(price: number): string {
@@ -164,14 +166,16 @@ ${duration}`
   }
 
   static getPassInfoMessage(
-    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel; group?: { name: string } | null },
+    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel; passGroups: { group?: { name: string } | null }[] },
     dateTimeProvider: DateTimeProvider,
     fullName: string = '',
   ): string {
     // The pass's own scope (a snapshot), not the template's: passes sold before 2026-10-05 are FLEX
-    const groupLine = this.getGroupLine({ type: pass.passTemplate.type, groupMode: pass.groupMode }, pass.group?.name, {
-      forClient: !fullName,
-    })
+    const groupLine = this.getGroupLine(
+      { type: pass.passTemplate.type, groupMode: pass.groupMode },
+      PassSelectionHelper.getGroupNames(pass),
+      { forClient: !fullName },
+    )
     const isPassInactive = pass.status !== PassStatusEnum.REQUESTED && !pass.endDate
     const activationDate = addDays(pass.saleDate, PASS_CONFIG.ACTIVATION_GRACE_PERIOD).toISOString()
     const checkDateString =
@@ -196,7 +200,7 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
   }
 
   static getPassWithSignupsInfoMessage(
-    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel },
+    pass: PassSelectModel & { passTemplate: PassTemplateSelectModel; passGroups: { group?: { name: string } | null }[] },
     dateTimeProvider: DateTimeProvider,
     fullName: string = '',
     trainingSignups: GetTrainingSignupsByPassIdResponse[] = [],
@@ -233,7 +237,10 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
     ctx: BotContext,
     dateTimeProvider: DateTimeProvider,
     data: {
-      pass: PassSelectModel & { passTemplate: PassTemplateSelectModel & { passTemplateFreezeRule?: { maxDays: number } | null } }
+      pass: PassSelectModel & {
+        passTemplate: PassTemplateSelectModel & { passTemplateFreezeRule?: { maxDays: number } | null }
+        passGroups: { group?: { name: string } | null }[]
+      }
       fullName: string
       clientUserId: string
       shouldEdit?: boolean

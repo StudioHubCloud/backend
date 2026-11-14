@@ -10,6 +10,7 @@ import { passTemplate } from './pass-template.schema'
 import { payment } from './payment.schema'
 import { passActivationRequest } from './pass-activation-request.schema'
 import { personalTrainingSignup } from './personal-training-signup.schema'
+import { passGroup } from './pass-group.schema'
 
 export const pass = table(
   'pass',
@@ -31,7 +32,9 @@ export const pass = table(
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
-    groupId: integer('group_id').references(() => group.id, { onDelete: 'set null' }),
+    // Deprecated: replaced by pass_group (2026-11-14). Written = the first group (PassService) until it is dropped;
+    // never read it: the groups are pass.passGroups. Named legacyGroupId so a stray `pass.groupId` doesn't compile.
+    legacyGroupId: integer('group_id').references(() => group.id, { onDelete: 'set null' }),
     // Snapshot of pass_template.group_mode at sale: FIXED = only groupId, FLEX = any group
     groupMode: PassGroupModePgEnum('group_mode').notNull().default(PassGroupModeEnum.FIXED),
     // The one freeze of this validity period: null / 0 = not frozen. Frozen days: from frozen_from, frozen_days long
@@ -40,10 +43,10 @@ export const pass = table(
     createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
-    index().on(table.groupId),
+    index().on(table.legacyGroupId),
     index().on(table.clientId),
     index().on(table.studioId),
-    index().on(table.groupId, table.status),
+    index().on(table.legacyGroupId, table.status),
     index().on(table.clientId, table.status),
   ],
 )
@@ -52,7 +55,7 @@ export const pass_relations = relations(pass, ({ many, one }) => ({
   trainingSignups: many(trainingSignup),
   passActivationRequests: many(passActivationRequest),
   personalTrainingSignups: many(personalTrainingSignup),
-  group: one(group, { fields: [pass.groupId], references: [group.id] }),
+  passGroups: many(passGroup),
   studio: one(studio, { fields: [pass.studioId], references: [studio.id] }),
   client: one(client, { fields: [pass.clientId], references: [client.id] }),
   passTemplate: one(passTemplate, { fields: [pass.passTemplateId], references: [passTemplate.id] }),

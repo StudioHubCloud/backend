@@ -245,7 +245,7 @@ export class TrainingSignupService {
     const coveringPasses = groupPasses.filter((pass) => PassSelectionHelper.coversGroup(pass, groupId))
 
     if (!coveringPasses.length) {
-      const groupNames = [...new Set(groupPasses.map((pass) => pass.group?.name).filter(Boolean))].map((name) => `«${name}»`)
+      const groupNames = [...new Set(groupPasses.flatMap((pass) => PassSelectionHelper.getGroupNames(pass)))].map((name) => `«${name}»`)
       const where = groupNames.length > 1 ? `в групах ${groupNames.join(', ')}` : `в групі ${groupNames[0]}`
       return `Твій абонемент діє лише ${where} 😔\nЩоб відвідувати тренування в іншій групі, звернись до адміністратора 🫶🏻`
     }

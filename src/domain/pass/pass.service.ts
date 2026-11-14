@@ -1,11 +1,12 @@
 import { BadRequestException, Injectable } from '@nestjs/common'
-import { and, eq, inArray, isNull } from 'drizzle-orm'
+import { and, eq, inArray, isNull, sql } from 'drizzle-orm'
 import { add, addDays, subDays } from 'date-fns'
 import { TypedConfigService } from '@app/infrastructure/config'
 import { PinoLogger } from 'nestjs-pino'
 import {
   DatabaseService,
   pass,
+  passGroup,
   PassInsertModel,
   PassSelectModel,
   Transaction,
@@ -21,6 +22,7 @@ import {
   DATE_FORMAT,
   FileTypeEnum,
   PassActivationRequestTypeEnum,
+  PassGroupModeEnum,
   PassStatusEnum,
   PassTemplateTypeEnum,
   UserProfileStatusEnum,
@@ -29,9 +31,16 @@ import { DateTimeProvider, DateTimeProviderInjector } from '@app/infrastructure/
 import { PASS_CONFIG } from '@app/bot/libs'
 import { PassActivationRequestService } from '../pass-activation-request'
 import { PassSelectionHelper } from './pass-selection.helper'
+import { PASS_GROUPS_WITH } from './pass-groups.query'
 
-/** A new pass always gets its scope from the template (`passTemplate.groupMode`), never the column default. */
-type TNewPassData = Omit<PassInsertModel, 'studioId'> & Required<Pick<PassInsertModel, 'groupMode'>>
+/**
+ * A new pass always gets its scope from the template (`passTemplate.groupMode`), never the column default, and its
+ * groups explicitly: one for a FIXED pass, several for a multi_group one (PRO), none for FLEX and individual passes.
+ */
+type TNewPassData = Omit<PassInsertModel, 'studioId' | 'groupId'> & Required<Pick<PassInsertModel, 'groupMode'>> & { groupIds: number[] }
+
+/** What an admin's tap on a group in the pass's group list did (`togglePassGroup`). */
+export type TPassGroupToggleResult = 'added' | 'removed' | 'replaced' | 'last_group' | 'not_fixed' | 'unknown_group'
 
 /** The template of a pass with its freeze rule: the card, the rules text and the freeze itself read it. */
 const PASS_TEMPLATE_WITH_FREEZE_RULE = { with: { passTemplateFreezeRule: true } } as const
@@ -54,11 +63,20 @@ export class PassService {
     data: TNewPassData,
     tx?: Transaction,
   ): Promise<[PassSelectModel, AuditLogServiceOperation[]]> {
-    const dbProvider = tx || this.databaseService.drizzle
-    const [createdPass] = await dbProvider
+    if (!tx) {
+      return this.databaseService.drizzle.transaction((tx) => this.createNewPass(data, tx))
+    }
+
+    const { groupIds, ...passData } = data
+    const uniqueGroupIds = [...new Set(groupIds)]
+    // pass.group_id: the first group, kept in sync until the column is dropped (old code during a deploy, rollback)
+    const [createdPass] = await tx
       .insert(pass)
-      .values({ ...data, studioId: this.studioId })
+      .values({ ...passData, legacyGroupId: uniqueGroupIds[0] ?? null, studioId: this.studioId })
       .returning()
+    if (uniqueGroupIds.length) {
+      await tx.insert(passGroup).values(uniqueGroupIds.map((groupId) => ({ passId: createdPass.id, groupId })))
+    }
     await this.redisCacheService.reset()
 
     return [
@@ -196,7 +214,7 @@ export class PassService {
       where: (pass, { and }) => and(...whereConditions),
       with: {
         passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE,
-        group: { columns: { name: true } },
+        passGroups: PASS_GROUPS_WITH,
       },
     })
     return passFound
@@ -242,7 +260,7 @@ export class PassService {
       with: {
         pass: {
           where: (pass, { and, eq }) => and(eq(pass.studioId, this.studioId), eq(pass.status, PassStatusEnum.ACTIVE)),
-          with: { passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE, group: { columns: { id: true, name: true } } },
+          with: { passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE, passGroups: PASS_GROUPS_WITH },
         },
       },
     })
@@ -289,6 +307,85 @@ export class PassService {
     return passToSelect
   }
 
+  /**
+   * Admin's tap on a group in a pass's group list (pass card «👯‍♀️ Групи», a payment request's «Змінити групи»).
+   * A multi_group pass (PRO): adds the group or unbinds it (not the last one: a FIXED pass needs a group); signups
+   * already made with the pass stay. An ordinary FIXED pass: the group replaces its group. FLEX / individual: refused.
+   * Studio-scoped: the pass and the group must be of this studio (ids come from callback data).
+   */
+  async togglePassGroup(passId: string, groupId: number): Promise<[TPassGroupToggleResult, AuditLogServiceOperation[]]> {
+    const result = await this.databaseService.drizzle.transaction(async (tx) => {
+      const [found, studioGroup] = await Promise.all([
+        tx.query.pass.findFirst({
+          where: (p, { and, eq }) => and(eq(p.id, passId), eq(p.studioId, this.studioId)),
+          columns: { id: true, groupMode: true },
+          with: { passTemplate: { columns: { type: true, multiGroup: true } }, passGroups: { columns: { groupId: true } } },
+        }),
+        tx.query.group.findFirst({
+          where: (g, { and, eq }) => and(eq(g.id, groupId), eq(g.studioId, this.studioId)),
+          columns: { id: true },
+        }),
+      ])
+
+      if (!found || found.passTemplate.type !== PassTemplateTypeEnum.GROUP || found.groupMode !== PassGroupModeEnum.FIXED) {
+        return 'not_fixed' as const
+      }
+      if (!studioGroup) {
+        return 'unknown_group' as const
+      }
+
+      const bound = found.passGroups.map((g) => g.groupId)
+      let outcome: TPassGroupToggleResult
+
+      if (bound.includes(groupId)) {
+        if (bound.length === 1) {
+          return 'last_group' as const
+        }
+        await tx.delete(passGroup).where(and(eq(passGroup.passId, passId), eq(passGroup.groupId, groupId)))
+        outcome = 'removed'
+      } else if (found.passTemplate.multiGroup) {
+        await tx.insert(passGroup).values({ passId, groupId }).onConflictDoNothing()
+        outcome = 'added'
+      } else {
+        await tx.delete(passGroup).where(eq(passGroup.passId, passId))
+        await tx.insert(passGroup).values({ passId, groupId })
+        outcome = 'replaced'
+      }
+
+      await this.syncLegacyGroupId(passId, tx)
+      return outcome
+    })
+
+    if (result === 'not_fixed' || result === 'unknown_group' || result === 'last_group') {
+      return [result, []]
+    }
+
+    await this.redisCacheService.reset()
+    return [
+      result,
+      [
+        {
+          entity: AuditLogEntity.PASS,
+          entityId: passId,
+          operation: AuditLogOperation.UPDATE,
+          payload: { groupId, groupChange: result },
+          timestamp: new Date().toISOString(),
+          metadata: { serviceName: PassService.name, methodName: this.togglePassGroup.name },
+        },
+      ],
+    ]
+  }
+
+  /** pass.group_id = the pass's first group (deprecated column, kept in sync until it is dropped). */
+  private async syncLegacyGroupId(passId: string, tx: Transaction) {
+    await tx
+      .update(pass)
+      .set({
+        legacyGroupId: sql`(select ${passGroup.groupId} from ${passGroup} where ${passGroup.passId} = ${passId} order by ${passGroup.createdAt}, ${passGroup.groupId} limit 1)`,
+      })
+      .where(eq(pass.id, passId))
+  }
+
   getTodayDateString(): string {
     return this.dateTimeProvider.formatDateStringInTz(new Date().toISOString(), DATE_FORMAT.DATE_MAIN)
   }
@@ -307,7 +404,7 @@ export class PassService {
       orderBy: (pass, { desc }) => desc(pass.endDate),
       with: {
         passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE,
-        group: { columns: { name: true } },
+        passGroups: PASS_GROUPS_WITH,
       },
     })
     return pass || null
@@ -425,6 +522,7 @@ export class PassService {
       where: (pass, { eq }) => eq(pass.id, id),
       with: {
         passTemplate: PASS_TEMPLATE_WITH_FREEZE_RULE,
+        passGroups: PASS_GROUPS_WITH,
         client: {
           with: {
             userProfile: true,

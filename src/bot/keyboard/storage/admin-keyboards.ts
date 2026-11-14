@@ -68,23 +68,25 @@ export class AdminKeyboards {
   }
 
   /** Groups for a requested FIXED pass: the client's pick first and green; "⬅️ Назад" restores the request buttons. */
+  /** The request's pass groups first, ✅ and green; a tap replaces the group (adds / unbinds one for a multi_group pass). */
   static passRequestGroupSelect(
     requestId: string,
     groups: { id: number; name: string; groupStyle?: { emoji: string } | null }[],
-    currentGroupId: number | null,
+    selectedGroupIds: number[],
   ): TReplyInlineKeyboard {
-    const sorted = [...groups].sort((a, b) => Number(b.id === currentGroupId) - Number(a.id === currentGroupId))
+    const isSelected = (id: number) => selectedGroupIds.includes(id)
+    const sorted = [...groups].sort((a, b) => Number(isSelected(b.id)) - Number(isSelected(a.id)))
     return KeyboardHelper.createInlineKeyboard([
       ...sorted.map((group) => {
         const button: InlineKeyboardButton = {
-          text: [group.groupStyle?.emoji, group.name].filter(Boolean).join(' '),
+          text: [isSelected(group.id) ? '✅' : '', group.groupStyle?.emoji, group.name].filter(Boolean).join(' '),
           callback_data: RegexHelper.createButtonActionCallbackData(
             CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_GROUP_SELECT,
             requestId,
             group.id,
           ),
         }
-        return [group.id === currentGroupId ? KeyboardHelper.withStyle(button, 'success') : button]
+        return [isSelected(group.id) ? KeyboardHelper.withStyle(button, 'success') : button]
       }),
       [
         {

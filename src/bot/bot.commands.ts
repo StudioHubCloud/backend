@@ -62,8 +62,8 @@ export class BotCommands {
   private meHandler = async (ctx: BotContext) => {
     const user = UserHelper.getUser(ctx)
     const esc = (v: unknown) => TextHelper.escapeHtml(String(v ?? '—'))
-    const passes = (client: { id: string; pass: { id: string; status: string; groupId: number | null }[] } | null | undefined) =>
-      client ? `client ${esc(client.id)}\n` + (client.pass.map((p) => `  • ${esc(p.id.slice(0, 8))} ${esc(p.status)} group=${esc(p.groupId)}`).join('\n') || '  (no passes)') : 'client —'
+    const passes = (client: { id: string; pass: { id: string; status: string }[] } | null | undefined) =>
+      client ? `client ${esc(client.id)}\n` + (client.pass.map((p) => `  • ${esc(p.id.slice(0, 8))} ${esc(p.status)}`).join('\n') || '  (no passes)') : 'client —'
     const [children, parents] = await Promise.all([
       this.userProfileService.findChildren(user.id),
       this.userProfileService.findGuardians(user.id),

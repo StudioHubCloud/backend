@@ -17,10 +17,10 @@ import {
   UserProfileStatusEnum,
 } from '@app/libs'
 import { UserProfileSelectModel } from '@app/infrastructure/database'
-import { MESSAGES_STAFF } from '@app/bot/static/messages'
+import { MESSAGES_SCENE, MESSAGES_STAFF } from '@app/bot/static/messages'
 import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { PassActivationRequestService } from '@app/domain/pass-activation-request'
-import { PassService } from '@app/domain/pass'
+import { PassSelectionHelper, PassService } from '@app/domain/pass'
 import { GroupService } from '@app/domain/group'
 import { AdminKeyboards } from '@app/bot/keyboard/storage/admin-keyboards'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
@@ -189,7 +189,7 @@ export class VerificationRequestComposer {
             // The group may have been changed by the admin: the client sees where the pass works
             PassHelper.getGroupLine(
               { type: passActivateRequest!.pass.passTemplate.type, groupMode: passActivateRequest!.pass.groupMode },
-              passActivateRequest!.pass.group?.name,
+              PassSelectionHelper.getGroupNames(passActivateRequest!.pass),
               { forClient: true },
             ) +
             `\n${PassHelper.getActivationInfo(passActivateRequest!.pass.passTemplate)}`,
@@ -238,7 +238,7 @@ export class VerificationRequestComposer {
     await action(userProfile)
   }
 
-  /** "👯‍♀️ Змінити групу" on a request for a FIXED group pass: groups for the client's age, the client's pick first. */
+  /** "👯‍♀️ Змінити групу" on a request for a FIXED group pass: groups for the client's age, the client's picks first. */
   private handleRequestGroupList = async (ctx: BotContext) => {
     return this.handleActivatePassAction(ctx, async (request) => {
       if (!this.isFixedGroupRequest(request)) {
@@ -249,12 +249,15 @@ export class VerificationRequestComposer {
       await BotHelper.safeAnswerCbQuery(ctx)
       return BotHelper.safeEditMessageReplyMarkup(
         ctx,
-        AdminKeyboards.passRequestGroupSelect(request!.id, groups, request!.pass.groupId).reply_markup,
+        AdminKeyboards.passRequestGroupSelect(request!.id, groups, PassSelectionHelper.getGroupIds(request!.pass)).reply_markup,
       )
     })
   }
 
-  /** The admin's pick replaces the client's (the pass is still requested); the caption and buttons are refreshed. */
+  /**
+   * The admin's pick (the pass is still requested): replaces the client's group, or for a multi_group pass (PRO) adds /
+   * unbinds one and keeps the list open. The caption shows the pass's groups after the change.
+   */
   private handleRequestGroupSelect = async (ctx: BotContext) => {
     return this.handleActivatePassAction(ctx, async (request) => {
       const [, groupId] = RegexHelper.getMatchGroupValue(ctx)
@@ -265,22 +268,31 @@ export class VerificationRequestComposer {
         return BotHelper.safeAnswerCbQuery(ctx, '⚠️ Цю групу не можна обрати, оновіть запит', { show_alert: true })
       }
 
-      const [, logOperations] = await this.passService.updatePass(request!.pass.id, { groupId: group.id })
-      AuditLogHelper.startAction(ctx, AuditLogActions.PASS_EDIT, AuditLogTrigger.ADMIN_ACTION, logOperations)
-      await BotHelper.safeAnswerCbQuery(ctx, `👯‍♀️ Група: ${group.name}`)
+      const [result, logOperations] = await this.passService.togglePassGroup(request!.pass.id, group.id)
+      if (result === 'last_group') {
+        return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.LAST_GROUP, { show_alert: true })
+      }
+      if (result === 'not_fixed' || result === 'unknown_group') {
+        return BotHelper.safeAnswerCbQuery(ctx, '⚠️ Цю групу не можна обрати, оновіть запит', { show_alert: true })
+      }
 
+      AuditLogHelper.startAction(ctx, AuditLogActions.PASS_EDIT, AuditLogTrigger.ADMIN_ACTION, logOperations)
+      await BotHelper.safeAnswerCbQuery(ctx, `👯‍♀️ ${result === 'removed' ? 'Прибрано' : 'Група'}: ${group.name}`)
+
+      const updated = (await this.passActivationRequestService.findById(request!.id))!
       const caption = MessageHelper.getClientPassPaymentRequestMessage(
-        request!.client.userProfile,
-        request!.pass.passTemplate,
-        request!.type,
-        group.name,
+        updated.client.userProfile,
+        updated.pass.passTemplate,
+        updated.type,
+        PassSelectionHelper.getGroupNames(updated.pass),
       )
+      // PRO: the list stays for the next pick; one group: back to the request's actions
+      const keyboard = updated.pass.passTemplate.multiGroup
+        ? AdminKeyboards.passRequestGroupSelect(updated.id, groups, PassSelectionHelper.getGroupIds(updated.pass))
+        : AdminKeyboards.verifyPassActions(updated.id, { withGroupChange: true })
       return ctx
-        .editMessageCaption(caption, {
-          parse_mode: 'HTML',
-          ...AdminKeyboards.verifyPassActions(request!.id, { withGroupChange: true }),
-        })
-        .catch(() => BotHelper.safeEditMessageReplyMarkup(ctx, AdminKeyboards.verifyPassActions(request!.id, { withGroupChange: true }).reply_markup))
+        .editMessageCaption(caption, { parse_mode: 'HTML', ...keyboard })
+        .catch(() => BotHelper.safeEditMessageReplyMarkup(ctx, keyboard.reply_markup))
     })
   }
 

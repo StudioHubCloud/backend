@@ -1,4 +1,4 @@
-import { uuid, pgTable as table, uniqueIndex, varchar, integer, smallint, timestamp } from 'drizzle-orm/pg-core'
+import { uuid, pgTable as table, uniqueIndex, varchar, integer, smallint, timestamp, boolean } from 'drizzle-orm/pg-core'
 import { PASS_CONFIG } from '@app/bot/libs/constants'
 import { relations } from 'drizzle-orm'
 import { PassTemplateTypePgEnum, PassTemplateStatusPgEnum, PassGroupModePgEnum } from '../database.enums'
@@ -21,6 +21,8 @@ export const passTemplate = table(
     status: PassTemplateStatusPgEnum().notNull().default(PassTemplateStatusEnum.INACTIVE),
     // Group templates only: what a sold pass gets (copied to pass.group_mode)
     groupMode: PassGroupModePgEnum('group_mode').notNull().default(PassGroupModeEnum.FIXED),
+    // FIXED group templates: a sold pass may cover several chosen groups (pass_group), no limit (PRO)
+    multiGroup: boolean('multi_group').notNull().default(false),
     studioId: uuid('studio_id')
       .references(() => studio.id, { onDelete: 'cascade' })
       .notNull(),
