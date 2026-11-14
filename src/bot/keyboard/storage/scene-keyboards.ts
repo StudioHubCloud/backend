@@ -109,8 +109,9 @@ export class PassRelatedKeyboards {
   }
 
   /**
-   * Group a FIXED pass is bound to. The suggested group (picked at registration, or the current pass's group on a
-   * renewal) comes first and green.
+   * Group(s) a FIXED pass is bound to. The suggested group (picked at registration, or the current pass's group on a
+   * renewal) comes first and green. A multi_group pass (PRO): `selectedIds` are ✅ and green (a tap toggles), and
+   * "✅ Готово (N)" (`doneCallbackData`) appears once a group is picked.
    */
   static passGroupSelectInlineKeyboard(
     groups: (GroupSelectModel & { groupStyle?: { emoji: string } | null })[],
@@ -118,16 +119,30 @@ export class PassRelatedKeyboards {
       suggestedGroupId,
       backCallbackData,
       showAllCallbackData,
-    }: { suggestedGroupId?: number | null; backCallbackData?: string; showAllCallbackData?: string } = {},
+      selectedIds,
+      doneCallbackData,
+    }: {
+      suggestedGroupId?: number | null
+      backCallbackData?: string
+      showAllCallbackData?: string
+      selectedIds?: number[]
+      doneCallbackData?: string
+    } = {},
   ): TReplyInlineKeyboard {
+    const isSelected = (id: number) => !!selectedIds?.includes(id)
     const sorted = [...groups].sort((a, b) => Number(b.id === suggestedGroupId) - Number(a.id === suggestedGroupId))
     const rows: InlineKeyboardButton[][] = sorted.map((group) => {
       const button: InlineKeyboardButton = {
-        text: [group.groupStyle?.emoji, group.name].filter(Boolean).join(' '),
+        text: [isSelected(group.id) ? '✅' : '', group.groupStyle?.emoji, group.name].filter(Boolean).join(' '),
         callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.SCENES.PASS.GROUP_SELECT, String(group.id)),
       }
-      return [group.id === suggestedGroupId ? KeyboardHelper.withStyle(button, 'success') : button]
+      const green = selectedIds ? isSelected(group.id) : group.id === suggestedGroupId
+      return [green ? KeyboardHelper.withStyle(button, 'success') : button]
     })
+
+    if (doneCallbackData && selectedIds?.length) {
+      rows.push([KeyboardHelper.withStyle({ text: `${BUTTON_PATTERNS.DONE_GROUPS} (${selectedIds.length})`, callback_data: doneCallbackData }, 'success')])
+    }
 
     if (showAllCallbackData) {
       rows.push([{ text: BUTTON_PATTERNS.SHOW_ALL_GROUPS, callback_data: showAllCallbackData }])

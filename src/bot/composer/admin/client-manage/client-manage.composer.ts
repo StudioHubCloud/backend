@@ -16,6 +16,7 @@ import {
   TEditPassSceneAction,
   TEditUserProfileSceneAction,
   TPaginatedMenuRenderOptions,
+  TPassGroupChange,
   UserProfileWithClient,
   UserProfileWithRoleRelations,
 } from '@app/bot/libs'
@@ -25,6 +26,7 @@ import { MessageHelper } from '@app/bot/helpers/message.helper'
 import {
   AuditLogActions,
   AuditLogTrigger,
+  PassGroupModeEnum,
   PassStatusEnum,
   PassTemplateTypeEnum,
   UserProfileStatusEnum,
@@ -35,6 +37,8 @@ import { PersonalTrainingSignupService } from '@app/domain/personal-training-sig
 import { PersonalTrainingKeyboards } from '@app/bot/keyboard/storage'
 import { MESSAGES_SCENE } from '@app/bot/static/messages'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
+import { GroupService } from '@app/domain/group'
+import { GroupAgeRestrictionService } from '@app/domain/group-age-restriction'
 
 type TClientPass = NonNullable<Awaited<ReturnType<PassService['findStudioPassById']>>>
 
@@ -49,6 +53,8 @@ export class ClientManageComposer {
     private readonly trainingSignupService: TrainingSignupService,
     private readonly passService: PassService,
     private readonly personalTrainingSignupService: PersonalTrainingSignupService,
+    private readonly groupService: GroupService,
+    private readonly groupAgeRestrictionService: GroupAgeRestrictionService,
   ) {
     this.composer = new Composer<BotContext>()
 
@@ -96,6 +102,18 @@ export class ClientManageComposer {
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.FREEZE), (ctx) => {
       return this.withPassIdAction(ctx, (clientUserProfile, pass) => this.handleFreezePassAction(ctx, clientUserProfile, pass))
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.GROUPS), (ctx) => {
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) => this.handlePassGroupsAction(ctx, clientUserProfile, pass))
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.GROUP_TOGGLE), (ctx) => {
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) => this.handlePassGroupToggleAction(ctx, clientUserProfile, pass))
+    })
+
+    this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.GROUP_CONFIRM), (ctx) => {
+      return this.withPassIdAction(ctx, (clientUserProfile, pass) => this.handlePassGroupConfirmAction(ctx, clientUserProfile, pass))
     })
 
     this.composer.action(RegexHelper.createButtonActionRegex(CALLBACK_PREFIX.STAFF.PERSONAL_TRAINING.REGISTER), (ctx) => {
@@ -394,6 +412,161 @@ export class ClientManageComposer {
     BotHelper.safeAnswerCbQuery(ctx)
     BotHelper.safeDeleteMessage(ctx)
     return ctx.scene.enter(SCENES.PASS_FREEZE, { passId: pass.id, clientUserId: clientUserProfile.id })
+  }
+
+  /** Why the admin can't change this pass's groups (alert), or null: admins only, an active FIXED group pass. */
+  private getPassGroupsRefusal(ctx: BotContext, pass: TClientPass): string | null {
+    if (!UserHelper.isAdminRole(ctx)) {
+      return MESSAGES_SCENE.PASS_GROUP.NOT_ALLOWED
+    }
+    const isFixed = pass.passTemplate.type === PassTemplateTypeEnum.GROUP && pass.groupMode === PassGroupModeEnum.FIXED
+    return isFixed && pass.status === PassStatusEnum.ACTIVE ? null : MESSAGES_SCENE.PASS_GROUP.NOT_FIXED
+  }
+
+  private handlePassGroupsAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient, pass: TClientPass) => {
+    const refusal = this.getPassGroupsRefusal(ctx, pass)
+    if (refusal) {
+      return BotHelper.safeAnswerCbQuery(ctx, refusal, { show_alert: true })
+    }
+    BotHelper.safeAnswerCbQuery(ctx)
+    return this.renderPassGroups(ctx, clientUserProfile, pass)
+  }
+
+  /**
+   * A tap on a group in «👯‍♀️ Групи» asks first: add (PRO) / unbind (PRO) / replace (an ordinary pass). The last group
+   * can't be removed.
+   */
+  private handlePassGroupToggleAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient, pass: TClientPass) => {
+    const [, groupIdValue] = RegexHelper.getMatchGroupValue(ctx)
+    const picked = await this.getPassGroupPick(ctx, pass, Number(groupIdValue))
+    if (!picked) return
+
+    const { group, change } = picked
+    if (change === 'last_group') {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.LAST_GROUP, { show_alert: true })
+    }
+
+    const fullName = UserHelper.getDisplayName(clientUserProfile)
+    const passName = pass.passTemplate.name
+    const ageException = change !== 'remove' && !(await this.isGroupForClientAge(clientUserProfile, group.id))
+    const message = {
+      add: () => MESSAGES_SCENE.PASS_GROUP.ADD_CONFIRM({ fullName, passName, groupName: group.name, ageException }),
+      remove: () => MESSAGES_SCENE.PASS_GROUP.REMOVE_CONFIRM({ fullName, passName, groupName: group.name }),
+      replace: () =>
+        MESSAGES_SCENE.PASS_GROUP.REPLACE_CONFIRM({
+          fullName,
+          passName,
+          fromName: PassSelectionHelper.getGroupNames(pass).join(', '),
+          toName: group.name,
+          ageException,
+        }),
+    }[change]()
+
+    BotHelper.safeAnswerCbQuery(ctx)
+    return BotHelper.safeEditMessageText(ctx, message, AdminKeyboards.passGroupConfirm(pass.id, group.id, change))
+  }
+
+  /**
+   * "Так, додати / прибрати / замінити": applied only if the pass still needs exactly that change, so a second tap or
+   * a stale confirmation never toggles the group back.
+   */
+  private handlePassGroupConfirmAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient, pass: TClientPass) => {
+    const [, confirmValue] = RegexHelper.getMatchGroupValue(ctx)
+    const [groupIdValue, confirmedChange] = (confirmValue ?? '').split('-')
+    const picked = await this.getPassGroupPick(ctx, pass, Number(groupIdValue))
+    if (!picked) return
+
+    const { group, change } = picked
+    if (change !== confirmedChange) {
+      if (change === 'last_group') {
+        BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.LAST_GROUP, { show_alert: true })
+      } else {
+        BotHelper.safeAnswerCbQuery(ctx)
+      }
+      return this.renderPassGroups(ctx, clientUserProfile, pass)
+    }
+    return this.applyPassGroupToggle(ctx, clientUserProfile, pass, group)
+  }
+
+  /** The group (an active one of this studio) and what a toggle would do to the pass now; null when refused (alert shown). */
+  private async getPassGroupPick(ctx: BotContext, pass: TClientPass, groupId: number) {
+    const refusal = this.getPassGroupsRefusal(ctx, pass)
+    if (refusal) {
+      BotHelper.safeAnswerCbQuery(ctx, refusal, { show_alert: true })
+      return null
+    }
+
+    const groups = await this.groupService.getAllActiveGroups()
+    const group = groups.find((g) => g.id === groupId)
+    if (!group) {
+      BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.HINT, { show_alert: true })
+      return null
+    }
+
+    const boundIds = PassSelectionHelper.getGroupIds(pass)
+    const change: TPassGroupChange | 'last_group' = boundIds.includes(group.id)
+      ? boundIds.length > 1
+        ? 'remove'
+        : 'last_group'
+      : pass.passTemplate.multiGroup
+        ? 'add'
+        : 'replace'
+    return { group, change }
+  }
+
+  private async isGroupForClientAge(clientUserProfile: UserProfileWithClient, groupId: number): Promise<boolean> {
+    const ageGroups = await this.groupService.getAgeAppropriateActiveGroups(clientUserProfile.dateOfBirth ?? null)
+    return ageGroups.some((g) => g.id === groupId)
+  }
+
+  /** Toggle the group, add an age exception for a new group outside the client's age, audit, toast, re-render the list. */
+  private async applyPassGroupToggle(
+    ctx: BotContext,
+    clientUserProfile: UserProfileWithClient,
+    pass: TClientPass,
+    group: { id: number; name: string },
+  ) {
+    const [result, logOperations] = await this.passService.togglePassGroup(pass.id, group.id)
+    if (result === 'last_group') {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.LAST_GROUP, { show_alert: true })
+    }
+    if (result === 'not_fixed' || result === 'unknown_group') {
+      return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.NOT_FIXED, { show_alert: true })
+    }
+
+    if (result !== 'removed' && !(await this.isGroupForClientAge(clientUserProfile, group.id))) {
+      await this.groupAgeRestrictionService.addException(clientUserProfile.id, group.id)
+    }
+
+    AuditLogHelper.startAction(ctx, AuditLogActions.PASS_EDIT, AuditLogTrigger.ADMIN_ACTION, logOperations)
+    const toast = { added: MESSAGES_SCENE.PASS_GROUP.ADDED, removed: MESSAGES_SCENE.PASS_GROUP.REMOVED, replaced: MESSAGES_SCENE.PASS_GROUP.REPLACED }
+    BotHelper.safeAnswerCbQuery(ctx, toast[result](group.name))
+
+    const updated = await this.passService.findStudioPassById(pass.id)
+    return updated ? this.renderPassGroups(ctx, clientUserProfile, updated) : undefined
+  }
+
+  private renderPassGroups = async (ctx: BotContext, clientUserProfile: UserProfileWithClient, pass: TClientPass) => {
+    const [groups, ageGroups] = await Promise.all([
+      this.groupService.getAllActiveGroups(),
+      this.groupService.getAgeAppropriateActiveGroups(clientUserProfile.dateOfBirth ?? null),
+    ])
+    const message = MESSAGES_SCENE.PASS_GROUP.CARD_LIST({
+      fullName: UserHelper.getDisplayName(clientUserProfile),
+      passName: pass.passTemplate.name,
+      groupLine: PassHelper.getGroupLine(pass.passTemplate, PassSelectionHelper.getGroupNames(pass)),
+      multiGroup: pass.passTemplate.multiGroup,
+    })
+    return BotHelper.safeEditMessageText(
+      ctx,
+      message,
+      AdminKeyboards.passGroups(
+        pass.id,
+        groups,
+        PassSelectionHelper.getGroupIds(pass),
+        ageGroups.map((g) => g.id),
+      ),
+    )
   }
 
   private handleAddNewPassAction = async (ctx: BotContext, clientUserProfile: UserProfileWithClient) => {

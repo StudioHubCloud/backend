@@ -93,8 +93,20 @@ ${duration}
 ${duration}`
   }
 
+  /** For the client: «Твоя група — <b>K-Pop</b>» / «Твої групи:» and one per line (names escaped). */
+  static getClientGroupsText(groupNames: string[]): string {
+    return groupNames.length > 1
+      ? `Твої групи:\n${this.getGroupList(groupNames)}`
+      : `Твоя група — ${TextHelper.bold(TextHelper.escapeHtml(groupNames[0] ?? ''))}`
+  }
+
+  /** Several groups, one per line: "   • <b>K-Pop</b>". */
+  private static getGroupList(groupNames: string[]): string {
+    return groupNames.map((name) => `   • ${TextHelper.bold(TextHelper.escapeHtml(name))}`).join('\n')
+  }
+
   /**
-   * "👯‍♀️ Група: …" for a group pass: the bound group ("Групи: A, B" for several), or any group for a FLEX one;
+   * "👯‍♀️ Група: …" for a group pass: the bound group (several: "Групи:" and one per line), or any group for a FLEX one;
    * '' for an individual pass. Clients don't see the staff term "FLEX".
    */
   static getGroupLine(
@@ -108,8 +120,10 @@ ${duration}`
     if (passTemplate.groupMode === PassGroupModeEnum.FLEX) {
       return `👯‍♀️ Група: ${TextHelper.bold(forClient ? 'будь-яка ✨' : 'будь-яка (FLEX)')}\n`
     }
-    const names = (Array.isArray(groupNames) ? groupNames : [groupNames ?? '']).map((name) => TextHelper.escapeHtml(name))
-    return `👯‍♀️ ${names.length > 1 ? 'Групи' : 'Група'}: ${TextHelper.bold(names.join(', '))}\n`
+    const names = Array.isArray(groupNames) ? groupNames : [groupNames ?? '']
+    return names.length > 1
+      ? `👯‍♀️ Групи:\n${this.getGroupList(names)}\n`
+      : `👯‍♀️ Група: ${TextHelper.bold(TextHelper.escapeHtml(names[0] ?? ''))}\n`
   }
 
   static toDisplayPrice(price: number): string {
@@ -264,7 +278,20 @@ ${TextHelper.bold(isPassInactive ? '📅 Автоматично активуєт
       const passChoices = (data.activePasses ?? []).map((p) => ({ id: p.id, label: PassSelectionHelper.getLabel(p) }))
       const today = dateTimeProvider.getTodayDateStringInTz(DATE_FORMAT.DATE_MAIN)
       const canFreeze = PassSelectionHelper.getFreezeRefusal(pass, today) === null
-      const keyboard = AdminKeyboards.passManageMenu(clientUserId, pass.id, isPassActivated, isIndividualPass, passChoices, canFreeze)
+      // «👯‍♀️ Групи»: a FIXED group pass that is still in use (a requested one changes its groups on the request)
+      const canEditGroups =
+        pass.passTemplate.type === PassTemplateTypeEnum.GROUP &&
+        pass.groupMode === PassGroupModeEnum.FIXED &&
+        pass.status === PassStatusEnum.ACTIVE
+      const keyboard = AdminKeyboards.passManageMenu(
+        clientUserId,
+        pass.id,
+        isPassActivated,
+        isIndividualPass,
+        passChoices,
+        canFreeze,
+        canEditGroups,
+      )
 
       if (!shouldEdit) {
         if (data.editMessageId) {

@@ -102,6 +102,9 @@ export const MESSAGES_SCENE = {
     PASS_REQUEST_SUCCESS: `✅ Запит на покупку абонементу отримано!\n\nМи швидко перевіримо твою оплату. 😉\n\nЯкщо все вірно, ми активуємо твій абонемент і повідомимо тебе! 📲`,
     PASS_RENEW_SUCCESS: `✅ Запит на поновлення абонементу отримано!\n\nМи швидко перевіримо твою оплату. 😉\n\nЯкщо все вірно, ми активуємо твій абонемент і повідомимо тебе! 📲`,
     SELECT_GROUP: `💃 Обери свою групу\n\nАбонемент діятиме саме в ній ✨`,
+    // multi_group pass (PRO)
+    SELECT_GROUPS: `💃 Обери свої групи\n\nАбонемент діятиме в усіх, які відмітиш ✨\n<i>Тапни групу, щоб відмітити ✅, потім «Готово»</i>`,
+    PICK_ONE_GROUP: `Обери хоча б одну групу 👆`,
     NO_GROUP_FOR_AGE: `Хмм, поки не бачу групи саме для тебе 🙈\nНапиши адміністратору — разом підберемо найкращий варіант ✨`,
     PASS_RENEW_WELCOME: `Ласкаво просимо до процесу поновлення абонементу! 🎉\n\nЯкщо в тебе виникнуть питання, не соромся звертатися за допомогою. Ми тут, щоб зробити твій досвід максимально приємним! 😊`,
   },
@@ -111,6 +114,34 @@ export const MESSAGES_SCENE = {
     SELECT_ALL: `👯‍♀️ Оберіть групу для абонемента\n<i>За віком клієнта груп немає, тому показано всі</i>`,
     HINT: `Оберіть групу в списку вище 👆`,
     LAST_GROUP: `⚠️ У абонемента має лишитись хоча б одна група`,
+    // multi_group pass (PRO), appended to the list's text
+    MULTI_HINT: `\n<i>Можна обрати кілька груп: тапніть, щоб відмітити ✅, потім «Готово»</i>`,
+    PICK_ONE: `Оберіть хоча б одну групу 👆`,
+    // Pass card «👯‍♀️ Групи» (admin)
+    CARD_LIST: (data: { fullName: string; passName: string; groupLine: string; multiGroup: boolean }) =>
+      `👯‍♀️ ${TextHelper.bold('Групи абонемента')} «${TextHelper.escapeHtml(data.passName)}» · ${TextHelper.escapeHtml(data.fullName)}\n\n` +
+      data.groupLine +
+      (data.multiGroup
+        ? `\n<i>Тапніть групу, щоб додати її або прибрати (✅). Записи, вже зроблені з абонемента, лишаються.</i>`
+        : `\n<i>Тапніть іншу групу, щоб замінити групу абонемента.</i>`) +
+      `\n<i>⚠️ — не за віком клієнта: буде додано виняток.</i>`,
+    NOT_ALLOWED: `❗️ Групи абонемента змінює лише адміністратор.`,
+    NOT_FIXED: `❗️ Цей абонемент не прив'язаний до груп.`,
+    ADDED: (name: string) => `✅ Додано: ${name}`,
+    REMOVED: (name: string) => `✖️ Прибрано: ${name}`,
+    REPLACED: (name: string) => `👯‍♀️ Група: ${name}`,
+    // Every change of a pass's groups asks first: a stray tap must not change the pass
+    ADD_CONFIRM: (data: { fullName: string; passName: string; groupName: string; ageException: boolean }) =>
+      `❓ Ви дійсно хочете додати групу ${TextHelper.bold(TextHelper.escapeHtml(data.groupName))} до абонемента «${TextHelper.escapeHtml(data.passName)}» · ${TextHelper.escapeHtml(data.fullName)}?\n\n` +
+      `<i>Клієнт зможе записуватись у цю групу з цим абонементом.</i>` +
+      (data.ageException ? `\n<i>⚠️ Група не за віком клієнта: буде додано виняток.</i>` : ''),
+    REMOVE_CONFIRM: (data: { fullName: string; passName: string; groupName: string }) =>
+      `❓ Ви дійсно хочете прибрати групу ${TextHelper.bold(TextHelper.escapeHtml(data.groupName))} з абонемента «${TextHelper.escapeHtml(data.passName)}» · ${TextHelper.escapeHtml(data.fullName)}?\n\n` +
+      `<i>Клієнт більше не зможе записуватись у цю групу з цим абонементом. Записи, вже зроблені з абонемента, лишаються.</i>`,
+    REPLACE_CONFIRM: (data: { fullName: string; passName: string; fromName: string; toName: string; ageException: boolean }) =>
+      `❓ Ви дійсно хочете замінити групу ${TextHelper.bold(TextHelper.escapeHtml(data.fromName))} на ${TextHelper.bold(TextHelper.escapeHtml(data.toName))} в абонементі «${TextHelper.escapeHtml(data.passName)}» · ${TextHelper.escapeHtml(data.fullName)}?\n\n` +
+      `<i>Записи, вже зроблені з абонемента, лишаються.</i>` +
+      (data.ageException ? `\n<i>⚠️ Група не за віком клієнта: буде додано виняток.</i>` : ''),
     SELECT_ANY: `👯‍♀️ Оберіть групу для абонемента\n<i>Показано всі групи. Для групи не за віком клієнта буде додано виняток</i>`,
     AGE_EXCEPTION: `⚠️ Група не за віком клієнта: буде додано виняток, щоб клієнт міг записуватись`,
   },

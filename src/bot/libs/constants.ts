@@ -181,6 +181,9 @@ export const CALLBACK_PREFIX = {
         EDIT_END_DATE: 'm.p.e.e.cl',
         EDIT_LENGTH: 'm.p.e.l.cl',
         FREEZE: 'm.p.frz.cl',
+        GROUPS: 'm.p.grp.cl', // «👯‍♀️ Групи» of a FIXED pass (value: passId)
+        GROUP_TOGGLE: 'm.p.grt.cl', // value: passId, subvalue: groupId — asks to add / unbind (PRO) or replace
+        GROUP_CONFIRM: 'm.p.grc.cl', // value: passId, subvalue: `${groupId}-${add|remove|replace}` — the confirmed change
       },
     },
   },
@@ -198,6 +201,7 @@ export const CALLBACK_PREFIX = {
       GROUP_SELECT: 'sc.pass.grp.sel',
       GROUP_BACK: 'sc.pass.grp.b',
       GROUP_SHOW_ALL: 'sc.pass.grp.all', // admin: all groups, outside the client's age too (adds an exception)
+      GROUP_DONE: 'sc.pass.grp.ok', // multi_group pass (PRO): the picked groups are final
     },
     FILE: {
       BACK: 'sc.file.b',

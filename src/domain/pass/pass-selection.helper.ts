@@ -140,17 +140,23 @@ export class PassSelectionHelper {
   }
 
   /**
-   * «STANDART · K-Pop» (до 20.10.2026); «PRO · K-Pop, Jazz-Funk»; «Легкий старт · будь-яка група»; «INDIVIDUAL»;
+   * «STANDART · K-Pop» (до 20.10.2026); «PRO · K-Pop +1»; «Легкий старт · будь-яка група»; «INDIVIDUAL»;
    * optionally with sessions left.
    */
   static getLabel(pass: TLabelPass, { withSlots = false } = {}): string {
     const isGroup = pass.passTemplate.type === PassTemplateTypeEnum.GROUP
     const scope = !isGroup
       ? ''
-      : ` · ${pass.groupMode === PassGroupModeEnum.FLEX ? 'будь-яка група' : this.getGroupNames(pass).join(', ') || '—'}`
+      : ` · ${pass.groupMode === PassGroupModeEnum.FLEX ? 'будь-яка група' : this.getShortGroupsText(this.getGroupNames(pass))}`
     const slots = withSlots ? ` · залишок ${pass.availableSlots}` : ''
     const until = this.isStarted(pass) ? ` (до ${format(parseISO(pass.endDate!), 'dd.MM.yyyy')})` : ''
     return `«${pass.passTemplate.name}${scope}»${slots}${until}`
+  }
+
+  /** "K-Pop"; "K-Pop +2" for several groups (labels stay short enough for a button; the card lists them all). */
+  private static getShortGroupsText(names: string[]): string {
+    if (!names.length) return '—'
+    return names.length > 1 ? `${names[0]} +${names.length - 1}` : names[0]
   }
 
   /** Started passes by end date, then not started ones by sale date. */

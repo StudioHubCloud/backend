@@ -390,10 +390,10 @@ export class UserProfileService {
 
   async verifyClient(data: IVerifyClientSceneState | IPassOpenSceneState): Promise<[boolean, AuditLogServiceOperation[]]> {
     const { userProfile, passTemplate, saleDate } = data
-    const groupId = 'groupId' in data ? (data.groupId ?? null) : null
+    const groupIds = data.groupIds ?? []
 
     // A FIXED group pass is always bound to a group (the scene asks for it)
-    if (passTemplate.type === PassTemplateTypeEnum.GROUP && passTemplate.groupMode === PassGroupModeEnum.FIXED && !groupId) {
+    if (passTemplate.type === PassTemplateTypeEnum.GROUP && passTemplate.groupMode === PassGroupModeEnum.FIXED && !groupIds.length) {
       throw new BadRequestException('A FIXED group pass needs a group')
     }
 
@@ -414,7 +414,7 @@ export class UserProfileService {
             status: PassStatusEnum.ACTIVE,
             availableSlots: passTemplate.length,
             groupMode: passTemplate.groupMode,
-            groupIds: groupId ? [groupId] : [],
+            groupIds,
           },
           tx,
         ),

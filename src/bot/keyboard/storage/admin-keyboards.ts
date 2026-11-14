@@ -1,6 +1,6 @@
 import { KeyboardHelper, PassHelper, RegexHelper, TextHelper } from '@app/bot/helpers'
 import { KEYBOARDS_ADMIN } from '@app/bot/static/keyboards'
-import { CALLBACK_PREFIX, GetTrainingByIdResponse, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
+import { CALLBACK_PREFIX, GetTrainingByIdResponse, TPassGroupChange, TReplyInlineKeyboard, TReplyMarkupKeyboard } from '@app/bot/libs'
 import { InlineKeyboardButton } from '@telegraf/types'
 import { BUTTON_PATTERNS } from '@app/bot/static/button-patterns'
 import { COMMON_BUTTONS } from './common-keyboards'
@@ -94,6 +94,48 @@ export class AdminKeyboards {
           callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.STAFF.USER.PASS_PAYMENT_GROUP_BACK, requestId),
         },
       ],
+    ])
+  }
+
+  /**
+   * Pass card «👯‍♀️ Групи»: every active group, the pass's groups first ✅ and green, ⚠️ on a group outside the client's
+   * age (a tap adds an exception); "⬅️ Назад" → the card of this pass.
+   */
+  static passGroups(
+    passId: string,
+    groups: { id: number; name: string; groupStyle?: { emoji: string } | null }[],
+    boundGroupIds: number[],
+    ageGroupIds: number[],
+  ): TReplyInlineKeyboard {
+    const isBound = (id: number) => boundGroupIds.includes(id)
+    const sorted = [...groups].sort((a, b) => Number(isBound(b.id)) - Number(isBound(a.id)))
+    return KeyboardHelper.createInlineKeyboard([
+      ...sorted.map((group) => {
+        const mark = isBound(group.id) ? '✅' : ageGroupIds.includes(group.id) ? '' : '⚠️'
+        const button: InlineKeyboardButton = {
+          text: [mark, group.groupStyle?.emoji, group.name].filter(Boolean).join(' '),
+          callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.GROUP_TOGGLE, passId, group.id),
+        }
+        return [isBound(group.id) ? KeyboardHelper.withStyle(button, 'success') : button]
+      }),
+      [{ text: BUTTON_PATTERNS.BACK, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.VIEW, passId) }],
+    ])
+  }
+
+  /** Confirm adding / unbinding (PRO) or replacing a pass group; "⬅️ Назад" → the group list, nothing changed. */
+  static passGroupConfirm(passId: string, groupId: number, change: TPassGroupChange): TReplyInlineKeyboard {
+    const view = {
+      add: { text: BUTTON_PATTERNS.CONFIRM_ADD_GROUP, style: 'success' },
+      remove: { text: BUTTON_PATTERNS.CONFIRM_REMOVE_GROUP, style: 'danger' },
+      replace: { text: BUTTON_PATTERNS.CONFIRM_REPLACE_GROUP, style: 'primary' },
+    } as const
+    const confirm: InlineKeyboardButton = {
+      text: view[change].text,
+      callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.GROUP_CONFIRM, passId, `${groupId}-${change}`),
+    }
+    return KeyboardHelper.createInlineKeyboard([
+      [KeyboardHelper.withStyle(confirm, view[change].style)],
+      [{ text: BUTTON_PATTERNS.BACK, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.GROUPS, passId) }],
     ])
   }
 
@@ -509,7 +551,12 @@ export class AdminKeyboards {
     isIndividualPass: boolean = false,
     passChoices: { id: string; label: string }[] = [],
     canFreeze: boolean = false,
+    canEditGroups: boolean = false,
   ): TReplyInlineKeyboard {
+    const groupRows: InlineKeyboardButton[][] = canEditGroups
+      ? [[{ text: BUTTON_PATTERNS.PASS_GROUPS, callback_data: RegexHelper.createButtonActionCallbackData(CALLBACK_PREFIX.CLIENT.MANAGE.PASS.GROUPS, passId) }]]
+      : []
+
     const freezeRows: InlineKeyboardButton[][] = canFreeze
       ? [
           [
@@ -569,6 +616,7 @@ export class AdminKeyboards {
       ...choiceRows,
       [...activateButton],
       ...individualTrainingButtons,
+      ...groupRows,
       ...freezeRows,
       [
         {

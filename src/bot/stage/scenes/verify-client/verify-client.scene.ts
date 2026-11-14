@@ -14,6 +14,7 @@ import { MessageHelper } from '@app/bot/helpers/message.helper'
 import { IVerifyClientSceneState, VerifyClientSceneHelper } from './verify-client.scene-helper'
 import { UserProfileService } from '@app/domain/user-profile'
 import { GroupService } from '@app/domain/group'
+import { GroupAgeRestrictionService } from '@app/domain/group-age-restriction'
 import { AuditLogHelper } from '@app/bot/helpers/audit-log.helper'
 
 // Wizard steps: 0 enter, 1 pass type and template, 2 group (FIXED group pass), 3 confirmation
@@ -30,6 +31,7 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
     private readonly passTemplateService: PassTemplateService,
     private readonly userProfileService: UserProfileService,
     private readonly groupService: GroupService,
+    private readonly groupAgeRestrictionService: GroupAgeRestrictionService,
   ) {
     super(
       SCENES.VERIFY_CLIENT,
@@ -99,14 +101,20 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       }
 
       const state = this.verifyClientScene.getState(ctx) as IVerifyClientSceneState
-      const { saleDate, passTemplate, userProfile, groupId } = state
+      const { saleDate, passTemplate, userProfile, groupIds = [] } = state
 
       const [_, logOperations] = await this.userProfileService.verifyClient({
         userProfile,
         passTemplate,
         saleDate,
-        groupId,
+        groupIds,
       })
+
+      // A group outside the client's age (none fits, so every group was listed): signups need an exception
+      const ageGroups = await this.groupService.getAgeAppropriateActiveGroups(userProfile.dateOfBirth ?? null)
+      for (const groupId of groupIds.filter((id) => !ageGroups.some((g) => g.id === id))) {
+        await this.groupAgeRestrictionService.addException(userProfile.id, groupId)
+      }
 
       AuditLogHelper.startAction(ctx, AuditLogActions.CLIENT_VERIFY_CONFIRM, AuditLogTrigger.ADMIN_ACTION, logOperations)
 
@@ -198,7 +206,11 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       }
 
       BotHelper.safeAnswerCbQuery(ctx)
-      this.verifyClientScene.setState(ctx, { passTemplate: passTemplateData, groupId: null, groupName: undefined })
+      // PRO (multi_group): the registration pick starts ticked; one group: it is only suggested (green)
+      const { suggestedGroupId } = this.verifyClientScene.getState(ctx)
+      const startIds = passTemplateData.multiGroup && suggestedGroupId ? [suggestedGroupId] : []
+      this.verifyClientScene.setState(ctx, { passTemplate: passTemplateData, groupIds: [], groupNames: [] })
+      await this.setPickedGroups(ctx, startIds)
 
       const isFixedGroupPass =
         passTemplateData.type === PassTemplateTypeEnum.GROUP && passTemplateData.groupMode === PassGroupModeEnum.FIXED
@@ -230,6 +242,14 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
         return ctx.wizard.selectStep(PASS_TYPE_STEP)
       }
 
+      if (textPayload === CALLBACK_PREFIX.SCENES.PASS.GROUP_DONE) {
+        if (!this.verifyClientScene.getState(ctx).groupIds?.length) {
+          return BotHelper.safeAnswerCbQuery(ctx, MESSAGES_SCENE.PASS_GROUP.PICK_ONE, { show_alert: true })
+        }
+        BotHelper.safeAnswerCbQuery(ctx)
+        return this.finishGroupStep(ctx)
+      }
+
       const groupSelectMatch = RegexHelper.getMatchValue(CALLBACK_PREFIX.SCENES.PASS.GROUP_SELECT, textPayload)
       if (!groupSelectMatch) {
         return BotHelper.safeAnswerCbQuery(ctx)
@@ -244,19 +264,16 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
       }
 
       BotHelper.safeAnswerCbQuery(ctx)
-      this.verifyClientScene.setState(ctx, { groupId: group.id, groupName: group.name })
-      const { groupListMessageId } = this.verifyClientScene.getState(ctx)
-      if (groupListMessageId) {
-        await BotHelper.safeEditMessageTextById(
-          ctx,
-          ctx.chat?.id,
-          groupListMessageId,
-          `👯‍♀️ Група: ${TextHelper.bold(TextHelper.escapeHtml(group.name))}`,
-        )
-      }
-      this.verifyClientScene.setState(ctx, { groupListMessageId: null })
+      const { passTemplate, groupIds = [] } = this.verifyClientScene.getState(ctx)
 
-      return this.renderConfirm(ctx)
+      if (!passTemplate.multiGroup) {
+        await this.setPickedGroups(ctx, [group.id])
+        return this.finishGroupStep(ctx)
+      }
+
+      // PRO: toggle, the list stays until "Готово"
+      await this.setPickedGroups(ctx, groupIds.includes(group.id) ? groupIds.filter((id) => id !== group.id) : [...groupIds, group.id])
+      return BotHelper.safeEditMessageReplyMarkup(ctx, (await this.getGroupListKeyboard(ctx)).reply_markup)
     } catch (error) {
       await this.handleError(ctx, error, 'Failed to process group selection')
     }
@@ -270,16 +287,42 @@ export class VerifyClientScene extends Scenes.WizardScene<BotContext> {
 
   /** Groups for the client's age, the registration pick first and green; all active groups if none fits the age. */
   private async renderGroupList(ctx: BotContext) {
-    const { groups, isAgeFiltered } = await this.getGroupsForClient(ctx)
-    const { suggestedGroupId } = this.verifyClientScene.getState(ctx)
+    const { isAgeFiltered } = await this.getGroupsForClient(ctx)
+    const { passTemplate } = this.verifyClientScene.getState(ctx)
+    const text = isAgeFiltered ? MESSAGES_SCENE.PASS_GROUP.SELECT : MESSAGES_SCENE.PASS_GROUP.SELECT_ALL
     const message = await ctx.replyWithHTML(
-      isAgeFiltered ? MESSAGES_SCENE.PASS_GROUP.SELECT : MESSAGES_SCENE.PASS_GROUP.SELECT_ALL,
-      PassRelatedKeyboards.passGroupSelectInlineKeyboard(groups, {
-        suggestedGroupId,
-        backCallbackData: CALLBACK_PREFIX.SCENES.PASS.GROUP_BACK,
-      }),
+      passTemplate.multiGroup ? text + MESSAGES_SCENE.PASS_GROUP.MULTI_HINT : text,
+      await this.getGroupListKeyboard(ctx),
     )
     this.verifyClientScene.setState(ctx, { groupListMessageId: message.message_id })
+  }
+
+  /** One group: the registration pick green. PRO: the picked groups ✅ and "✅ Готово (N)". */
+  private async getGroupListKeyboard(ctx: BotContext) {
+    const { groups } = await this.getGroupsForClient(ctx)
+    const { suggestedGroupId, passTemplate, groupIds = [] } = this.verifyClientScene.getState(ctx)
+    return PassRelatedKeyboards.passGroupSelectInlineKeyboard(groups, {
+      suggestedGroupId,
+      backCallbackData: CALLBACK_PREFIX.SCENES.PASS.GROUP_BACK,
+      ...(passTemplate.multiGroup ? { selectedIds: groupIds, doneCallbackData: CALLBACK_PREFIX.SCENES.PASS.GROUP_DONE } : {}),
+    })
+  }
+
+  /** Picked groups (active groups of the studio only) with their names. */
+  private async setPickedGroups(ctx: BotContext, ids: number[]) {
+    const allGroups = ids.length ? await this.groupService.getAllActiveGroups() : []
+    const picked = ids.map((id) => allGroups.find((g) => g.id === id)).filter((g) => !!g)
+    this.verifyClientScene.setState(ctx, { groupIds: picked.map((g) => g.id), groupNames: picked.map((g) => g.name) })
+  }
+
+  /** The list turns into a plain "👯‍♀️ Група(и): …" line (no dead buttons), then the confirmation. */
+  private async finishGroupStep(ctx: BotContext) {
+    const { groupListMessageId, passTemplate, groupNames = [] } = this.verifyClientScene.getState(ctx)
+    if (groupListMessageId) {
+      await BotHelper.safeEditMessageTextById(ctx, ctx.chat?.id, groupListMessageId, PassHelper.getGroupLine(passTemplate, groupNames).trim())
+    }
+    this.verifyClientScene.setState(ctx, { groupListMessageId: null })
+    return this.renderConfirm(ctx)
   }
 
   private async getGroupsForClient(ctx: BotContext) {

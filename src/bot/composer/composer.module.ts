@@ -9,6 +9,7 @@ import {
   StaffMemberPayoutModule,
   PassActivationRequestModule,
   PersonalTrainingSignupModule,
+  GroupAgeRestrictionModule,
 } from '@app/domain'
 import { DateTimeProvider } from '@app/infrastructure/providers'
 import { APP } from '@app/libs'
@@ -33,6 +34,7 @@ import { MenuModule } from '@app/bot/menus/menu.module'
     StaffMemberPayoutModule,
     PassActivationRequestModule,
     PersonalTrainingSignupModule,
+    GroupAgeRestrictionModule,
   ],
   providers: [
     ComposerService,

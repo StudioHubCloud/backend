@@ -7,9 +7,9 @@ export interface IVerifyClientSceneState {
   userProfile: UserProfileSelectModel
   passTemplate: PassTemplateSelectModel
   saleDate: string
-  /** Group a FIXED pass is bound to (picked at registration, confirmed or changed by the admin) */
-  groupId?: number | null
-  groupName?: string
+  /** Groups a FIXED pass is bound to (picked at registration, confirmed or changed by the admin; several for PRO) */
+  groupIds?: number[]
+  groupNames?: string[]
   /** The group the client picked at registration (first and green in the list) */
   suggestedGroupId?: number | null
   /** Open inline group list, removed when leaving the step */
@@ -29,7 +29,7 @@ export class VerifyClientSceneHelper {
       `💰 Ціна: <b>${PassHelper.toDisplayPrice(passTemplate.price)}</b>\n` +
       `➡️ Кількість тренувань: <b>${passTemplate.length}</b>\n` +
       `➡️ Тип: <b>${PassHelper.getPassTemplateTypeLabel(passTemplate.type)}</b>\n` +
-      PassHelper.getGroupLine(data.passTemplate, data.groupName)
+      PassHelper.getGroupLine(data.passTemplate, data.groupNames ?? [])
     )
   }
 
@@ -48,7 +48,7 @@ export class VerifyClientSceneHelper {
   }
 
   /** What the client can sign up for with the new pass. */
-  private static getClientGroupInfo({ passTemplate, groupName }: IVerifyClientSceneState): string {
+  private static getClientGroupInfo({ passTemplate, groupNames = [] }: IVerifyClientSceneState): string {
     if (passTemplate.type !== PassTemplateTypeEnum.GROUP) {
       return `Вперед створювати свою найкращу версію разом з нами! 🌸`
     }
@@ -56,7 +56,7 @@ export class VerifyClientSceneHelper {
       return `З цим абонементом можна ходити в будь-яку групу — обирай напрямок і вперед створювати свою найкращу версію разом з нами! 🌸`
     }
     return (
-      `👯‍♀️ Твоя група — <b>${TextHelper.escapeHtml(groupName ?? '')}</b>\n` +
+      `👯‍♀️ ${PassHelper.getClientGroupsText(groupNames)}\n` +
       `Записуйся на тренування через «${BUTTON_PATTERNS.SCHEDULE}» і вперед створювати свою найкращу версію разом з нами! 🌸`
     )
   }
